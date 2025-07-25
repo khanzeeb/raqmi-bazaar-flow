@@ -11,6 +11,7 @@ import {
   User,
   ChevronDown
 } from "lucide-react";
+import raqmiLogo from "@/assets/raqmi-logo.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,9 +34,21 @@ export function AppHeader({ isArabic, onLanguageToggle, onThemeToggle, isDark }:
   return (
     <header className="h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex items-center justify-between h-full px-4">
-        {/* Left side - Sidebar trigger and search */}
+        {/* Left side - Sidebar trigger, logo and search */}
         <div className="flex items-center gap-4">
           <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+          
+          {/* Company Logo */}
+          <div className="flex items-center gap-2">
+            <img 
+              src={raqmiLogo} 
+              alt="RaqmiStore Logo" 
+              className="h-8 w-8 object-contain"
+            />
+            <span className="font-bold text-foreground hidden sm:block">
+              {isArabic ? "متجر رقمي" : "RaqmiStore"}
+            </span>
+          </div>
           
           <div className="relative w-96 hidden md:block">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
