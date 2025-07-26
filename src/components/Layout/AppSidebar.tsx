@@ -53,7 +53,7 @@ const navigationItems = [
   { 
     title: "Sales Orders", 
     titleAr: "أوامر البيع",
-    url: "/sales", 
+    url: "/sales-orders", 
     icon: ShoppingCart,
     iconColor: "icon-purple"
   },
