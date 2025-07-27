@@ -2,14 +2,16 @@ import { useState, useEffect } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const [isArabic, setIsArabic] = useState(false);
+  const { language, toggleLanguage } = useLanguage();
   const [isDark, setIsDark] = useState(false);
+  const isArabic = language === 'ar';
 
   // Initialize theme from localStorage or system preference
   useEffect(() => {
@@ -21,25 +23,6 @@ export function AppLayout({ children }: AppLayoutProps) {
       document.documentElement.classList.add("dark");
     }
   }, []);
-
-  // Initialize language from localStorage
-  useEffect(() => {
-    const savedLanguage = localStorage.getItem("language");
-    if (savedLanguage === "ar") {
-      setIsArabic(true);
-      document.documentElement.setAttribute("dir", "rtl");
-      document.documentElement.setAttribute("lang", "ar");
-    }
-  }, []);
-
-  const handleLanguageToggle = () => {
-    const newIsArabic = !isArabic;
-    setIsArabic(newIsArabic);
-    
-    localStorage.setItem("language", newIsArabic ? "ar" : "en");
-    document.documentElement.setAttribute("dir", newIsArabic ? "rtl" : "ltr");
-    document.documentElement.setAttribute("lang", newIsArabic ? "ar" : "en");
-  };
 
   const handleThemeToggle = () => {
     const newIsDark = !isDark;
@@ -62,7 +45,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="flex-1 flex flex-col min-w-0">
           <AppHeader 
             isArabic={isArabic}
-            onLanguageToggle={handleLanguageToggle}
+            onLanguageToggle={toggleLanguage}
             onThemeToggle={handleThemeToggle}
             isDark={isDark}
           />

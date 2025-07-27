@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Filter, Download, Printer, Eye, Send, CheckCircle, Clock, XCircle } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { QuotationDialog } from "@/components/Quotations/QuotationDialog";
 
 export interface Quotation {
   id: string;
@@ -38,7 +39,9 @@ const Quotations = () => {
   const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<'all' | Quotation['status']>('all');
-  const [quotations] = useState<Quotation[]>([
+  const [quotations, setQuotations] = useState<Quotation[]>([
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedQuotation, setSelectedQuotation] = useState<Quotation | undefined>(undefined);
     {
       id: '1',
       quotationNumber: 'QT-001',
@@ -156,7 +159,13 @@ const Quotations = () => {
           <Button variant="outline" size="icon">
             <Filter className="w-4 h-4" />
           </Button>
-          <Button className="flex items-center gap-2">
+          <Button 
+            className="flex items-center gap-2"
+            onClick={() => {
+              setSelectedQuotation(undefined);
+              setIsDialogOpen(true);
+            }}
+          >
             <Plus className="w-4 h-4" />
             عرض سعر جديد
           </Button>
