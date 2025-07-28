@@ -24,7 +24,8 @@ export function QuotationDialog({
   quotation,
   onSave,
 }: QuotationDialogProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isArabic = language === 'ar';
   const [formData, setFormData] = useState({
     quotationNumber: '',
     customer: { name: '', phone: '', email: '', type: 'individual' as 'individual' | 'business' },
@@ -124,7 +125,7 @@ export function QuotationDialog({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {quotation ? 'تعديل عرض السعر' : 'عرض سعر جديد'}
+            {quotation ? (isArabic ? 'تعديل عرض السعر' : 'Edit Quotation') : (isArabic ? 'عرض سعر جديد' : 'New Quotation')}
           </DialogTitle>
         </DialogHeader>
 

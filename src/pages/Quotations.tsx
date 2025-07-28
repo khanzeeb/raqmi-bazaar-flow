@@ -36,12 +36,13 @@ export interface Quotation {
 }
 
 const Quotations = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isArabic = language === 'ar';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<'all' | Quotation['status']>('all');
-  const [quotations, setQuotations] = useState<Quotation[]>([
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | undefined>(undefined);
+  const [quotations, setQuotations] = useState<Quotation[]>([
     {
       id: '1',
       quotationNumber: 'QT-001',
@@ -106,7 +107,7 @@ const Quotations = () => {
       accepted: { ar: 'مقبول', en: 'Accepted' },
       expired: { ar: 'منتهي الصلاحية', en: 'Expired' }
     };
-    return statusMap[status]?.ar || status;
+    return statusMap[status]?.[isArabic ? 'ar' : 'en'] || status;
   };
 
   const getStatusIcon = (status: Quotation['status']) => {
@@ -267,6 +268,31 @@ const Quotations = () => {
           <p className="text-muted-foreground">لا توجد عروض أسعار مطابقة للبحث</p>
         </div>
       )}
+
+      <QuotationDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        quotation={selectedQuotation}
+        onSave={(quotationData) => {
+          if (selectedQuotation) {
+            // Update existing quotation
+            setQuotations(prev => prev.map(q => 
+              q.id === selectedQuotation.id 
+                ? { ...quotationData, id: selectedQuotation.id, createdAt: selectedQuotation.createdAt }
+                : q
+            ));
+          } else {
+            // Add new quotation
+            const newQuotation = {
+              ...quotationData,
+              id: Date.now().toString(),
+              createdAt: new Date().toISOString().split('T')[0]
+            };
+            setQuotations(prev => [newQuotation, ...prev]);
+          }
+          setIsDialogOpen(false);
+        }}
+      />
     </div>
   );
 };
