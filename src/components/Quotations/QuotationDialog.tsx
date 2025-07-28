@@ -28,7 +28,7 @@ export function QuotationDialog({
   const isArabic = language === 'ar';
   const [formData, setFormData] = useState({
     quotationNumber: '',
-    customer: { name: '', phone: '', email: '', type: 'individual' as 'individual' | 'business' },
+      customer: { name: '', phone: '', email: '', type: 'individual' as 'individual' | 'business' },
     items: [{ id: '1', name: '', quantity: 1, price: 0, total: 0 }],
     subtotal: 0,
     taxRate: 15,
@@ -45,7 +45,12 @@ export function QuotationDialog({
     if (quotation) {
       setFormData({
         quotationNumber: quotation.quotationNumber,
-        customer: quotation.customer,
+        customer: {
+          name: quotation.customer.name,
+          phone: quotation.customer.phone,
+          email: quotation.customer.email || '',
+          type: quotation.customer.type,
+        },
         items: quotation.items,
         subtotal: quotation.subtotal,
         taxRate: quotation.taxRate,

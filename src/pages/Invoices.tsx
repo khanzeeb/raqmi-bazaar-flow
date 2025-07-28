@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { QrCode, Plus, Search, Filter, Download, Send, Printer, Eye } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { InvoiceDialog } from "@/components/Invoices/InvoiceDialog";
 
 export interface Invoice {
   id: string;
@@ -43,9 +45,13 @@ export interface Invoice {
 }
 
 const Invoices = () => {
+  const { t, language } = useLanguage();
+  const isArabic = language === 'ar';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<'all' | Invoice['status']>('all');
-  const [invoices] = useState<Invoice[]>([
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | undefined>(undefined);
+  const [invoices, setInvoices] = useState<Invoice[]>([
     {
       id: '1',
       invoiceNumber: 'INV-2024-001',
@@ -245,7 +251,13 @@ const Invoices = () => {
           <Button variant="outline" size="icon">
             <Filter className="w-4 h-4" />
           </Button>
-          <Button className="flex items-center gap-2">
+          <Button 
+            className="flex items-center gap-2"
+            onClick={() => {
+              setSelectedInvoice(undefined);
+              setIsDialogOpen(true);
+            }}
+          >
             <Plus className="w-4 h-4" />
             فاتورة جديدة
           </Button>
@@ -361,6 +373,16 @@ const Invoices = () => {
 
               {/* Actions */}
               <div className="flex gap-2 pt-3 border-t">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setSelectedInvoice(invoice);
+                    setIsDialogOpen(true);
+                  }}
+                >
+                  تعديل
+                </Button>
                 <Button variant="outline" size="sm">
                   <Eye className="w-4 h-4 mr-1" />
                   عرض
@@ -399,6 +421,30 @@ const Invoices = () => {
           <p className="text-muted-foreground">لا توجد فواتير مطابقة للبحث</p>
         </div>
       )}
+
+      <InvoiceDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        invoice={selectedInvoice}
+        onSave={(invoiceData) => {
+          if (selectedInvoice) {
+            // Update existing invoice
+            setInvoices(prev => prev.map(inv => 
+              inv.id === selectedInvoice.id 
+                ? { ...invoiceData, id: selectedInvoice.id }
+                : inv
+            ));
+          } else {
+            // Add new invoice
+            const newInvoice = {
+              ...invoiceData,
+              id: Date.now().toString()
+            };
+            setInvoices(prev => [newInvoice, ...prev]);
+          }
+          setIsDialogOpen(false);
+        }}
+      />
     </div>
   );
 };

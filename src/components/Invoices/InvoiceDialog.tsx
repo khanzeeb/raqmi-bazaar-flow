@@ -14,7 +14,7 @@ interface InvoiceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   invoice?: Invoice;
-  onSave: (invoice: Omit<Invoice, 'id' | 'createdAt'>) => void;
+  onSave: (invoice: Omit<Invoice, 'id'>) => void;
 }
 
 export function InvoiceDialog({
@@ -23,108 +23,157 @@ export function InvoiceDialog({
   invoice,
   onSave,
 }: InvoiceDialogProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isArabic = language === 'ar';
+  
   const [formData, setFormData] = useState({
     invoiceNumber: '',
-    customer: { name: '', phone: '', email: '', address: '', type: 'individual' as 'individual' | 'business' },
-    items: [{ id: '1', name: '', quantity: 1, unitPrice: 0, total: 0 }],
+    customer: { 
+      name: '', 
+      phone: '', 
+      email: '', 
+      address: '', 
+      taxId: '',
+      type: 'individual' as 'individual' | 'business' 
+    },
+    items: [] as { id: string; name: string; quantity: number; unitPrice: number; total: number }[],
     subtotal: 0,
-    taxRate: 15,
     taxAmount: 0,
+    taxRate: 15,
     discount: 0,
     total: 0,
-    issueDate: '',
-    dueDate: '',
-    paymentTerms: 'Net 30',
+    status: 'draft' as 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled',
+    issueDate: new Date().toISOString().split('T')[0],
+    dueDate: new Date().toISOString().split('T')[0],
+    paymentTerms: '30',
     currency: 'SAR',
     language: 'ar' as 'ar' | 'en' | 'both',
-    status: 'draft' as 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled',
-    notes: ''
+    qrCode: '',
+    notes: '',
+    customFields: {
+      poNumber: '',
+      deliveryTerms: ''
+    }
   });
 
   useEffect(() => {
     if (invoice) {
       setFormData({
         invoiceNumber: invoice.invoiceNumber,
-        customer: invoice.customer,
+        customer: {
+          name: invoice.customer.name,
+          phone: invoice.customer.phone,
+          email: invoice.customer.email || '',
+          address: invoice.customer.address || '',
+          taxId: invoice.customer.taxId || '',
+          type: invoice.customer.type,
+        },
         items: invoice.items,
         subtotal: invoice.subtotal,
-        taxRate: invoice.taxRate,
         taxAmount: invoice.taxAmount,
+        taxRate: invoice.taxRate,
         discount: invoice.discount,
         total: invoice.total,
-        invoiceDate: invoice.invoiceDate,
-        dueDate: invoice.dueDate,
         status: invoice.status,
-        paymentStatus: invoice.paymentStatus,
-        paidAmount: invoice.paidAmount,
-        paymentMethod: invoice.paymentMethod,
-        notes: invoice.notes || ''
+        issueDate: invoice.issueDate,
+        dueDate: invoice.dueDate,
+        paymentTerms: invoice.paymentTerms,
+        currency: invoice.currency,
+        language: invoice.language,
+        qrCode: invoice.qrCode || '',
+        notes: invoice.notes || '',
+        customFields: {
+          poNumber: invoice.customFields?.poNumber || '',
+          deliveryTerms: invoice.customFields?.deliveryTerms || ''
+        }
       });
     } else {
-      const today = new Date().toISOString().split('T')[0];
-      const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       setFormData({
-        invoiceNumber: `INV-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-        customer: { name: '', phone: '', email: '', address: '' },
-        items: [{ id: '1', name: '', quantity: 1, price: 0, total: 0 }],
+        invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
+        customer: { 
+          name: '', 
+          phone: '', 
+          email: '', 
+          address: '', 
+          taxId: '',
+          type: 'individual' as 'individual' | 'business' 
+        },
+        items: [{ id: '1', name: '', quantity: 1, unitPrice: 0, total: 0 }],
         subtotal: 0,
-        taxRate: 15,
         taxAmount: 0,
+        taxRate: 15,
         discount: 0,
         total: 0,
-        invoiceDate: today,
-        dueDate: nextMonth,
-        status: 'draft',
-        paymentStatus: 'unpaid',
-        paidAmount: 0,
-        paymentMethod: 'cash',
-        notes: ''
+        status: 'draft' as 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled',
+        issueDate: new Date().toISOString().split('T')[0],
+        dueDate: new Date().toISOString().split('T')[0],
+        paymentTerms: '30',
+        currency: 'SAR',
+        language: 'ar' as 'ar' | 'en' | 'both',
+        qrCode: '',
+        notes: '',
+        customFields: {
+          poNumber: '',
+          deliveryTerms: ''
+        }
       });
     }
   }, [invoice, open]);
 
   const calculateTotals = (items: any[], discount: number, taxRate: number) => {
-    const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+    const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
     const taxAmount = (subtotal - discount) * (taxRate / 100);
     const total = subtotal - discount + taxAmount;
     return { subtotal, taxAmount, total };
   };
 
-  const handleItemChange = (index: number, field: string, value: any) => {
-    const newItems = [...formData.items];
-    newItems[index] = { ...newItems[index], [field]: value };
+  const updateCalculations = () => {
+    const { subtotal, taxAmount, total } = calculateTotals(formData.items, formData.discount, formData.taxRate);
+    setFormData(prev => ({ ...prev, subtotal, taxAmount, total }));
+  };
+
+  const handleItemChange = (index: number, field: string, value: string | number) => {
+    const updatedItems = [...formData.items];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
     
-    if (field === 'quantity' || field === 'price') {
-      newItems[index].total = newItems[index].quantity * newItems[index].price;
+    if (field === 'quantity' || field === 'unitPrice') {
+      updatedItems[index].total = updatedItems[index].quantity * updatedItems[index].unitPrice;
     }
     
-    const { subtotal, taxAmount, total } = calculateTotals(newItems, formData.discount, formData.taxRate);
-    setFormData({ ...formData, items: newItems, subtotal, taxAmount, total });
+    setFormData(prev => ({
+      ...prev,
+      items: updatedItems
+    }));
+    
+    setTimeout(updateCalculations, 0);
   };
 
   const addItem = () => {
-    const newItem = {
-      id: Date.now().toString(),
-      name: '',
-      quantity: 1,
-      price: 0,
-      total: 0
-    };
-    setFormData({ ...formData, items: [...formData.items, newItem] });
+    setFormData(prev => ({
+      ...prev,
+      items: [...prev.items, { id: Date.now().toString(), name: '', quantity: 1, unitPrice: 0, total: 0 }]
+    }));
   };
 
   const removeItem = (index: number) => {
     if (formData.items.length > 1) {
-      const newItems = formData.items.filter((_, i) => i !== index);
-      const { subtotal, taxAmount, total } = calculateTotals(newItems, formData.discount, formData.taxRate);
-      setFormData({ ...formData, items: newItems, subtotal, taxAmount, total });
+      setFormData(prev => ({
+        ...prev,
+        items: prev.items.filter((_, i) => i !== index)
+      }));
+      setTimeout(updateCalculations, 0);
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    const finalData = { ...formData };
+    const { subtotal, taxAmount, total } = calculateTotals(finalData.items, finalData.discount, finalData.taxRate);
+    finalData.subtotal = subtotal;
+    finalData.taxAmount = taxAmount;
+    finalData.total = total;
+    onSave(finalData);
+    onOpenChange(false);
   };
 
   return (
@@ -132,98 +181,103 @@ export function InvoiceDialog({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {invoice ? 'تعديل الفاتورة' : 'فاتورة جديدة'}
+            {invoice ? (isArabic ? 'تعديل الفاتورة' : 'Edit Invoice') : (isArabic ? 'فاتورة جديدة' : 'New Invoice')}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Info */}
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="invoiceNumber">رقم الفاتورة</Label>
-              <Input
-                id="invoiceNumber"
-                value={formData.invoiceNumber}
-                onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="invoiceDate">تاريخ الفاتورة</Label>
-              <Input
-                id="invoiceDate"
-                type="date"
-                value={formData.invoiceDate}
-                onChange={(e) => setFormData({ ...formData, invoiceDate: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="dueDate">تاريخ الاستحقاق</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                required
-              />
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>{isArabic ? 'المعلومات الأساسية' : 'Basic Information'}</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="invoiceNumber">{isArabic ? 'رقم الفاتورة' : 'Invoice Number'}</Label>
+                <Input
+                  id="invoiceNumber"
+                  value={formData.invoiceNumber}
+                  onChange={(e) => setFormData(prev => ({ ...prev, invoiceNumber: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="issueDate">{isArabic ? 'تاريخ الإصدار' : 'Issue Date'}</Label>
+                <Input
+                  id="issueDate"
+                  type="date"
+                  value={formData.issueDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, issueDate: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="dueDate">{isArabic ? 'تاريخ الاستحقاق' : 'Due Date'}</Label>
+                <Input
+                  id="dueDate"
+                  type="date"
+                  value={formData.dueDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                  required
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Customer Info */}
           <Card>
             <CardHeader>
-              <CardTitle>معلومات العميل</CardTitle>
+              <CardTitle>{isArabic ? 'معلومات العميل' : 'Customer Information'}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="customerName">اسم العميل</Label>
+                  <Label htmlFor="customerName">{isArabic ? 'اسم العميل' : 'Customer Name'}</Label>
                   <Input
                     id="customerName"
                     value={formData.customer.name}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      customer: { ...formData.customer, name: e.target.value }
-                    })}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      customer: { ...prev.customer, name: e.target.value }
+                    }))}
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="customerPhone">الهاتف</Label>
+                  <Label htmlFor="customerPhone">{isArabic ? 'الهاتف' : 'Phone'}</Label>
                   <Input
                     id="customerPhone"
                     value={formData.customer.phone}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      customer: { ...formData.customer, phone: e.target.value }
-                    })}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      customer: { ...prev.customer, phone: e.target.value }
+                    }))}
                     required
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="customerEmail">البريد الإلكتروني</Label>
+                  <Label htmlFor="customerEmail">{isArabic ? 'البريد الإلكتروني' : 'Email'}</Label>
                   <Input
                     id="customerEmail"
                     type="email"
                     value={formData.customer.email}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      customer: { ...formData.customer, email: e.target.value }
-                    })}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      customer: { ...prev.customer, email: e.target.value }
+                    }))}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="customerAddress">العنوان</Label>
+                  <Label htmlFor="customerAddress">{isArabic ? 'العنوان' : 'Address'}</Label>
                   <Input
                     id="customerAddress"
                     value={formData.customer.address}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      customer: { ...formData.customer, address: e.target.value }
-                    })}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      customer: { ...prev.customer, address: e.target.value }
+                    }))}
                   />
                 </div>
               </div>
@@ -234,10 +288,10 @@ export function InvoiceDialog({
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>العناصر</CardTitle>
+                <CardTitle>{isArabic ? 'العناصر' : 'Items'}</CardTitle>
                 <Button type="button" onClick={addItem} size="sm">
                   <Plus className="w-4 h-4 mr-1" />
-                  إضافة عنصر
+                  {isArabic ? 'إضافة عنصر' : 'Add Item'}
                 </Button>
               </div>
             </CardHeader>
@@ -246,7 +300,7 @@ export function InvoiceDialog({
                 {formData.items.map((item, index) => (
                   <div key={item.id} className="grid grid-cols-12 gap-2 items-end">
                     <div className="col-span-5">
-                      <Label>اسم المنتج</Label>
+                      <Label>{isArabic ? 'اسم المنتج' : 'Product Name'}</Label>
                       <Input
                         value={item.name}
                         onChange={(e) => handleItemChange(index, 'name', e.target.value)}
@@ -254,7 +308,7 @@ export function InvoiceDialog({
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label>الكمية</Label>
+                      <Label>{isArabic ? 'الكمية' : 'Quantity'}</Label>
                       <Input
                         type="number"
                         min="1"
@@ -264,18 +318,18 @@ export function InvoiceDialog({
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label>السعر</Label>
+                      <Label>{isArabic ? 'سعر الوحدة' : 'Unit Price'}</Label>
                       <Input
                         type="number"
                         min="0"
                         step="0.01"
-                        value={item.price}
-                        onChange={(e) => handleItemChange(index, 'price', parseFloat(e.target.value) || 0)}
+                        value={item.unitPrice}
+                        onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
                         required
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label>المجموع</Label>
+                      <Label>{isArabic ? 'المجموع' : 'Total'}</Label>
                       <Input value={item.total.toFixed(2)} readOnly />
                     </div>
                     <div className="col-span-1">
@@ -298,77 +352,30 @@ export function InvoiceDialog({
           {/* Status and Payment */}
           <Card>
             <CardHeader>
-              <CardTitle>الحالة والدفع</CardTitle>
+              <CardTitle>{isArabic ? 'الحالة والدفع' : 'Status & Payment'}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="status">حالة الفاتورة</Label>
+                  <Label htmlFor="status">{isArabic ? 'حالة الفاتورة' : 'Invoice Status'}</Label>
                   <Select
                     value={formData.status}
-                    onValueChange={(value: any) => setFormData({ ...formData, status: value })}
+                    onValueChange={(value: any) => setFormData(prev => ({ ...prev, status: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="draft">مسودة</SelectItem>
-                      <SelectItem value="sent">مرسلة</SelectItem>
-                      <SelectItem value="paid">مدفوعة</SelectItem>
-                      <SelectItem value="overdue">متأخرة</SelectItem>
-                      <SelectItem value="cancelled">ملغية</SelectItem>
+                      <SelectItem value="draft">{isArabic ? 'مسودة' : 'Draft'}</SelectItem>
+                      <SelectItem value="sent">{isArabic ? 'مرسلة' : 'Sent'}</SelectItem>
+                      <SelectItem value="paid">{isArabic ? 'مدفوعة' : 'Paid'}</SelectItem>
+                      <SelectItem value="overdue">{isArabic ? 'متأخرة' : 'Overdue'}</SelectItem>
+                      <SelectItem value="cancelled">{isArabic ? 'ملغية' : 'Cancelled'}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="paymentStatus">حالة الدفع</Label>
-                  <Select
-                    value={formData.paymentStatus}
-                    onValueChange={(value: any) => setFormData({ ...formData, paymentStatus: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unpaid">غير مدفوعة</SelectItem>
-                      <SelectItem value="partial">مدفوعة جزئياً</SelectItem>
-                      <SelectItem value="paid">مدفوعة بالكامل</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="paymentMethod">طريقة الدفع</Label>
-                  <Select
-                    value={formData.paymentMethod}
-                    onValueChange={(value: any) => setFormData({ ...formData, paymentMethod: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">نقدي</SelectItem>
-                      <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
-                      <SelectItem value="credit">آجل</SelectItem>
-                      <SelectItem value="check">شيك</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="paidAmount">المبلغ المدفوع</Label>
-                  <Input
-                    id="paidAmount"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.paidAmount}
-                    onChange={(e) => setFormData({ ...formData, paidAmount: parseFloat(e.target.value) || 0 })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="discount">الخصم</Label>
+                  <Label htmlFor="discount">{isArabic ? 'الخصم' : 'Discount'}</Label>
                   <Input
                     id="discount"
                     type="number"
@@ -377,13 +384,13 @@ export function InvoiceDialog({
                     value={formData.discount}
                     onChange={(e) => {
                       const discount = parseFloat(e.target.value) || 0;
-                      const { subtotal, taxAmount, total } = calculateTotals(formData.items, discount, formData.taxRate);
-                      setFormData({ ...formData, discount, taxAmount, total });
+                      setFormData(prev => ({ ...prev, discount }));
+                      setTimeout(updateCalculations, 0);
                     }}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="taxRate">معدل الضريبة (%)</Label>
+                  <Label htmlFor="taxRate">{isArabic ? 'معدل الضريبة (%)' : 'Tax Rate (%)'}</Label>
                   <Input
                     id="taxRate"
                     type="number"
@@ -393,8 +400,8 @@ export function InvoiceDialog({
                     value={formData.taxRate}
                     onChange={(e) => {
                       const taxRate = parseFloat(e.target.value) || 0;
-                      const { subtotal, taxAmount, total } = calculateTotals(formData.items, formData.discount, taxRate);
-                      setFormData({ ...formData, taxRate, taxAmount, total });
+                      setFormData(prev => ({ ...prev, taxRate }));
+                      setTimeout(updateCalculations, 0);
                     }}
                   />
                 </div>
@@ -403,20 +410,20 @@ export function InvoiceDialog({
               <div className="border-t pt-4">
                 <div className="space-y-2 max-w-xs ml-auto">
                   <div className="flex justify-between">
-                    <span>المجموع الفرعي:</span>
-                    <span>{formData.subtotal.toFixed(2)} ر.س</span>
+                    <span>{isArabic ? 'المجموع الفرعي:' : 'Subtotal:'}</span>
+                    <span>{formData.subtotal.toFixed(2)} {formData.currency}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>الخصم:</span>
-                    <span>-{formData.discount.toFixed(2)} ر.س</span>
+                    <span>{isArabic ? 'الخصم:' : 'Discount:'}</span>
+                    <span>-{formData.discount.toFixed(2)} {formData.currency}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>الضريبة ({formData.taxRate}%):</span>
-                    <span>{formData.taxAmount.toFixed(2)} ر.س</span>
+                    <span>{isArabic ? `الضريبة (${formData.taxRate}%):` : `Tax (${formData.taxRate}%):`}</span>
+                    <span>{formData.taxAmount.toFixed(2)} {formData.currency}</span>
                   </div>
                   <div className="flex justify-between font-bold text-lg border-t pt-2">
-                    <span>المجموع الكلي:</span>
-                    <span>{formData.total.toFixed(2)} ر.س</span>
+                    <span>{isArabic ? 'المجموع الكلي:' : 'Total:'}</span>
+                    <span>{formData.total.toFixed(2)} {formData.currency}</span>
                   </div>
                 </div>
               </div>
@@ -425,21 +432,21 @@ export function InvoiceDialog({
 
           {/* Notes */}
           <div>
-            <Label htmlFor="notes">ملاحظات</Label>
+            <Label htmlFor="notes">{isArabic ? 'ملاحظات' : 'Notes'}</Label>
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               rows={3}
             />
           </div>
 
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              إلغاء
+              {isArabic ? 'إلغاء' : 'Cancel'}
             </Button>
             <Button type="submit">
-              {invoice ? 'تحديث الفاتورة' : 'حفظ الفاتورة'}
+              {invoice ? (isArabic ? 'تحديث الفاتورة' : 'Update Invoice') : (isArabic ? 'حفظ الفاتورة' : 'Save Invoice')}
             </Button>
           </div>
         </form>

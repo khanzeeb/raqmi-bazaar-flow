@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Filter, Truck, Package, Clock, CheckCircle } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { PurchaseDialog } from "@/components/Purchases/PurchaseDialog";
 
 export interface Purchase {
   id: string;
@@ -31,9 +33,12 @@ export interface Purchase {
 }
 
 const Purchases = () => {
+  const { t, language } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<'all' | Purchase['status']>('all');
-  const [purchases] = useState<Purchase[]>([
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedPurchase, setSelectedPurchase] = useState<Purchase | undefined>(undefined);
+  const [purchases, setPurchases] = useState<Purchase[]>([
     {
       id: '1',
       purchaseNumber: 'PO-001',
@@ -145,7 +150,13 @@ const Purchases = () => {
           <Button variant="outline" size="icon">
             <Filter className="w-4 h-4" />
           </Button>
-          <Button className="flex items-center gap-2">
+          <Button 
+            className="flex items-center gap-2"
+            onClick={() => {
+              setSelectedPurchase(undefined);
+              setIsDialogOpen(true);
+            }}
+          >
             <Plus className="w-4 h-4" />
             طلب شراء جديد
           </Button>
@@ -241,6 +252,28 @@ const Purchases = () => {
           <p className="text-muted-foreground">لا توجد طلبات شراء مطابقة للبحث</p>
         </div>
       )}
+
+      <PurchaseDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        purchase={selectedPurchase}
+        onSave={(purchaseData) => {
+          if (selectedPurchase) {
+            setPurchases(prev => prev.map(p => 
+              p.id === selectedPurchase.id 
+                ? { ...purchaseData, id: selectedPurchase.id }
+                : p
+            ));
+          } else {
+            const newPurchase = {
+              ...purchaseData,
+              id: Date.now().toString()
+            };
+            setPurchases(prev => [newPurchase, ...prev]);
+          }
+          setIsDialogOpen(false);
+        }}
+      />
     </div>
   );
 };
