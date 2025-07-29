@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -59,6 +59,9 @@ export const PricingRuleStatsDialog: React.FC<PricingRuleStatsDialogProps> = ({
             <TrendingUp className="w-5 h-5" />
             {isArabic ? `إحصائيات: ${rule.name}` : `Statistics: ${rule.name}`}
           </DialogTitle>
+          <DialogDescription>
+            {isArabic ? "عرض تفصيلي لأداء واستخدام قاعدة التسعير" : "Detailed view of pricing rule performance and usage"}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-6">

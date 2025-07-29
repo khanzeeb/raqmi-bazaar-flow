@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -169,6 +169,12 @@ export const PricingRuleDialog: React.FC<PricingRuleDialogProps> = ({
               (isArabic ? "قاعدة تسعير جديدة" : "New Pricing Rule")
             }
           </DialogTitle>
+          <DialogDescription>
+            {rule ? 
+              (isArabic ? "قم بتعديل تفاصيل قاعدة التسعير أدناه" : "Edit the pricing rule details below") :
+              (isArabic ? "أنشئ قاعدة تسعير جديدة بملء النموذج أدناه" : "Create a new pricing rule by filling out the form below")
+            }
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-6">
