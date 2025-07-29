@@ -122,7 +122,20 @@ export function QuotationDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    
+    const currentDate = new Date().toISOString();
+    const historyEntry = {
+      id: Date.now().toString(),
+      action: quotation ? 'sent' : 'created',
+      timestamp: currentDate
+    } as const;
+    
+    const quotationWithHistory = {
+      ...formData,
+      history: quotation ? [...quotation.history] : [historyEntry]
+    };
+    
+    onSave(quotationWithHistory);
   };
 
   return (

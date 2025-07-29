@@ -3,11 +3,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, Download, Printer, Eye, Send, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Plus, Search, Filter, Download, Printer, Eye, Send, CheckCircle, Clock, XCircle, ShoppingCart, History } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { QuotationDialog } from "@/components/Quotations/QuotationDialog";
+import { QuotationHistory } from "@/components/Quotations/QuotationHistory";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { SalesOrder } from "./SalesOrders";
+
+export interface QuotationHistory {
+  id: string;
+  action: 'created' | 'sent' | 'accepted' | 'expired' | 'converted_to_sale';
+  timestamp: string;
+  notes?: string;
+}
 
 export interface Quotation {
   id: string;
@@ -35,6 +44,8 @@ export interface Quotation {
   status: 'draft' | 'sent' | 'accepted' | 'expired';
   createdAt: string;
   notes?: string;
+  history: QuotationHistory[];
+  convertedToSaleId?: string;
 }
 
 const Quotations = () => {
@@ -46,6 +57,9 @@ const Quotations = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | undefined>(undefined);
   const [viewQuotationId, setViewQuotationId] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [selectedQuotationForHistory, setSelectedQuotationForHistory] = useState<Quotation | null>(null);
+  const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([]);
   const [quotations, setQuotations] = useState<Quotation[]>([
     {
       id: '1',
@@ -69,7 +83,11 @@ const Quotations = () => {
       expiryDate: '2024-02-15',
       status: 'sent',
       createdAt: '2024-01-15',
-      notes: 'عرض خاص للعميل المميز'
+      notes: 'عرض خاص للعميل المميز',
+      history: [
+        { id: '1', action: 'created', timestamp: '2024-01-15T10:00:00Z' },
+        { id: '2', action: 'sent', timestamp: '2024-01-15T14:30:00Z', notes: 'تم الإرسال عبر الواتساب' }
+      ]
     },
     {
       id: '2',
@@ -90,7 +108,10 @@ const Quotations = () => {
       validityDays: 15,
       expiryDate: '2024-02-01',
       status: 'draft',
-      createdAt: '2024-01-16'
+      createdAt: '2024-01-16',
+      history: [
+        { id: '1', action: 'created', timestamp: '2024-01-16T09:00:00Z' }
+      ]
     }
   ]);
 
@@ -136,13 +157,97 @@ const Quotations = () => {
   };
 
   const handleSendQuotation = (quotationId: string) => {
+    const currentTime = new Date().toISOString();
     setQuotations(prev => prev.map(q => 
-      q.id === quotationId ? { ...q, status: 'sent' as const } : q
+      q.id === quotationId ? { 
+        ...q, 
+        status: 'sent' as const,
+        history: [...q.history, {
+          id: Date.now().toString(),
+          action: 'sent',
+          timestamp: currentTime,
+          notes: 'تم الإرسال للعميل'
+        }]
+      } : q
     ));
     toast({
       title: isArabic ? "تم إرسال العرض" : "Quotation sent",
       description: isArabic ? "تم إرسال عرض السعر بنجاح" : "Quotation has been sent successfully",
     });
+  };
+
+  const handleAcceptQuotation = (quotationId: string) => {
+    const currentTime = new Date().toISOString();
+    setQuotations(prev => prev.map(q => 
+      q.id === quotationId ? { 
+        ...q, 
+        status: 'accepted' as const,
+        history: [...q.history, {
+          id: Date.now().toString(),
+          action: 'accepted',
+          timestamp: currentTime,
+          notes: 'تم قبول العرض من قبل العميل'
+        }]
+      } : q
+    ));
+    toast({
+      title: isArabic ? "تم قبول العرض" : "Quotation accepted",
+      description: isArabic ? "تم قبول عرض السعر بنجاح" : "Quotation has been accepted successfully",
+    });
+  };
+
+  const handleConvertToSale = (quotationId: string) => {
+    const quotation = quotations.find(q => q.id === quotationId);
+    if (!quotation) return;
+
+    const currentTime = new Date().toISOString();
+    const saleOrderNumber = `SO-${String(salesOrders.length + 1).padStart(3, '0')}`;
+    
+    // Create new sales order from quotation
+    const newSalesOrder: SalesOrder = {
+      id: Date.now().toString(),
+      orderNumber: saleOrderNumber,
+      customer: quotation.customer,
+      items: quotation.items,
+      subtotal: quotation.subtotal,
+      taxAmount: quotation.taxAmount,
+      taxRate: quotation.taxRate,
+      discount: quotation.discount,
+      total: quotation.total,
+      paymentMode: 'cash',
+      paymentStatus: 'pending',
+      paidAmount: 0,
+      status: 'pending',
+      createdAt: new Date().toISOString().split('T')[0],
+      notes: `تم تحويلها من عرض السعر رقم: ${quotation.quotationNumber}`
+    };
+
+    // Add to sales orders
+    setSalesOrders(prev => [newSalesOrder, ...prev]);
+
+    // Update quotation with conversion history
+    setQuotations(prev => prev.map(q => 
+      q.id === quotationId ? {
+        ...q,
+        convertedToSaleId: newSalesOrder.id,
+        history: [...q.history, {
+          id: Date.now().toString(),
+          action: 'converted_to_sale',
+          timestamp: currentTime,
+          notes: `تم التحويل إلى طلب بيع رقم: ${saleOrderNumber}`
+        }]
+      } : q
+    ));
+
+    toast({
+      title: isArabic ? "تم التحويل إلى طلب بيع" : "Converted to sales order",
+      description: isArabic ? `تم إنشاء طلب بيع رقم: ${saleOrderNumber}` : `Sales order ${saleOrderNumber} has been created`,
+    });
+  };
+
+  const handleViewHistory = (quotation: Quotation) => {
+    setSelectedQuotationForHistory(quotation);
+    setIsHistoryOpen(true);
   };
 
   const handlePrintQuotation = (quotation: Quotation) => {
@@ -404,14 +509,33 @@ const Quotations = () => {
                   <Eye className="w-4 h-4 mr-1" />
                   {isArabic ? "عرض" : "View"}
                 </Button>
+                {quotation.status === 'draft' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleSendQuotation(quotation.id)}
+                  >
+                    <Send className="w-4 h-4 mr-1" />
+                    {isArabic ? "إرسال" : "Send"}
+                  </Button>
+                )}
+                {quotation.status === 'sent' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleAcceptQuotation(quotation.id)}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    {isArabic ? "قبول" : "Accept"}
+                  </Button>
+                )}
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => handleSendQuotation(quotation.id)}
-                  disabled={quotation.status === 'sent' || quotation.status === 'accepted'}
+                  onClick={() => handleViewHistory(quotation)}
                 >
-                  <Send className="w-4 h-4 mr-1" />
-                  {isArabic ? "إرسال" : "Send"}
+                  <History className="w-4 h-4 mr-1" />
+                  {isArabic ? "السجل" : "History"}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -429,10 +553,20 @@ const Quotations = () => {
                   <Download className="w-4 h-4 mr-1" />
                   {isArabic ? "تحميل PDF" : "Download PDF"}
                 </Button>
-                {quotation.status === 'accepted' && (
-                  <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                {quotation.status === 'accepted' && !quotation.convertedToSaleId && (
+                  <Button 
+                    size="sm" 
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => handleConvertToSale(quotation.id)}
+                  >
+                    <ShoppingCart className="w-4 h-4 mr-1" />
                     {isArabic ? "تحويل لطلب بيع" : "Convert to Sale"}
                   </Button>
+                )}
+                {quotation.convertedToSaleId && (
+                  <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                    {isArabic ? "تم التحويل" : "Converted"}
+                  </Badge>
                 )}
               </div>
             </CardContent>
@@ -471,6 +605,14 @@ const Quotations = () => {
           }
           setIsDialogOpen(false);
         }}
+      />
+
+      {/* Quotation History Dialog */}
+      <QuotationHistory
+        open={isHistoryOpen}
+        onOpenChange={setIsHistoryOpen}
+        history={selectedQuotationForHistory?.history || []}
+        quotationNumber={selectedQuotationForHistory?.quotationNumber || ''}
       />
 
       {/* View Quotation Dialog */}
