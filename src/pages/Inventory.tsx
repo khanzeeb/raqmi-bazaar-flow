@@ -299,12 +299,12 @@ const Inventory = () => {
               </Button>
               
               <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-1" />
+                <Download className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                 {isArabic ? 'تصدير' : 'Export'}
               </Button>
               
               <Button size="sm">
-                <Plus className="w-4 h-4 mr-1" />
+                <Plus className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                 {isArabic ? 'إضافة منتج' : 'Add Product'}
               </Button>
             </div>
@@ -370,15 +370,15 @@ const Inventory = () => {
                   {/* Actions */}
                   <div className="flex gap-2 pt-3 border-t">
                     <Button variant="outline" size="sm">
-                      <Edit className="w-4 h-4 mr-1" />
+                      <Edit className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                       {isArabic ? 'تعديل' : 'Edit'}
                     </Button>
                     <Button variant="outline" size="sm">
-                      <Upload className="w-4 h-4 mr-1" />
+                      <Upload className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                       {isArabic ? 'تحديث المخزون' : 'Update Stock'}
                     </Button>
                     <Button variant="outline" size="sm">
-                      <BarChart3 className="w-4 h-4 mr-1" />
+                      <BarChart3 className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                       {isArabic ? 'التقرير' : 'Report'}
                     </Button>
                     {item.currentStock <= item.minimumStock && (

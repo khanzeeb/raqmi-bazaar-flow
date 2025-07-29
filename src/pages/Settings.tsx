@@ -225,9 +225,9 @@ const Settings = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className={`flex ${isArabic ? 'justify-start' : 'justify-end'}`}>
                 <Button>
-                  <Save className="w-4 h-4 mr-2" />
+                  <Save className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
                   {isArabic ? 'حفظ التغييرات' : 'Save Changes'}
                 </Button>
               </div>
@@ -323,9 +323,9 @@ const Settings = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className={`flex ${isArabic ? 'justify-start' : 'justify-end'}`}>
                 <Button>
-                  <Save className="w-4 h-4 mr-2" />
+                  <Save className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
                   {isArabic ? 'حفظ التغييرات' : 'Save Changes'}
                 </Button>
               </div>
@@ -384,9 +384,9 @@ const Settings = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className={`flex ${isArabic ? 'justify-start' : 'justify-end'}`}>
                 <Button>
-                  <Save className="w-4 h-4 mr-2" />
+                  <Save className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
                   {isArabic ? 'حفظ التغييرات' : 'Save Changes'}
                 </Button>
               </div>
@@ -408,7 +408,7 @@ const Settings = () => {
                   </p>
                 </div>
                 <Button onClick={toggleLanguage} variant="outline">
-                  <Globe className="w-4 h-4 mr-2" />
+                  <Globe className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
                   {isArabic ? 'تغيير إلى English' : 'Switch to العربية'}
                 </Button>
               </div>
@@ -437,11 +437,11 @@ const Settings = () => {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <Button variant="outline">
-                  <Download className="w-4 h-4 mr-2" />
+                  <Download className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
                   {isArabic ? 'تصدير البيانات' : 'Export Data'}
                 </Button>
                 <Button variant="outline">
-                  <Upload className="w-4 h-4 mr-2" />
+                  <Upload className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
                   {isArabic ? 'استيراد البيانات' : 'Import Data'}
                 </Button>
               </div>
@@ -454,7 +454,7 @@ const Settings = () => {
                   {isArabic ? 'إعادة تعيين البيانات ستحذف جميع المعلومات نهائياً' : 'Resetting data will permanently delete all information'}
                 </p>
                 <Button variant="destructive" size="sm">
-                  <RefreshCw className="w-4 h-4 mr-2" />
+                  <RefreshCw className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
                   {isArabic ? 'إعادة تعيين البيانات' : 'Reset Data'}
                 </Button>
               </div>

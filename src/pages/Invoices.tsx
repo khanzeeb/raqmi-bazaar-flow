@@ -231,12 +231,12 @@ const Invoices = () => {
       {/* Actions Bar */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Search className={`absolute ${isArabic ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4`} />
           <Input
             placeholder="البحث برقم الفاتورة أو اسم العميل..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className={isArabic ? "pr-10" : "pl-10"}
           />
         </div>
         <div className="flex gap-2">
@@ -388,19 +388,19 @@ const Invoices = () => {
                   تعديل
                 </Button>
                 <Button variant="outline" size="sm">
-                  <Eye className="w-4 h-4 mr-1" />
+                  <Eye className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                   عرض
                 </Button>
                 <Button variant="outline" size="sm">
-                  <Printer className="w-4 h-4 mr-1" />
+                  <Printer className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                   طباعة
                 </Button>
                 <Button variant="outline" size="sm">
-                  <Download className="w-4 h-4 mr-1" />
+                  <Download className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                   تحميل PDF
                 </Button>
                 <Button variant="outline" size="sm">
-                  <Send className="w-4 h-4 mr-1" />
+                  <Send className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                   إرسال
                 </Button>
                 {invoice.status === 'sent' && (
@@ -410,7 +410,7 @@ const Invoices = () => {
                 )}
                 {invoice.qrCode && (
                   <Button variant="outline" size="sm">
-                    <QrCode className="w-4 h-4 mr-1" />
+                    <QrCode className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                     رمز الاستجابة
                   </Button>
                 )}
