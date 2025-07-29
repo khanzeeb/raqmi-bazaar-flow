@@ -147,7 +147,10 @@ export function CustomerCard({ customer, isArabic = false, onEdit, onDelete, onN
               <Edit className="h-4 w-4" />
             </Button>
             {onNewPayment && (
-              <Button variant="ghost" size="sm" onClick={onNewPayment}>
+              <Button variant="ghost" size="sm" onClick={() => {
+                console.log('Payment button clicked in CustomerCard');
+                onNewPayment();
+              }}>
                 <Plus className="h-4 w-4" />
               </Button>
             )}

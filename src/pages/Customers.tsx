@@ -175,6 +175,7 @@ export default function Customers({ isArabic = false }: CustomersProps) {
   };
 
   const handleNewPaymentForCustomer = (customer: Customer) => {
+    console.log('Creating new payment for customer:', customer);
     // Navigate to payments page and pass customer data via state
     navigate('/payments', { 
       state: { 
@@ -183,6 +184,7 @@ export default function Customers({ isArabic = false }: CustomersProps) {
         action: 'newPayment' 
       } 
     });
+    console.log('Navigation called with state:', { customerId: customer.id, customerName: customer.name });
   };
 
   const handleSaveCustomer = (customerData: Partial<Customer>) => {
@@ -489,7 +491,10 @@ export default function Customers({ isArabic = false }: CustomersProps) {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => handleNewPaymentForCustomer(customer)}
+                          onClick={() => {
+                            console.log('Payment button clicked in table for customer:', customer);
+                            handleNewPaymentForCustomer(customer);
+                          }}
                           title={isArabic ? "دفعة جديدة" : "New Payment"}
                         >
                           <Plus className="h-4 w-4" />
@@ -518,7 +523,10 @@ export default function Customers({ isArabic = false }: CustomersProps) {
               isArabic={isArabic}
               onEdit={() => handleEditCustomer(customer)}
               onDelete={() => handleDeleteCustomer(customer.id)}
-              onNewPayment={() => handleNewPaymentForCustomer(customer)}
+              onNewPayment={() => {
+                console.log('Payment button clicked in grid for customer:', customer);
+                handleNewPaymentForCustomer(customer);
+              }}
             />
           ))}
         </div>
