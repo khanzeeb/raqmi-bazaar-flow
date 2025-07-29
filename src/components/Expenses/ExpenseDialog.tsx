@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Expense } from "@/pages/Expenses";
+import { Upload, X, FileText } from "lucide-react";
 
 interface ExpenseDialogProps {
   open: boolean;
@@ -21,8 +22,9 @@ export function ExpenseDialog({
   expense,
   onSave,
 }: ExpenseDialogProps) {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const isArabic = language === 'ar';
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     expenseNumber: '',
     category: 'office' as 'rent' | 'utilities' | 'transport' | 'office' | 'marketing' | 'maintenance' | 'other',
@@ -50,6 +52,7 @@ export function ExpenseDialog({
         status: expense.status,
         notes: expense.notes || ''
       });
+      setUploadedFile(null);
     } else {
       const today = new Date().toISOString().split('T')[0];
       setFormData({
@@ -64,12 +67,30 @@ export function ExpenseDialog({
         status: 'pending',
         notes: ''
       });
+      setUploadedFile(null);
     }
   }, [expense, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    const finalData = {
+      ...formData,
+      receiptAttached: uploadedFile !== null || formData.receiptAttached
+    };
+    onSave(finalData);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadedFile(file);
+      setFormData({ ...formData, receiptAttached: true });
+    }
+  };
+
+  const removeFile = () => {
+    setUploadedFile(null);
+    setFormData({ ...formData, receiptAttached: false });
   };
 
   const categories = [
@@ -219,12 +240,69 @@ export function ExpenseDialog({
               <input
                 type="checkbox"
                 id="receiptAttached"
-                checked={formData.receiptAttached}
+                checked={formData.receiptAttached || uploadedFile !== null}
                 onChange={(e) => setFormData({ ...formData, receiptAttached: e.target.checked })}
                 className="rounded border border-input"
+                disabled={uploadedFile !== null}
               />
               <Label htmlFor="receiptAttached">{isArabic ? "إيصال مرفق" : "Receipt Attached"}</Label>
             </div>
+          </div>
+
+          {/* File Upload Section */}
+          <div className="space-y-4">
+            <Label>{isArabic ? "إرفاق إيصال" : "Attach Receipt"}</Label>
+            
+            {!uploadedFile ? (
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                <div className="flex flex-col items-center gap-2">
+                  <Upload className="w-8 h-8 text-muted-foreground" />
+                  <div>
+                    <Label 
+                      htmlFor="file-upload" 
+                      className="cursor-pointer text-primary hover:text-primary/80 font-medium"
+                    >
+                      {isArabic ? "انقر لاختيار ملف" : "Click to select file"}
+                    </Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {isArabic ? "أو اسحب الملف هنا" : "or drag and drop here"}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {isArabic ? "PNG، JPG، PDF حتى 10MB" : "PNG, JPG, PDF up to 10MB"}
+                  </p>
+                </div>
+                <input
+                  id="file-upload"
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </div>
+            ) : (
+              <div className="border rounded-lg p-4 bg-muted/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="font-medium">{uploadedFile.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={removeFile}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

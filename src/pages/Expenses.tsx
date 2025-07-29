@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Filter, Receipt, Car, Home, Zap, Calendar } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ExpenseDialog } from "@/components/Expenses/ExpenseDialog";
+import { ExpenseDetailsDialog } from "@/components/Expenses/ExpenseDetailsDialog";
 import { useToast } from "@/hooks/use-toast";
 
 export interface Expense {
@@ -28,6 +29,7 @@ const Expenses = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'all' | Expense['category']>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>(undefined);
   const { toast } = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([
@@ -247,10 +249,14 @@ const Expenses = () => {
   };
 
   const handleViewDetails = (expense: Expense) => {
-    toast({
-      title: isArabic ? "عرض التفاصيل" : "View Details",
-      description: `${expense.expenseNumber}: ${expense.description}`,
-    });
+    setSelectedExpense(expense);
+    setIsDetailsDialogOpen(true);
+  };
+
+  const handleEditFromDetails = (expense: Expense) => {
+    setSelectedExpense(expense);
+    setIsDetailsDialogOpen(false);
+    setIsDialogOpen(true);
   };
 
   return (
@@ -443,6 +449,13 @@ const Expenses = () => {
         onOpenChange={setIsDialogOpen}
         expense={selectedExpense}
         onSave={handleSaveExpense}
+      />
+
+      <ExpenseDetailsDialog
+        open={isDetailsDialogOpen}
+        onOpenChange={setIsDetailsDialogOpen}
+        expense={selectedExpense}
+        onEdit={handleEditFromDetails}
       />
     </div>
   );
