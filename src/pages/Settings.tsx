@@ -404,7 +404,7 @@ const Settings = () => {
                 <div>
                   <Label>{isArabic ? 'اللغة الحالية' : 'Current Language'}</Label>
                   <p className="text-sm text-muted-foreground">
-                    {language === 'ar' ? 'العربية' : 'English'}
+                    {language === 'ar' ? (isArabic ? 'العربية' : 'Arabic') : (isArabic ? 'الإنجليزية' : 'English')}
                   </p>
                 </div>
                 <Button onClick={toggleLanguage} variant="outline">

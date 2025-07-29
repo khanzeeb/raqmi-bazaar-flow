@@ -147,22 +147,42 @@ const Invoices = () => {
   };
 
   const getStatusText = (status: Invoice['status']) => {
-    switch (status) {
-      case 'draft': return 'مسودة';
-      case 'sent': return 'مرسلة';
-      case 'paid': return 'مدفوعة';
-      case 'overdue': return 'متأخرة';
-      case 'cancelled': return 'ملغاة';
-      default: return status;
+    if (isArabic) {
+      switch (status) {
+        case 'draft': return 'مسودة';
+        case 'sent': return 'مرسلة';
+        case 'paid': return 'مدفوعة';
+        case 'overdue': return 'متأخرة';
+        case 'cancelled': return 'ملغاة';
+        default: return status;
+      }
+    } else {
+      switch (status) {
+        case 'draft': return 'Draft';
+        case 'sent': return 'Sent';
+        case 'paid': return 'Paid';
+        case 'overdue': return 'Overdue';
+        case 'cancelled': return 'Cancelled';
+        default: return status;
+      }
     }
   };
 
   const getLanguageText = (language: Invoice['language']) => {
-    switch (language) {
-      case 'ar': return 'عربي';
-      case 'en': return 'English';
-      case 'both': return 'ثنائي اللغة';
-      default: return language;
+    if (isArabic) {
+      switch (language) {
+        case 'ar': return 'عربي';
+        case 'en': return 'إنجليزي';
+        case 'both': return 'ثنائي اللغة';
+        default: return language;
+      }
+    } else {
+      switch (language) {
+        case 'ar': return 'Arabic';
+        case 'en': return 'English';
+        case 'both': return 'Bilingual';
+        default: return language;
+      }
     }
   };
 
@@ -197,25 +217,25 @@ const Invoices = () => {
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-blue-600">
-              {totalAmount.toLocaleString()} ر.س
+              {totalAmount.toLocaleString()} {isArabic ? 'ر.س' : 'SAR'}
             </div>
-            <p className="text-sm text-muted-foreground">إجمالي الفواتير</p>
+            <p className="text-sm text-muted-foreground">{isArabic ? 'إجمالي الفواتير' : 'Total Invoices'}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-green-600">
-              {paidAmount.toLocaleString()} ر.س
+              {paidAmount.toLocaleString()} {isArabic ? 'ر.س' : 'SAR'}
             </div>
-            <p className="text-sm text-muted-foreground">المدفوع</p>
+            <p className="text-sm text-muted-foreground">{isArabic ? 'المدفوع' : 'Paid'}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-red-600">
-              {overdueAmount.toLocaleString()} ر.س
+              {overdueAmount.toLocaleString()} {isArabic ? 'ر.س' : 'SAR'}
             </div>
-            <p className="text-sm text-muted-foreground">متأخر</p>
+            <p className="text-sm text-muted-foreground">{isArabic ? 'متأخر' : 'Overdue'}</p>
           </CardContent>
         </Card>
         <Card>
@@ -223,7 +243,7 @@ const Invoices = () => {
             <div className="text-2xl font-bold text-purple-600">
               {filteredInvoices.length}
             </div>
-            <p className="text-sm text-muted-foreground">عدد الفواتير</p>
+            <p className="text-sm text-muted-foreground">{isArabic ? 'عدد الفواتير' : 'Invoice Count'}</p>
           </CardContent>
         </Card>
       </div>
@@ -233,7 +253,7 @@ const Invoices = () => {
         <div className="flex-1 relative">
           <Search className={`absolute ${isArabic ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4`} />
           <Input
-            placeholder="البحث برقم الفاتورة أو اسم العميل..."
+            placeholder={isArabic ? "البحث برقم الفاتورة أو اسم العميل..." : "Search by invoice number or customer name..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={isArabic ? "pr-10" : "pl-10"}
@@ -245,12 +265,12 @@ const Invoices = () => {
             onChange={(e) => setSelectedStatus(e.target.value as any)}
             className="px-3 py-2 border border-input rounded-md bg-background text-foreground"
           >
-            <option value="all">جميع الحالات</option>
-            <option value="draft">مسودة</option>
-            <option value="sent">مرسلة</option>
-            <option value="paid">مدفوعة</option>
-            <option value="overdue">متأخرة</option>
-            <option value="cancelled">ملغاة</option>
+            <option value="all">{isArabic ? 'جميع الحالات' : 'All Status'}</option>
+            <option value="draft">{isArabic ? 'مسودة' : 'Draft'}</option>
+            <option value="sent">{isArabic ? 'مرسلة' : 'Sent'}</option>
+            <option value="paid">{isArabic ? 'مدفوعة' : 'Paid'}</option>
+            <option value="overdue">{isArabic ? 'متأخرة' : 'Overdue'}</option>
+            <option value="cancelled">{isArabic ? 'ملغاة' : 'Cancelled'}</option>
           </select>
           <Button variant="outline" size="icon">
             <Filter className="w-4 h-4" />
@@ -275,7 +295,7 @@ const Invoices = () => {
                   </p>
                   {invoice.customer.taxId && (
                     <p className="text-xs text-muted-foreground">
-                      الرقم الضريبي: {invoice.customer.taxId}
+                      {isArabic ? 'الرقم الضريبي:' : 'Tax ID:'} {invoice.customer.taxId}
                     </p>
                   )}
                 </div>
@@ -292,19 +312,19 @@ const Invoices = () => {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">المجموع</p>
-                  <p className="font-semibold text-lg">{invoice.total.toLocaleString()} ر.س</p>
+                  <p className="text-sm text-muted-foreground">{isArabic ? 'المجموع' : 'Total'}</p>
+                  <p className="font-semibold text-lg">{invoice.total.toLocaleString()} {isArabic ? 'ر.س' : 'SAR'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">تاريخ الإصدار</p>
+                  <p className="text-sm text-muted-foreground">{isArabic ? 'تاريخ الإصدار' : 'Issue Date'}</p>
                   <p className="font-medium">{invoice.issueDate}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">تاريخ الاستحقاق</p>
+                  <p className="text-sm text-muted-foreground">{isArabic ? 'تاريخ الاستحقاق' : 'Due Date'}</p>
                   <p className="font-medium">{invoice.dueDate}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">شروط الدفع</p>
+                  <p className="text-sm text-muted-foreground">{isArabic ? 'شروط الدفع' : 'Payment Terms'}</p>
                   <p className="font-medium">{invoice.paymentTerms}</p>
                 </div>
               </div>
@@ -313,33 +333,33 @@ const Invoices = () => {
               <div className="border-t pt-3 mb-4">
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">المجموع الفرعي: </span>
-                    <span className="font-medium">{invoice.subtotal.toLocaleString()} ر.س</span>
+                    <span className="text-muted-foreground">{isArabic ? 'المجموع الفرعي:' : 'Subtotal:'} </span>
+                    <span className="font-medium">{invoice.subtotal.toLocaleString()} {isArabic ? 'ر.س' : 'SAR'}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">الضريبة ({invoice.taxRate}%): </span>
-                    <span className="font-medium">{invoice.taxAmount.toLocaleString()} ر.س</span>
+                    <span className="text-muted-foreground">{isArabic ? 'الضريبة' : 'Tax'} ({invoice.taxRate}%): </span>
+                    <span className="font-medium">{invoice.taxAmount.toLocaleString()} {isArabic ? 'ر.س' : 'SAR'}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">الخصم: </span>
-                    <span className="font-medium">{invoice.discount.toLocaleString()} ر.س</span>
+                    <span className="text-muted-foreground">{isArabic ? 'الخصم:' : 'Discount:'} </span>
+                    <span className="font-medium">{invoice.discount.toLocaleString()} {isArabic ? 'ر.س' : 'SAR'}</span>
                   </div>
                 </div>
               </div>
 
               {/* Items Summary */}
               <div className="border-t pt-3 mb-4">
-                <p className="text-sm text-muted-foreground mb-2">العناصر ({invoice.items.length})</p>
+                <p className="text-sm text-muted-foreground mb-2">{isArabic ? 'العناصر' : 'Items'} ({invoice.items.length})</p>
                 <div className="space-y-1">
                   {invoice.items.slice(0, 2).map((item) => (
                     <div key={item.id} className="flex justify-between text-sm">
                       <span>{item.name} × {item.quantity}</span>
-                      <span>{item.total.toLocaleString()} ر.س</span>
+                      <span>{item.total.toLocaleString()} {isArabic ? 'ر.س' : 'SAR'}</span>
                     </div>
                   ))}
                   {invoice.items.length > 2 && (
                     <p className="text-xs text-muted-foreground">
-                      و {invoice.items.length - 2} عنصر آخر...
+                      {isArabic ? `و ${invoice.items.length - 2} عنصر آخر...` : `and ${invoice.items.length - 2} more items...`}
                     </p>
                   )}
                 </div>
@@ -351,13 +371,13 @@ const Invoices = () => {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     {invoice.customFields.poNumber && (
                       <div>
-                        <span className="text-muted-foreground">رقم أمر الشراء: </span>
+                        <span className="text-muted-foreground">{isArabic ? 'رقم أمر الشراء:' : 'PO Number:'} </span>
                         <span className="font-medium">{invoice.customFields.poNumber}</span>
                       </div>
                     )}
                     {invoice.customFields.deliveryTerms && (
                       <div>
-                        <span className="text-muted-foreground">شروط التسليم: </span>
+                        <span className="text-muted-foreground">{isArabic ? 'شروط التسليم:' : 'Delivery Terms:'} </span>
                         <span className="font-medium">{invoice.customFields.deliveryTerms}</span>
                       </div>
                     )}
@@ -376,7 +396,7 @@ const Invoices = () => {
                   }}
                 >
                   <Eye className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
-                  عرض
+                  {isArabic ? 'عرض' : 'View'}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -387,7 +407,7 @@ const Invoices = () => {
                   }}
                 >
                   <Printer className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
-                  طباعة
+                  {isArabic ? 'طباعة' : 'Print'}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -398,7 +418,7 @@ const Invoices = () => {
                   }}
                 >
                   <Download className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
-                  تحميل PDF
+                  {isArabic ? 'تحميل PDF' : 'Download PDF'}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -409,7 +429,7 @@ const Invoices = () => {
                   }}
                 >
                   <Send className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
-                  إرسال
+                  {isArabic ? 'إرسال' : 'Send'}
                 </Button>
                 {invoice.status === 'sent' && (
                   <Button 
@@ -420,7 +440,7 @@ const Invoices = () => {
                       // Add payment registration functionality here
                     }}
                   >
-                    تسجيل دفعة
+                    {isArabic ? 'تسجيل دفعة' : 'Record Payment'}
                   </Button>
                 )}
                 {invoice.qrCode && (
@@ -433,7 +453,7 @@ const Invoices = () => {
                     }}
                   >
                     <QrCode className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
-                    رمز الاستجابة
+                    {isArabic ? 'رمز الاستجابة' : 'QR Code'}
                   </Button>
                 )}
               </div>
@@ -444,7 +464,9 @@ const Invoices = () => {
 
       {filteredInvoices.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">لا توجد فواتير مطابقة للبحث</p>
+          <p className="text-muted-foreground">
+            {isArabic ? "لا توجد فواتير مطابقة للبحث" : "No invoices found matching your search"}
+          </p>
         </div>
       )}
 
