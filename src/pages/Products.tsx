@@ -31,8 +31,32 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ProductDialog } from "@/components/Products/ProductDialog";
 import { ProductCard } from "@/components/Products/ProductCard";
+import { useToast } from "@/hooks/use-toast";
 
 interface Product {
   id: string;
@@ -97,12 +121,33 @@ export default function Products({ isArabic = false }: ProductsProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [stockFilter, setStockFilter] = useState<string>("all");
+  const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
+  const [viewProductId, setViewProductId] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.nameAr.includes(searchQuery) ||
-    product.sku.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProducts = products.filter(product => {
+    // Text search
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.nameAr.includes(searchQuery) ||
+      product.sku.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Status filter
+    const matchesStatus = statusFilter === "all" || product.status === statusFilter;
+    
+    // Stock filter
+    let matchesStock = true;
+    if (stockFilter === "in-stock") {
+      matchesStock = product.stock > 10;
+    } else if (stockFilter === "low-stock") {
+      matchesStock = product.stock > 0 && product.stock <= 10;
+    } else if (stockFilter === "out-of-stock") {
+      matchesStock = product.stock === 0;
+    }
+    
+    return matchesSearch && matchesStatus && matchesStock;
+  });
 
   const handleAddProduct = () => {
     setSelectedProduct(null);
@@ -115,7 +160,57 @@ export default function Products({ isArabic = false }: ProductsProps) {
   };
 
   const handleDeleteProduct = (productId: string) => {
-    setProducts(products.filter(p => p.id !== productId));
+    setDeleteProductId(productId);
+  };
+
+  const confirmDeleteProduct = () => {
+    if (deleteProductId) {
+      setProducts(products.filter(p => p.id !== deleteProductId));
+      setDeleteProductId(null);
+      toast({
+        title: isArabic ? "تم حذف المنتج" : "Product deleted",
+        description: isArabic ? "تم حذف المنتج بنجاح" : "Product has been deleted successfully",
+      });
+    }
+  };
+
+  const handleViewProduct = (productId: string) => {
+    setViewProductId(productId);
+  };
+
+  const handleExportProducts = () => {
+    const csvContent = [
+      // Headers
+      ['Name', 'Name (Arabic)', 'SKU', 'Category', 'Price', 'Stock', 'Status', 'Barcode'].join(','),
+      // Data rows
+      ...products.map(product => [
+        `"${product.name}"`,
+        `"${product.nameAr}"`,
+        product.sku,
+        product.category,
+        product.price,
+        product.stock,
+        product.status,
+        product.barcode || ''
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'products.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    
+    toast({
+      title: isArabic ? "تم تصدير المنتجات" : "Products exported",
+      description: isArabic ? "تم تصدير المنتجات إلى ملف CSV" : "Products have been exported to CSV file",
+    });
   };
 
   const handleSaveProduct = (productData: Partial<Product>) => {
@@ -191,7 +286,7 @@ export default function Products({ isArabic = false }: ProductsProps) {
             </DropdownMenuContent>
           </DropdownMenu>
           
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleExportProducts}>
             <Download className="h-4 w-4 mr-2" />
             {isArabic ? "تصدير" : "Export"}
           </Button>
@@ -285,10 +380,28 @@ export default function Products({ isArabic = false }: ProductsProps) {
             </div>
             
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                {isArabic ? "تصفية" : "Filter"}
-              </Button>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder={isArabic ? "الحالة" : "Status"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{isArabic ? "كل الحالات" : "All Status"}</SelectItem>
+                  <SelectItem value="active">{isArabic ? "نشط" : "Active"}</SelectItem>
+                  <SelectItem value="inactive">{isArabic ? "غير نشط" : "Inactive"}</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={stockFilter} onValueChange={setStockFilter}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder={isArabic ? "المخزون" : "Stock"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{isArabic ? "كل المخزون" : "All Stock"}</SelectItem>
+                  <SelectItem value="in-stock">{isArabic ? "متوفر" : "In Stock"}</SelectItem>
+                  <SelectItem value="low-stock">{isArabic ? "مخزون منخفض" : "Low Stock"}</SelectItem>
+                  <SelectItem value="out-of-stock">{isArabic ? "نفد المخزون" : "Out of Stock"}</SelectItem>
+                </SelectContent>
+              </Select>
               
               <div className="flex rounded-lg border">
                 <Button
@@ -352,7 +465,11 @@ export default function Products({ isArabic = false }: ProductsProps) {
                     <TableCell>{getStockBadge(product.stock)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleViewProduct(product.id)}
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button 
@@ -384,6 +501,7 @@ export default function Products({ isArabic = false }: ProductsProps) {
               key={product.id}
               product={product}
               isArabic={isArabic}
+              onView={() => handleViewProduct(product.id)}
               onEdit={() => handleEditProduct(product)}
               onDelete={() => handleDeleteProduct(product.id)}
             />
@@ -399,6 +517,115 @@ export default function Products({ isArabic = false }: ProductsProps) {
         onSave={handleSaveProduct}
         isArabic={isArabic}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteProductId} onOpenChange={() => setDeleteProductId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isArabic ? "تأكيد الحذف" : "Confirm Deletion"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isArabic 
+                ? "هل أنت متأكد من أنك تريد حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء."
+                : "Are you sure you want to delete this product? This action cannot be undone."
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {isArabic ? "إلغاء" : "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteProduct} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isArabic ? "حذف" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* View Product Dialog */}
+      <Dialog open={!!viewProductId} onOpenChange={() => setViewProductId(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {isArabic ? "تفاصيل المنتج" : "Product Details"}
+            </DialogTitle>
+          </DialogHeader>
+          {viewProductId && (() => {
+            const product = products.find(p => p.id === viewProductId);
+            if (!product) return null;
+            
+            return (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {isArabic ? "اسم المنتج" : "Product Name"}
+                    </label>
+                    <p className="text-sm">{isArabic ? product.nameAr : product.name}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {isArabic ? "رمز المنتج" : "SKU"}
+                    </label>
+                    <p className="text-sm font-mono">{product.sku}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {isArabic ? "الفئة" : "Category"}
+                    </label>
+                    <p className="text-sm">{product.category}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {isArabic ? "السعر" : "Price"}
+                    </label>
+                    <p className="text-sm">{isArabic ? `${product.price} ر.س` : `SAR ${product.price}`}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {isArabic ? "المخزون" : "Stock"}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm">{product.stock}</p>
+                      {getStockBadge(product.stock)}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {isArabic ? "الحالة" : "Status"}
+                    </label>
+                    <p className="text-sm capitalize">{product.status}</p>
+                  </div>
+                  {product.barcode && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        {isArabic ? "الرمز الشريطي" : "Barcode"}
+                      </label>
+                      <p className="text-sm font-mono">{product.barcode}</p>
+                    </div>
+                  )}
+                </div>
+                
+                {product.variants && product.variants.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {isArabic ? "المتغيرات" : "Variants"}
+                    </label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {product.variants.map((variant, index) => (
+                        <Badge key={index} variant="outline">
+                          {variant}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

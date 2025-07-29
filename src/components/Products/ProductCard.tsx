@@ -20,11 +20,12 @@ interface Product {
 interface ProductCardProps {
   product: Product;
   isArabic?: boolean;
+  onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-export function ProductCard({ product, isArabic = false, onEdit, onDelete }: ProductCardProps) {
+export function ProductCard({ product, isArabic = false, onView, onEdit, onDelete }: ProductCardProps) {
   const getStockBadge = (stock: number) => {
     if (stock === 0) {
       return <Badge variant="destructive">{isArabic ? "نفد المخزون" : "Out of Stock"}</Badge>;
@@ -95,7 +96,7 @@ export function ProductCard({ product, isArabic = false, onEdit, onDelete }: Pro
 
           {/* Actions */}
           <div className="flex items-center justify-between pt-2 border-t">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={onView}>
               <Eye className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="sm" onClick={onEdit}>
