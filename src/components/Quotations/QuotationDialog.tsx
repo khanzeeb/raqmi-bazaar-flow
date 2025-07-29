@@ -130,7 +130,10 @@ export function QuotationDialog({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {quotation ? (isArabic ? 'تعديل عرض السعر' : 'Edit Quotation') : (isArabic ? 'عرض سعر جديد' : 'New Quotation')}
+            {quotation 
+              ? (isArabic ? 'تعديل عرض السعر' : 'Edit Quotation') 
+              : (isArabic ? 'عرض سعر جديد' : 'New Quotation')
+            }
           </DialogTitle>
         </DialogHeader>
 
@@ -138,7 +141,9 @@ export function QuotationDialog({
           {/* Basic Info */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="quotationNumber">رقم العرض</Label>
+              <Label htmlFor="quotationNumber">
+                {isArabic ? "رقم العرض" : "Quotation Number"}
+              </Label>
               <Input
                 id="quotationNumber"
                 value={formData.quotationNumber}
@@ -147,7 +152,9 @@ export function QuotationDialog({
               />
             </div>
             <div>
-              <Label htmlFor="validityDays">مدة الصلاحية (بالأيام)</Label>
+              <Label htmlFor="validityDays">
+                {isArabic ? "مدة الصلاحية (بالأيام)" : "Validity (Days)"}
+              </Label>
               <Input
                 id="validityDays"
                 type="number"
@@ -170,7 +177,7 @@ export function QuotationDialog({
           {/* Customer Info */}
           <Card>
             <CardHeader>
-              <CardTitle>معلومات العميل</CardTitle>
+              <CardTitle>{isArabic ? "معلومات العميل" : "Customer Information"}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -394,10 +401,13 @@ export function QuotationDialog({
 
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              إلغاء
+              {isArabic ? "إلغاء" : "Cancel"}
             </Button>
             <Button type="submit">
-              {quotation ? 'تحديث العرض' : 'حفظ العرض'}
+              {quotation 
+                ? (isArabic ? 'تحديث العرض' : 'Update Quotation')
+                : (isArabic ? 'حفظ العرض' : 'Save Quotation')
+              }
             </Button>
           </div>
         </form>

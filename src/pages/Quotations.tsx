@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Filter, Download, Printer, Eye, Send, CheckCircle, Clock, XCircle } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { QuotationDialog } from "@/components/Quotations/QuotationDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Quotation {
   id: string;
@@ -38,10 +40,12 @@ export interface Quotation {
 const Quotations = () => {
   const { t, language } = useLanguage();
   const isArabic = language === 'ar';
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<'all' | Quotation['status']>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | undefined>(undefined);
+  const [viewQuotationId, setViewQuotationId] = useState<string | null>(null);
   const [quotations, setQuotations] = useState<Quotation[]>([
     {
       id: '1',
@@ -127,11 +131,148 @@ const Quotations = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const handleViewQuotation = (quotationId: string) => {
+    setViewQuotationId(quotationId);
+  };
+
+  const handleSendQuotation = (quotationId: string) => {
+    setQuotations(prev => prev.map(q => 
+      q.id === quotationId ? { ...q, status: 'sent' as const } : q
+    ));
+    toast({
+      title: isArabic ? "تم إرسال العرض" : "Quotation sent",
+      description: isArabic ? "تم إرسال عرض السعر بنجاح" : "Quotation has been sent successfully",
+    });
+  };
+
+  const handlePrintQuotation = (quotation: Quotation) => {
+    const printContent = `
+      <html>
+        <head>
+          <title>${isArabic ? 'عرض سعر' : 'Quotation'} - ${quotation.quotationNumber}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; direction: ${isArabic ? 'rtl' : 'ltr'}; }
+            .header { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+            .section { margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: ${isArabic ? 'right' : 'left'}; }
+            th { background-color: #f5f5f5; }
+            .total { font-weight: bold; font-size: 1.2em; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${isArabic ? 'عرض سعر' : 'Quotation'}</h1>
+            <p><strong>${isArabic ? 'رقم العرض:' : 'Quotation Number:'}</strong> ${quotation.quotationNumber}</p>
+            <p><strong>${isArabic ? 'التاريخ:' : 'Date:'}</strong> ${quotation.createdAt}</p>
+            <p><strong>${isArabic ? 'صالح حتى:' : 'Valid until:'}</strong> ${quotation.expiryDate}</p>
+          </div>
+          
+          <div class="section">
+            <h3>${isArabic ? 'معلومات العميل' : 'Customer Information'}</h3>
+            <p><strong>${isArabic ? 'الاسم:' : 'Name:'}</strong> ${quotation.customer.name}</p>
+            <p><strong>${isArabic ? 'الهاتف:' : 'Phone:'}</strong> ${quotation.customer.phone}</p>
+            ${quotation.customer.email ? `<p><strong>${isArabic ? 'البريد الإلكتروني:' : 'Email:'}</strong> ${quotation.customer.email}</p>` : ''}
+          </div>
+
+          <div class="section">
+            <h3>${isArabic ? 'العناصر' : 'Items'}</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>${isArabic ? 'المنتج' : 'Product'}</th>
+                  <th>${isArabic ? 'الكمية' : 'Quantity'}</th>
+                  <th>${isArabic ? 'السعر' : 'Price'}</th>
+                  <th>${isArabic ? 'المجموع' : 'Total'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${quotation.items.map(item => `
+                  <tr>
+                    <td>${item.name}</td>
+                    <td>${item.quantity}</td>
+                    <td>${item.price} ${isArabic ? 'ر.س' : 'SAR'}</td>
+                    <td>${item.total} ${isArabic ? 'ر.س' : 'SAR'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <table>
+              <tr><td><strong>${isArabic ? 'المجموع الفرعي:' : 'Subtotal:'}</strong></td><td>${quotation.subtotal} ${isArabic ? 'ر.س' : 'SAR'}</td></tr>
+              <tr><td><strong>${isArabic ? 'الخصم:' : 'Discount:'}</strong></td><td>-${quotation.discount} ${isArabic ? 'ر.س' : 'SAR'}</td></tr>
+              <tr><td><strong>${isArabic ? 'الضريبة' : 'Tax'} (${quotation.taxRate}%):</strong></td><td>${quotation.taxAmount} ${isArabic ? 'ر.س' : 'SAR'}</td></tr>
+              <tr class="total"><td><strong>${isArabic ? 'المجموع الكلي:' : 'Total:'}</strong></td><td>${quotation.total} ${isArabic ? 'ر.س' : 'SAR'}</td></tr>
+            </table>
+          </div>
+
+          ${quotation.notes ? `
+          <div class="section">
+            <h3>${isArabic ? 'ملاحظات' : 'Notes'}</h3>
+            <p>${quotation.notes}</p>
+          </div>
+          ` : ''}
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }
+  };
+
+  const handleDownloadPDF = (quotation: Quotation) => {
+    // Create a simple CSV export as a fallback since we don't have PDF library
+    const csvContent = [
+      [isArabic ? 'عرض سعر' : 'Quotation', quotation.quotationNumber].join(','),
+      [isArabic ? 'العميل' : 'Customer', quotation.customer.name].join(','),
+      [isArabic ? 'التاريخ' : 'Date', quotation.createdAt].join(','),
+      [isArabic ? 'صالح حتى' : 'Valid until', quotation.expiryDate].join(','),
+      '',
+      [isArabic ? 'المنتج' : 'Product', isArabic ? 'الكمية' : 'Quantity', isArabic ? 'السعر' : 'Price', isArabic ? 'المجموع' : 'Total'].join(','),
+      ...quotation.items.map(item => [item.name, item.quantity, item.price, item.total].join(',')),
+      '',
+      [isArabic ? 'المجموع الفرعي' : 'Subtotal', quotation.subtotal].join(','),
+      [isArabic ? 'الخصم' : 'Discount', -quotation.discount].join(','),
+      [isArabic ? 'الضريبة' : 'Tax', quotation.taxAmount].join(','),
+      [isArabic ? 'المجموع الكلي' : 'Total', quotation.total].join(','),
+      quotation.notes ? [isArabic ? 'ملاحظات' : 'Notes', quotation.notes].join(',') : ''
+    ].filter(Boolean).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `quotation-${quotation.quotationNumber}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    
+    toast({
+      title: isArabic ? "تم تحميل العرض" : "Quotation downloaded",
+      description: isArabic ? "تم تحميل عرض السعر كملف CSV" : "Quotation has been downloaded as CSV file",
+    });
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground mb-2">عروض الأسعار</h1>
-        <p className="text-muted-foreground">إدارة عروض الأسعار والتحويل إلى مبيعات</p>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          {isArabic ? "عروض الأسعار" : "Quotations"}
+        </h1>
+        <p className="text-muted-foreground">
+          {isArabic ? "إدارة عروض الأسعار والتحويل إلى مبيعات" : "Manage quotations and convert to sales"}
+        </p>
       </div>
 
       {/* Actions Bar */}
@@ -139,7 +280,7 @@ const Quotations = () => {
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
-            placeholder="البحث برقم العرض أو اسم العميل..."
+            placeholder={isArabic ? "البحث برقم العرض أو اسم العميل..." : "Search by quotation number or customer name..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -151,11 +292,11 @@ const Quotations = () => {
             onChange={(e) => setSelectedStatus(e.target.value as any)}
             className="px-3 py-2 border border-input rounded-md bg-background text-foreground"
           >
-            <option value="all">جميع الحالات</option>
-            <option value="draft">مسودة</option>
-            <option value="sent">مرسل</option>
-            <option value="accepted">مقبول</option>
-            <option value="expired">منتهي الصلاحية</option>
+            <option value="all">{isArabic ? "جميع الحالات" : "All Status"}</option>
+            <option value="draft">{isArabic ? "مسودة" : "Draft"}</option>
+            <option value="sent">{isArabic ? "مرسل" : "Sent"}</option>
+            <option value="accepted">{isArabic ? "مقبول" : "Accepted"}</option>
+            <option value="expired">{isArabic ? "منتهي الصلاحية" : "Expired"}</option>
           </select>
           <Button variant="outline" size="icon">
             <Filter className="w-4 h-4" />
@@ -168,7 +309,7 @@ const Quotations = () => {
             }}
           >
             <Plus className="w-4 h-4" />
-            عرض سعر جديد
+            {isArabic ? "عرض سعر جديد" : "New Quotation"}
           </Button>
         </div>
       </div>
@@ -199,36 +340,55 @@ const Quotations = () => {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">المجموع</p>
-                  <p className="font-semibold">{quotation.total.toLocaleString()} ر.س</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isArabic ? "المجموع" : "Total"}
+                  </p>
+                  <p className="font-semibold">
+                    {quotation.total.toLocaleString()} {isArabic ? "ر.س" : "SAR"}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">صالح حتى</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isArabic ? "صالح حتى" : "Valid until"}
+                  </p>
                   <p className="font-medium">{quotation.expiryDate}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">مدة الصلاحية</p>
-                  <p className="font-medium">{quotation.validityDays} يوم</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isArabic ? "مدة الصلاحية" : "Validity"}
+                  </p>
+                  <p className="font-medium">
+                    {quotation.validityDays} {isArabic ? "يوم" : "days"}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">التاريخ</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isArabic ? "التاريخ" : "Date"}
+                  </p>
                   <p className="font-medium">{quotation.createdAt}</p>
                 </div>
               </div>
               
               {/* Items Summary */}
               <div className="border-t pt-3">
-                <p className="text-sm text-muted-foreground mb-2">العناصر ({quotation.items.length})</p>
+                <p className="text-sm text-muted-foreground mb-2">
+                  {isArabic ? `العناصر (${quotation.items.length})` : `Items (${quotation.items.length})`}
+                </p>
                 <div className="space-y-1">
                   {quotation.items.slice(0, 2).map((item) => (
                     <div key={item.id} className="flex justify-between text-sm">
                       <span>{item.name} × {item.quantity}</span>
-                      <span>{item.total.toLocaleString()} ر.س</span>
+                      <span>
+                        {item.total.toLocaleString()} {isArabic ? "ر.س" : "SAR"}
+                      </span>
                     </div>
                   ))}
                   {quotation.items.length > 2 && (
                     <p className="text-xs text-muted-foreground">
-                      و {quotation.items.length - 2} عنصر آخر...
+                      {isArabic 
+                        ? `و ${quotation.items.length - 2} عنصر آخر...`
+                        : `and ${quotation.items.length - 2} more items...`
+                      }
                     </p>
                   )}
                 </div>
@@ -236,25 +396,42 @@ const Quotations = () => {
 
               {/* Actions */}
               <div className="flex gap-2 mt-4 pt-3 border-t">
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleViewQuotation(quotation.id)}
+                >
                   <Eye className="w-4 h-4 mr-1" />
-                  عرض
+                  {isArabic ? "عرض" : "View"}
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleSendQuotation(quotation.id)}
+                  disabled={quotation.status === 'sent' || quotation.status === 'accepted'}
+                >
                   <Send className="w-4 h-4 mr-1" />
-                  إرسال
+                  {isArabic ? "إرسال" : "Send"}
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handlePrintQuotation(quotation)}
+                >
                   <Printer className="w-4 h-4 mr-1" />
-                  طباعة
+                  {isArabic ? "طباعة" : "Print"}
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleDownloadPDF(quotation)}
+                >
                   <Download className="w-4 h-4 mr-1" />
-                  تحميل PDF
+                  {isArabic ? "تحميل PDF" : "Download PDF"}
                 </Button>
                 {quotation.status === 'accepted' && (
                   <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                    تحويل لطلب بيع
+                    {isArabic ? "تحويل لطلب بيع" : "Convert to Sale"}
                   </Button>
                 )}
               </div>
@@ -265,7 +442,9 @@ const Quotations = () => {
 
       {filteredQuotations.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">لا توجد عروض أسعار مطابقة للبحث</p>
+          <p className="text-muted-foreground">
+            {isArabic ? "لا توجد عروض أسعار مطابقة للبحث" : "No quotations match your search"}
+          </p>
         </div>
       )}
 
@@ -293,6 +472,157 @@ const Quotations = () => {
           setIsDialogOpen(false);
         }}
       />
+
+      {/* View Quotation Dialog */}
+      <Dialog open={!!viewQuotationId} onOpenChange={() => setViewQuotationId(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {isArabic ? "تفاصيل عرض السعر" : "Quotation Details"}
+            </DialogTitle>
+          </DialogHeader>
+          {viewQuotationId && (() => {
+            const quotation = quotations.find(q => q.id === viewQuotationId);
+            if (!quotation) return null;
+            
+            return (
+              <div className="space-y-6">
+                {/* Header Info */}
+                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
+                  <div>
+                    <h3 className="font-semibold text-lg">{quotation.quotationNumber}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {isArabic ? "تاريخ الإنشاء:" : "Created:"} {quotation.createdAt}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <Badge className={getStatusColor(quotation.status)}>
+                      {getStatusText(quotation.status)}
+                    </Badge>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {isArabic ? "صالح حتى:" : "Valid until:"} {quotation.expiryDate}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Customer Info */}
+                <div>
+                  <h4 className="font-medium mb-3">
+                    {isArabic ? "معلومات العميل" : "Customer Information"}
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        {isArabic ? "الاسم" : "Name"}
+                      </label>
+                      <p className="text-sm">{quotation.customer.name}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        {isArabic ? "نوع العميل" : "Customer Type"}
+                      </label>
+                      <p className="text-sm capitalize">
+                        {quotation.customer.type === 'individual' 
+                          ? (isArabic ? 'فردي' : 'Individual')
+                          : (isArabic ? 'شركة' : 'Business')
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        {isArabic ? "الهاتف" : "Phone"}
+                      </label>
+                      <p className="text-sm">{quotation.customer.phone}</p>
+                    </div>
+                    {quotation.customer.email && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">
+                          {isArabic ? "البريد الإلكتروني" : "Email"}
+                        </label>
+                        <p className="text-sm">{quotation.customer.email}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Items */}
+                <div>
+                  <h4 className="font-medium mb-3">
+                    {isArabic ? "العناصر" : "Items"}
+                  </h4>
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="text-left p-3 text-sm font-medium">
+                            {isArabic ? "المنتج" : "Product"}
+                          </th>
+                          <th className="text-center p-3 text-sm font-medium">
+                            {isArabic ? "الكمية" : "Quantity"}
+                          </th>
+                          <th className="text-right p-3 text-sm font-medium">
+                            {isArabic ? "السعر" : "Price"}
+                          </th>
+                          <th className="text-right p-3 text-sm font-medium">
+                            {isArabic ? "المجموع" : "Total"}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {quotation.items.map((item) => (
+                          <tr key={item.id} className="border-t">
+                            <td className="p-3">{item.name}</td>
+                            <td className="p-3 text-center">{item.quantity}</td>
+                            <td className="p-3 text-right">
+                              {item.price} {isArabic ? "ر.س" : "SAR"}
+                            </td>
+                            <td className="p-3 text-right">
+                              {item.total} {isArabic ? "ر.س" : "SAR"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Totals */}
+                <div className="border-t pt-4">
+                  <div className="space-y-2 max-w-xs ml-auto">
+                    <div className="flex justify-between">
+                      <span>{isArabic ? "المجموع الفرعي:" : "Subtotal:"}</span>
+                      <span>{quotation.subtotal} {isArabic ? "ر.س" : "SAR"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>{isArabic ? "الخصم:" : "Discount:"}</span>
+                      <span>-{quotation.discount} {isArabic ? "ر.س" : "SAR"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>{isArabic ? `الضريبة (${quotation.taxRate}%):` : `Tax (${quotation.taxRate}%):`}</span>
+                      <span>{quotation.taxAmount} {isArabic ? "ر.س" : "SAR"}</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-lg border-t pt-2">
+                      <span>{isArabic ? "المجموع الكلي:" : "Total:"}</span>
+                      <span>{quotation.total} {isArabic ? "ر.س" : "SAR"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {quotation.notes && (
+                  <div>
+                    <h4 className="font-medium mb-2">
+                      {isArabic ? "ملاحظات" : "Notes"}
+                    </h4>
+                    <p className="text-sm text-muted-foreground p-3 bg-muted/30 rounded-lg">
+                      {quotation.notes}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
