@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Plus, Search, Filter, Tag, Percent, Clock, Users, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { PricingRuleDialog } from "@/components/Pricing/PricingRuleDialog";
+import { PricingRuleStatsDialog } from "@/components/Pricing/PricingRuleStatsDialog";
 
 export interface PricingRule {
   id: string;
@@ -41,6 +43,9 @@ const Pricing = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | PricingRule['type']>('all');
+  const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
+  const [statsDialogOpen, setStatsDialogOpen] = useState(false);
+  const [selectedRule, setSelectedRule] = useState<PricingRule | null>(null);
   const [pricingRules, setPricingRules] = useState<PricingRule[]>([
     {
       id: '1',
@@ -213,31 +218,53 @@ const Pricing = () => {
   };
 
   const handleNewRule = () => {
-    toast({
-      title: isArabic ? "قاعدة تسعير جديدة" : "New Pricing Rule",
-      description: isArabic ? "فتح نافذة إنشاء قاعدة تسعير جديدة" : "Opening new pricing rule creation window",
-    });
+    setSelectedRule(null);
+    setRuleDialogOpen(true);
   };
 
-  const handleEditRule = () => {
-    toast({
-      title: isArabic ? "تعديل القاعدة" : "Edit Rule",
-      description: isArabic ? "فتح نافذة تعديل قاعدة التسعير" : "Opening pricing rule edit window",
-    });
+  const handleEditRule = (rule: PricingRule) => {
+    setSelectedRule(rule);
+    setRuleDialogOpen(true);
   };
 
-  const handleCopyRule = () => {
+  const handleCopyRule = (rule: PricingRule) => {
+    const newRule = {
+      ...rule,
+      id: Date.now().toString(),
+      name: `${rule.name} - ${isArabic ? 'نسخة' : 'Copy'}`,
+      usageCount: 0,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+    setPricingRules(prev => [...prev, newRule]);
     toast({
       title: isArabic ? "نسخ القاعدة" : "Copy Rule",
       description: isArabic ? "تم نسخ قاعدة التسعير" : "Pricing rule has been copied",
     });
   };
 
-  const handleViewStats = () => {
-    toast({
-      title: isArabic ? "إحصائيات القاعدة" : "Rule Statistics",
-      description: isArabic ? "عرض إحصائيات استخدام القاعدة" : "Displaying rule usage statistics",
-    });
+  const handleViewStats = (rule: PricingRule) => {
+    setSelectedRule(rule);
+    setStatsDialogOpen(true);
+  };
+
+  const handleSaveRule = (ruleData: Omit<PricingRule, 'id' | 'createdAt' | 'usageCount'>) => {
+    if (selectedRule) {
+      // Edit existing rule
+      setPricingRules(prev => prev.map(rule => 
+        rule.id === selectedRule.id 
+          ? { ...rule, ...ruleData }
+          : rule
+      ));
+    } else {
+      // Create new rule
+      const newRule: PricingRule = {
+        ...ruleData,
+        id: Date.now().toString(),
+        usageCount: 0,
+        createdAt: new Date().toISOString().split('T')[0]
+      };
+      setPricingRules(prev => [...prev, newRule]);
+    }
   };
 
   return (
@@ -432,13 +459,13 @@ const Pricing = () => {
               {/* Actions */}
               <div className="flex items-center justify-between pt-3 border-t">
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleEditRule}>
+                  <Button variant="outline" size="sm" onClick={() => handleEditRule(rule)}>
                     {isArabic ? "تعديل" : "Edit"}
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleCopyRule}>
+                  <Button variant="outline" size="sm" onClick={() => handleCopyRule(rule)}>
                     {isArabic ? "نسخ" : "Copy"}
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleViewStats}>
+                  <Button variant="outline" size="sm" onClick={() => handleViewStats(rule)}>
                     {isArabic ? "إحصائيات" : "Statistics"}
                   </Button>
                 </div>
@@ -469,6 +496,20 @@ const Pricing = () => {
           </p>
         </div>
       )}
+
+      {/* Dialogs */}
+      <PricingRuleDialog
+        open={ruleDialogOpen}
+        onOpenChange={setRuleDialogOpen}
+        rule={selectedRule}
+        onSave={handleSaveRule}
+      />
+
+      <PricingRuleStatsDialog
+        open={statsDialogOpen}
+        onOpenChange={setStatsDialogOpen}
+        rule={selectedRule}
+      />
     </div>
   );
 };
