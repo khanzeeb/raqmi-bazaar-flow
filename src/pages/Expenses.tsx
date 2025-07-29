@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Filter, Receipt, Car, Home, Zap, Calendar } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ExpenseDialog } from "@/components/Expenses/ExpenseDialog";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Expense {
   id: string;
@@ -25,7 +27,10 @@ const Expenses = () => {
   const isArabic = language === 'ar';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'all' | Expense['category']>('all');
-  const [expenses] = useState<Expense[]>([
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>(undefined);
+  const { toast } = useToast();
+  const [expenses, setExpenses] = useState<Expense[]>([
     {
       id: '1',
       expenseNumber: 'EXP-001',
@@ -179,6 +184,75 @@ const Expenses = () => {
 
   const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 
+  const handleNewExpense = () => {
+    setSelectedExpense(undefined);
+    setIsDialogOpen(true);
+  };
+
+  const handleEditExpense = (expense: Expense) => {
+    setSelectedExpense(expense);
+    setIsDialogOpen(true);
+  };
+
+  const handleSaveExpense = (expenseData: Omit<Expense, 'id'>) => {
+    if (selectedExpense) {
+      // Update existing expense
+      setExpenses(prev => prev.map(exp => 
+        exp.id === selectedExpense.id 
+          ? { ...expenseData, id: selectedExpense.id }
+          : exp
+      ));
+      toast({
+        title: isArabic ? "تم تحديث المصروف" : "Expense Updated",
+        description: isArabic ? "تم تحديث المصروف بنجاح" : "Expense has been updated successfully",
+      });
+    } else {
+      // Add new expense
+      const newExpense: Expense = {
+        ...expenseData,
+        id: Math.random().toString(36).substr(2, 9),
+      };
+      setExpenses(prev => [newExpense, ...prev]);
+      toast({
+        title: isArabic ? "تم إضافة المصروف" : "Expense Added",
+        description: isArabic ? "تم إضافة المصروف بنجاح" : "New expense has been added successfully",
+      });
+    }
+    setIsDialogOpen(false);
+    setSelectedExpense(undefined);
+  };
+
+  const handleApprovePayment = (expenseId: string) => {
+    setExpenses(prev => prev.map(exp => 
+      exp.id === expenseId 
+        ? { ...exp, status: 'paid' as const }
+        : exp
+    ));
+    toast({
+      title: isArabic ? "تم اعتماد الدفع" : "Payment Approved",
+      description: isArabic ? "تم اعتماد الدفع بنجاح" : "Payment has been approved successfully",
+    });
+  };
+
+  const handleAttachReceipt = (expenseId: string) => {
+    setExpenses(prev => prev.map(exp => 
+      exp.id === expenseId 
+        ? { ...exp, receiptAttached: true }
+        : exp
+    ));
+    toast({
+      title: isArabic ? "تم إرفاق الإيصال" : "Receipt Attached",
+      description: isArabic ? "تم إرفاق الإيصال بنجاح" : "Receipt has been attached successfully",
+    });
+  };
+
+  const handleViewDetails = (expense: Expense) => {
+    toast({
+      title: isArabic ? "عرض التفاصيل" : "View Details",
+      description: `${expense.expenseNumber}: ${expense.description}`,
+    });
+  };
+
   return (
     <div className={`p-6 max-w-7xl mx-auto ${isArabic ? 'rtl' : 'ltr'}`}>
       <div className="mb-6">
@@ -263,7 +337,7 @@ const Expenses = () => {
           <Button variant="outline" size="icon">
             <Filter className="w-4 h-4" />
           </Button>
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2" onClick={handleNewExpense}>
             <Plus className="w-4 h-4" />
             {isArabic ? 'مصروف جديد' : 'New Expense'}
           </Button>
@@ -334,19 +408,19 @@ const Expenses = () => {
 
               {/* Actions */}
               <div className="flex gap-2 mt-4 pt-3 border-t">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => handleViewDetails(expense)}>
                   {isArabic ? 'عرض التفاصيل' : 'View Details'}
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => handleEditExpense(expense)}>
                   {isArabic ? 'تعديل' : 'Edit'}
                 </Button>
                 {!expense.receiptAttached && (
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => handleAttachReceipt(expense.id)}>
                     {isArabic ? 'إرفاق إيصال' : 'Attach Receipt'}
                   </Button>
                 )}
                 {expense.status === 'pending' && (
-                  <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleApprovePayment(expense.id)}>
                     {isArabic ? 'اعتماد الدفع' : 'Approve Payment'}
                   </Button>
                 )}
@@ -363,6 +437,13 @@ const Expenses = () => {
           </p>
         </div>
       )}
+
+      <ExpenseDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        expense={selectedExpense}
+        onSave={handleSaveExpense}
+      />
     </div>
   );
 };
