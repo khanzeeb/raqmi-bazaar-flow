@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Filter, Download, Printer, Eye } from "lucide-react";
 import { OrderDialog } from "@/components/SalesOrders/OrderDialog";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useToast } from "@/hooks/use-toast";
 
 export interface SalesOrder {
   id: string;
@@ -35,6 +37,9 @@ export interface SalesOrder {
 }
 
 const SalesOrders = () => {
+  const { t, language } = useLanguage();
+  const isArabic = language === 'ar';
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<'all' | SalesOrder['status']>('all');
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
@@ -99,30 +104,30 @@ const SalesOrders = () => {
   };
 
   const getStatusText = (status: SalesOrder['status']) => {
-    switch (status) {
-      case 'pending': return 'معلق';
-      case 'completed': return 'مكتمل';
-      case 'returned': return 'مرتجع';
-      default: return status;
-    }
+    const statusMap = {
+      pending: { ar: 'معلق', en: 'Pending' },
+      completed: { ar: 'مكتمل', en: 'Completed' },
+      returned: { ar: 'مرتجع', en: 'Returned' }
+    };
+    return statusMap[status]?.[isArabic ? 'ar' : 'en'] || status;
   };
 
   const getPaymentStatusText = (status: SalesOrder['paymentStatus']) => {
-    switch (status) {
-      case 'pending': return 'غير مدفوع';
-      case 'partial': return 'مدفوع جزئياً';
-      case 'paid': return 'مدفوع بالكامل';
-      default: return status;
-    }
+    const statusMap = {
+      pending: { ar: 'غير مدفوع', en: 'Unpaid' },
+      partial: { ar: 'مدفوع جزئياً', en: 'Partially Paid' },
+      paid: { ar: 'مدفوع بالكامل', en: 'Fully Paid' }
+    };
+    return statusMap[status]?.[isArabic ? 'ar' : 'en'] || status;
   };
 
   const getPaymentModeText = (mode: SalesOrder['paymentMode']) => {
-    switch (mode) {
-      case 'cash': return 'نقدي';
-      case 'bank_transfer': return 'تحويل بنكي';
-      case 'credit': return 'آجل';
-      default: return mode;
-    }
+    const modeMap = {
+      cash: { ar: 'نقدي', en: 'Cash' },
+      bank_transfer: { ar: 'تحويل بنكي', en: 'Bank Transfer' },
+      credit: { ar: 'آجل', en: 'Credit' }
+    };
+    return modeMap[mode]?.[isArabic ? 'ar' : 'en'] || mode;
   };
 
   const filteredOrders = orders.filter(order => {
@@ -152,11 +157,143 @@ const SalesOrders = () => {
     setIsOrderDialogOpen(false);
   };
 
+  const handlePrintOrder = (order: SalesOrder) => {
+    const printContent = `
+      <html>
+        <head>
+          <title>${isArabic ? 'طلب بيع' : 'Sales Order'} - ${order.orderNumber}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; direction: ${isArabic ? 'rtl' : 'ltr'}; }
+            .header { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+            .section { margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: ${isArabic ? 'right' : 'left'}; }
+            th { background-color: #f5f5f5; }
+            .total { font-weight: bold; font-size: 1.2em; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${isArabic ? 'طلب بيع' : 'Sales Order'}</h1>
+            <p><strong>${isArabic ? 'رقم الطلب:' : 'Order Number:'}</strong> ${order.orderNumber}</p>
+            <p><strong>${isArabic ? 'التاريخ:' : 'Date:'}</strong> ${order.createdAt}</p>
+            <p><strong>${isArabic ? 'الحالة:' : 'Status:'}</strong> ${getStatusText(order.status)}</p>
+          </div>
+          
+          <div class="section">
+            <h3>${isArabic ? 'معلومات العميل' : 'Customer Information'}</h3>
+            <p><strong>${isArabic ? 'الاسم:' : 'Name:'}</strong> ${order.customer.name}</p>
+            <p><strong>${isArabic ? 'الهاتف:' : 'Phone:'}</strong> ${order.customer.phone}</p>
+          </div>
+
+          <div class="section">
+            <h3>${isArabic ? 'العناصر' : 'Items'}</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>${isArabic ? 'المنتج' : 'Product'}</th>
+                  <th>${isArabic ? 'الكمية' : 'Quantity'}</th>
+                  <th>${isArabic ? 'السعر' : 'Price'}</th>
+                  <th>${isArabic ? 'المجموع' : 'Total'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${order.items.map(item => `
+                  <tr>
+                    <td>${item.name}</td>
+                    <td>${item.quantity}</td>
+                    <td>${item.price} ${isArabic ? 'ر.س' : 'SAR'}</td>
+                    <td>${item.total} ${isArabic ? 'ر.س' : 'SAR'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <table>
+              <tr><td><strong>${isArabic ? 'المجموع الفرعي:' : 'Subtotal:'}</strong></td><td>${order.subtotal} ${isArabic ? 'ر.س' : 'SAR'}</td></tr>
+              <tr><td><strong>${isArabic ? 'الخصم:' : 'Discount:'}</strong></td><td>-${order.discount} ${isArabic ? 'ر.س' : 'SAR'}</td></tr>
+              <tr><td><strong>${isArabic ? 'الضريبة' : 'Tax'} (${order.taxRate}%):</strong></td><td>${order.taxAmount} ${isArabic ? 'ر.س' : 'SAR'}</td></tr>
+              <tr class="total"><td><strong>${isArabic ? 'المجموع الكلي:' : 'Total:'}</strong></td><td>${order.total} ${isArabic ? 'ر.س' : 'SAR'}</td></tr>
+            </table>
+          </div>
+
+          <div class="section">
+            <h3>${isArabic ? 'معلومات الدفع' : 'Payment Information'}</h3>
+            <p><strong>${isArabic ? 'طريقة الدفع:' : 'Payment Method:'}</strong> ${getPaymentModeText(order.paymentMode)}</p>
+            <p><strong>${isArabic ? 'حالة الدفع:' : 'Payment Status:'}</strong> ${getPaymentStatusText(order.paymentStatus)}</p>
+            <p><strong>${isArabic ? 'المبلغ المدفوع:' : 'Paid Amount:'}</strong> ${order.paidAmount} ${isArabic ? 'ر.س' : 'SAR'}</p>
+          </div>
+
+          ${order.notes ? `
+          <div class="section">
+            <h3>${isArabic ? 'ملاحظات' : 'Notes'}</h3>
+            <p>${order.notes}</p>
+          </div>
+          ` : ''}
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }
+  };
+
+  const handleDownloadOrder = (order: SalesOrder) => {
+    const csvContent = [
+      [isArabic ? 'طلب بيع' : 'Sales Order', order.orderNumber].join(','),
+      [isArabic ? 'العميل' : 'Customer', order.customer.name].join(','),
+      [isArabic ? 'الهاتف' : 'Phone', order.customer.phone].join(','),
+      [isArabic ? 'التاريخ' : 'Date', order.createdAt].join(','),
+      [isArabic ? 'الحالة' : 'Status', getStatusText(order.status)].join(','),
+      '',
+      [isArabic ? 'المنتج' : 'Product', isArabic ? 'الكمية' : 'Quantity', isArabic ? 'السعر' : 'Price', isArabic ? 'المجموع' : 'Total'].join(','),
+      ...order.items.map(item => [item.name, item.quantity, item.price, item.total].join(',')),
+      '',
+      [isArabic ? 'المجموع الفرعي' : 'Subtotal', order.subtotal].join(','),
+      [isArabic ? 'الخصم' : 'Discount', -order.discount].join(','),
+      [isArabic ? 'الضريبة' : 'Tax', order.taxAmount].join(','),
+      [isArabic ? 'المجموع الكلي' : 'Total', order.total].join(','),
+      [isArabic ? 'طريقة الدفع' : 'Payment Method', getPaymentModeText(order.paymentMode)].join(','),
+      [isArabic ? 'حالة الدفع' : 'Payment Status', getPaymentStatusText(order.paymentStatus)].join(','),
+      [isArabic ? 'المبلغ المدفوع' : 'Paid Amount', order.paidAmount].join(','),
+      order.notes ? [isArabic ? 'ملاحظات' : 'Notes', order.notes].join(',') : ''
+    ].filter(Boolean).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `sales-order-${order.orderNumber}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    
+    toast({
+      title: isArabic ? "تم تحميل الطلب" : "Order downloaded",
+      description: isArabic ? "تم تحميل طلب البيع كملف CSV" : "Sales order has been downloaded as CSV file",
+    });
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground mb-2">أوامر البيع</h1>
-        <p className="text-muted-foreground">إدارة أوامر البيع والمدفوعات</p>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          {isArabic ? "أوامر البيع" : "Sales Orders"}
+        </h1>
+        <p className="text-muted-foreground">
+          {isArabic ? "إدارة أوامر البيع والمدفوعات" : "Manage sales orders and payments"}
+        </p>
       </div>
 
       {/* Actions Bar */}
@@ -164,7 +301,7 @@ const SalesOrders = () => {
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
-            placeholder="البحث برقم الطلب أو اسم العميل..."
+            placeholder={isArabic ? "البحث برقم الطلب أو اسم العميل..." : "Search by order number or customer name..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -176,10 +313,10 @@ const SalesOrders = () => {
             onChange={(e) => setSelectedStatus(e.target.value as any)}
             className="px-3 py-2 border border-input rounded-md bg-background text-foreground"
           >
-            <option value="all">جميع الحالات</option>
-            <option value="pending">معلق</option>
-            <option value="completed">مكتمل</option>
-            <option value="returned">مرتجع</option>
+            <option value="all">{isArabic ? "جميع الحالات" : "All Status"}</option>
+            <option value="pending">{isArabic ? "معلق" : "Pending"}</option>
+            <option value="completed">{isArabic ? "مكتمل" : "Completed"}</option>
+            <option value="returned">{isArabic ? "مرتجع" : "Returned"}</option>
           </select>
           <Button variant="outline" size="icon">
             <Filter className="w-4 h-4" />
@@ -192,7 +329,7 @@ const SalesOrders = () => {
             className="flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
-            طلب جديد
+            {isArabic ? "طلب جديد" : "New Order"}
           </Button>
         </div>
       </div>
@@ -223,36 +360,41 @@ const SalesOrders = () => {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">المجموع</p>
-                  <p className="font-semibold">{order.total.toLocaleString()} ر.س</p>
+                  <p className="text-sm text-muted-foreground">{isArabic ? "المجموع" : "Total"}</p>
+                  <p className="font-semibold">{order.total.toLocaleString()} {isArabic ? "ر.س" : "SAR"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">طريقة الدفع</p>
+                  <p className="text-sm text-muted-foreground">{isArabic ? "طريقة الدفع" : "Payment Method"}</p>
                   <p className="font-medium">{getPaymentModeText(order.paymentMode)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">المدفوع</p>
-                  <p className="font-medium">{order.paidAmount.toLocaleString()} ر.س</p>
+                  <p className="text-sm text-muted-foreground">{isArabic ? "المدفوع" : "Paid"}</p>
+                  <p className="font-medium">{order.paidAmount.toLocaleString()} {isArabic ? "ر.س" : "SAR"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">التاريخ</p>
+                  <p className="text-sm text-muted-foreground">{isArabic ? "التاريخ" : "Date"}</p>
                   <p className="font-medium">{order.createdAt}</p>
                 </div>
               </div>
               
               {/* Items Summary */}
               <div className="border-t pt-3">
-                <p className="text-sm text-muted-foreground mb-2">العناصر ({order.items.length})</p>
+                <p className="text-sm text-muted-foreground mb-2">
+                  {isArabic ? `العناصر (${order.items.length})` : `Items (${order.items.length})`}
+                </p>
                 <div className="space-y-1">
                   {order.items.slice(0, 2).map((item) => (
                     <div key={item.id} className="flex justify-between text-sm">
                       <span>{item.name} × {item.quantity}</span>
-                      <span>{item.total.toLocaleString()} ر.س</span>
+                      <span>{item.total.toLocaleString()} {isArabic ? "ر.س" : "SAR"}</span>
                     </div>
                   ))}
                   {order.items.length > 2 && (
                     <p className="text-xs text-muted-foreground">
-                      و {order.items.length - 2} عنصر آخر...
+                      {isArabic 
+                        ? `و ${order.items.length - 2} عنصر آخر...`
+                        : `and ${order.items.length - 2} more items...`
+                      }
                     </p>
                   )}
                 </div>
@@ -269,15 +411,23 @@ const SalesOrders = () => {
                   }}
                 >
                   <Eye className="w-4 h-4 mr-1" />
-                  عرض
+                  {isArabic ? "عرض" : "View"}
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handlePrintOrder(order)}
+                >
                   <Printer className="w-4 h-4 mr-1" />
-                  طباعة
+                  {isArabic ? "طباعة" : "Print"}
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleDownloadOrder(order)}
+                >
                   <Download className="w-4 h-4 mr-1" />
-                  تحميل
+                  {isArabic ? "تحميل" : "Download"}
                 </Button>
               </div>
             </CardContent>
@@ -287,7 +437,9 @@ const SalesOrders = () => {
 
       {filteredOrders.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">لا توجد أوامر مطابقة للبحث</p>
+          <p className="text-muted-foreground">
+            {isArabic ? "لا توجد أوامر مطابقة للبحث" : "No orders match your search"}
+          </p>
         </div>
       )}
 
@@ -296,7 +448,7 @@ const SalesOrders = () => {
         onOpenChange={setIsOrderDialogOpen}
         order={selectedOrder}
         onSave={handleSaveOrder}
-        isArabic={true}
+        isArabic={isArabic}
       />
     </div>
   );

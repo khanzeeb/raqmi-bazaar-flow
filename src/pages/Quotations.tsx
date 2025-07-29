@@ -430,10 +430,9 @@ const Quotations = () => {
                     {quotation.quotationNumber}
                     {getStatusIcon(quotation.status)}
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {quotation.customer.name}
-                    {quotation.customer.phone && ` - ${quotation.customer.phone}`}
-                  </p>
+                   <p className="text-sm text-muted-foreground mt-1">
+                     {quotation.customer.name} - {quotation.customer.phone}
+                   </p>
                 </div>
                 <div className="flex gap-2">
                   <Badge className={getStatusColor(quotation.status)}>

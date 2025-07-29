@@ -230,18 +230,21 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
               <CardContent className="space-y-4">
                 <div>
                   <Label>اختيار العميل</Label>
-                  <Select value={selectedCustomer} onValueChange={handleCustomerSelect}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر عميل أو أضف جديد" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockCustomers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.name} - {customer.phone}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Select value={selectedCustomer} onValueChange={handleCustomerSelect}>
+                      <SelectTrigger className="pl-10">
+                        <SelectValue placeholder="البحث عن عميل بالاسم أو رقم الهاتف..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockCustomers.map((customer) => (
+                          <SelectItem key={customer.id} value={customer.id}>
+                            {customer.name} - {customer.phone}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
