@@ -255,16 +255,6 @@ const Invoices = () => {
           <Button variant="outline" size="icon">
             <Filter className="w-4 h-4" />
           </Button>
-          <Button 
-            className="flex items-center gap-2"
-            onClick={() => {
-              setSelectedInvoice(undefined);
-              setIsDialogOpen(true);
-            }}
-          >
-            <Plus className="w-4 h-4" />
-            فاتورة جديدة
-          </Button>
         </div>
       </div>
 
@@ -381,35 +371,67 @@ const Invoices = () => {
                   variant="outline" 
                   size="sm"
                   onClick={() => {
-                    setSelectedInvoice(invoice);
-                    setIsDialogOpen(true);
+                    console.log('View invoice:', invoice.id);
+                    // Add view functionality here
                   }}
                 >
-                  تعديل
-                </Button>
-                <Button variant="outline" size="sm">
                   <Eye className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                   عرض
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    console.log('Print invoice:', invoice.id);
+                    window.print();
+                  }}
+                >
                   <Printer className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                   طباعة
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    console.log('Download PDF for invoice:', invoice.id);
+                    // Add PDF download functionality here
+                  }}
+                >
                   <Download className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                   تحميل PDF
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    console.log('Send invoice:', invoice.id);
+                    // Add send functionality here
+                  }}
+                >
                   <Send className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                   إرسال
                 </Button>
                 {invoice.status === 'sent' && (
-                  <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                  <Button 
+                    size="sm" 
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => {
+                      console.log('Register payment for invoice:', invoice.id);
+                      // Add payment registration functionality here
+                    }}
+                  >
                     تسجيل دفعة
                   </Button>
                 )}
                 {invoice.qrCode && (
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      console.log('Show QR code for invoice:', invoice.id);
+                      // Add QR code display functionality here
+                    }}
+                  >
                     <QrCode className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                     رمز الاستجابة
                   </Button>
@@ -431,21 +453,7 @@ const Invoices = () => {
         onOpenChange={setIsDialogOpen}
         invoice={selectedInvoice}
         onSave={(invoiceData) => {
-          if (selectedInvoice) {
-            // Update existing invoice
-            setInvoices(prev => prev.map(inv => 
-              inv.id === selectedInvoice.id 
-                ? { ...invoiceData, id: selectedInvoice.id }
-                : inv
-            ));
-          } else {
-            // Add new invoice
-            const newInvoice = {
-              ...invoiceData,
-              id: Date.now().toString()
-            };
-            setInvoices(prev => [newInvoice, ...prev]);
-          }
+          // Dialog functionality removed - only keeping for potential future use
           setIsDialogOpen(false);
         }}
       />
