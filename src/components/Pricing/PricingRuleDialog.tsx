@@ -334,12 +334,12 @@ export const PricingRuleDialog: React.FC<PricingRuleDialogProps> = ({
                 {/* Customer Type */}
                 <div>
                   <Label htmlFor="customerType">{isArabic ? "نوع العميل" : "Customer Type"}</Label>
-                  <Select value={formData.conditions.customerType || ''} onValueChange={(value) => setFormData(prev => ({ ...prev, conditions: { ...prev.conditions, customerType: value ? value as 'individual' | 'business' | 'vip' : undefined } }))}>
+                  <Select value={formData.conditions.customerType || 'all'} onValueChange={(value) => setFormData(prev => ({ ...prev, conditions: { ...prev.conditions, customerType: value === 'all' ? undefined : value as 'individual' | 'business' | 'vip' } }))}>
                     <SelectTrigger>
                       <SelectValue placeholder={isArabic ? "اختر نوع العميل" : "Select customer type"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">{isArabic ? "جميع العملاء" : "All Customers"}</SelectItem>
+                      <SelectItem value="all">{isArabic ? "جميع العملاء" : "All Customers"}</SelectItem>
                       <SelectItem value="individual">{isArabic ? "فرد" : "Individual"}</SelectItem>
                       <SelectItem value="business">{isArabic ? "شركة" : "Business"}</SelectItem>
                       <SelectItem value="vip">{isArabic ? "مميز" : "VIP"}</SelectItem>
