@@ -389,6 +389,23 @@ export function PaymentDialog({
                 />
               </div>
 
+              {/* Bank Cheque Image Upload */}
+              {formData.paymentMethod === 'check' && (
+                <div>
+                  <Label htmlFor="chequeImage">{isArabic ? "صورة الشيك" : "Cheque Image"}</Label>
+                  <Input
+                    id="chequeImage"
+                    type="file"
+                    accept="image/*"
+                    disabled={isViewMode}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {isArabic ? "ارفق صورة الشيك البنكي" : "Upload bank cheque image"}
+                  </p>
+                </div>
+              )}
+
               <div>
                 <Label htmlFor="notes">{isArabic ? "ملاحظات" : "Notes"}</Label>
                 <Textarea

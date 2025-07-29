@@ -38,6 +38,11 @@ export function PurchaseDialog({
     taxAmount: 0,
     total: 0,
     status: 'pending' as 'pending' | 'received' | 'partial' | 'returned',
+    paymentMethod: 'full' as 'full' | 'partial' | 'credit',
+    paymentStatus: 'unpaid' as 'paid' | 'partial' | 'unpaid',
+    paidAmount: 0,
+    remainingAmount: 0,
+    paymentHistory: [] as { id: string; amount: number; date: string; method: 'cash' | 'bank_transfer' | 'check'; reference?: string }[],
     orderDate: new Date().toISOString().split('T')[0],
     expectedDate: '',
     receivedDate: '',
@@ -58,6 +63,11 @@ export function PurchaseDialog({
         taxAmount: purchase.taxAmount,
         total: purchase.total,
         status: purchase.status,
+        paymentMethod: purchase.paymentMethod,
+        paymentStatus: purchase.paymentStatus,
+        paidAmount: purchase.paidAmount,
+        remainingAmount: purchase.remainingAmount,
+        paymentHistory: purchase.paymentHistory,
         orderDate: purchase.orderDate,
         expectedDate: purchase.expectedDate || '',
         receivedDate: purchase.receivedDate || '',
@@ -76,6 +86,11 @@ export function PurchaseDialog({
         taxAmount: 0,
         total: 0,
         status: 'pending' as 'pending' | 'received' | 'partial' | 'returned',
+        paymentMethod: 'full' as 'full' | 'partial' | 'credit',
+        paymentStatus: 'unpaid' as 'paid' | 'partial' | 'unpaid',
+        paidAmount: 0,
+        remainingAmount: 0,
+        paymentHistory: [],
         orderDate: new Date().toISOString().split('T')[0],
         expectedDate: '',
         receivedDate: '',
@@ -299,13 +314,13 @@ export function PurchaseDialog({
             </CardContent>
           </Card>
 
-          {/* Status */}
+          {/* Status & Payment */}
           <Card>
             <CardHeader>
-              <CardTitle>{isArabic ? 'الحالة' : 'Status'}</CardTitle>
+              <CardTitle>{isArabic ? 'الحالة والدفع' : 'Status & Payment'}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="status">{isArabic ? 'حالة الطلب' : 'Order Status'}</Label>
                   <Select
@@ -324,12 +339,59 @@ export function PurchaseDialog({
                   </Select>
                 </div>
                 <div>
+                  <Label htmlFor="paymentMethod">{isArabic ? 'طريقة الدفع' : 'Payment Method'}</Label>
+                  <Select
+                    value={formData.paymentMethod}
+                    onValueChange={(value: any) => setFormData(prev => ({ ...prev, paymentMethod: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="full">{isArabic ? 'دفع كامل' : 'Full Payment'}</SelectItem>
+                      <SelectItem value="partial">{isArabic ? 'دفع جزئي' : 'Partial Payment'}</SelectItem>
+                      <SelectItem value="credit">{isArabic ? 'آجل' : 'Credit'}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <Label htmlFor="receivedDate">{isArabic ? 'تاريخ الاستلام' : 'Received Date'}</Label>
                   <Input
                     id="receivedDate"
                     type="date"
                     value={formData.receivedDate}
                     onChange={(e) => setFormData(prev => ({ ...prev, receivedDate: e.target.value }))}
+                  />
+                </div>
+              </div>
+              
+              {/* Payment Amount */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="paidAmount">{isArabic ? 'المبلغ المدفوع' : 'Paid Amount'}</Label>
+                  <Input
+                    id="paidAmount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.paidAmount}
+                    onChange={(e) => {
+                      const amount = parseFloat(e.target.value) || 0;
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        paidAmount: amount,
+                        remainingAmount: prev.total - amount,
+                        paymentStatus: amount === 0 ? 'unpaid' : amount >= prev.total ? 'paid' : 'partial'
+                      }));
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label>{isArabic ? 'المبلغ المتبقي' : 'Remaining Amount'}</Label>
+                  <Input 
+                    value={formData.remainingAmount.toFixed(2)} 
+                    readOnly 
+                    className="bg-muted"
                   />
                 </div>
               </div>

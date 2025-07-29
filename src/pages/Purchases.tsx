@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, Truck, Package, Clock, CheckCircle } from "lucide-react";
+import { Plus, Search, Filter, Truck, Package, Clock, CheckCircle, DollarSign, History } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PurchaseDialog } from "@/components/Purchases/PurchaseDialog";
 
@@ -26,6 +26,17 @@ export interface Purchase {
   taxAmount: number;
   total: number;
   status: 'pending' | 'received' | 'partial' | 'returned';
+  paymentMethod: 'full' | 'partial' | 'credit';
+  paymentStatus: 'paid' | 'partial' | 'unpaid';
+  paidAmount: number;
+  remainingAmount: number;
+  paymentHistory: {
+    id: string;
+    amount: number;
+    date: string;
+    method: 'cash' | 'bank_transfer' | 'check';
+    reference?: string;
+  }[];
   orderDate: string;
   expectedDate?: string;
   receivedDate?: string;
@@ -34,10 +45,12 @@ export interface Purchase {
 
 const Purchases = () => {
   const { t, language } = useLanguage();
+  const isArabic = language === 'ar';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<'all' | Purchase['status']>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | undefined>(undefined);
+  const [showPaymentHistory, setShowPaymentHistory] = useState<string | null>(null);
   const [purchases, setPurchases] = useState<Purchase[]>([
     {
       id: '1',
@@ -55,6 +68,13 @@ const Purchases = () => {
       taxAmount: 3450,
       total: 26450,
       status: 'received',
+      paymentMethod: 'partial',
+      paymentStatus: 'partial',
+      paidAmount: 15000,
+      remainingAmount: 11450,
+      paymentHistory: [
+        { id: '1', amount: 15000, date: '2024-01-12', method: 'bank_transfer', reference: 'TXN001' }
+      ],
       orderDate: '2024-01-10',
       expectedDate: '2024-01-20',
       receivedDate: '2024-01-18',
@@ -75,6 +95,11 @@ const Purchases = () => {
       taxAmount: 660,
       total: 5060,
       status: 'pending',
+      paymentMethod: 'credit',
+      paymentStatus: 'unpaid',
+      paidAmount: 0,
+      remainingAmount: 5060,
+      paymentHistory: [],
       orderDate: '2024-01-15',
       expectedDate: '2024-01-25'
     }
@@ -91,12 +116,49 @@ const Purchases = () => {
   };
 
   const getStatusText = (status: Purchase['status']) => {
+    if (isArabic) {
+      switch (status) {
+        case 'pending': return 'قيد الانتظار';
+        case 'received': return 'تم الاستلام';
+        case 'partial': return 'استلام جزئي';
+        case 'returned': return 'مرتجع';
+        default: return status;
+      }
+    } else {
+      switch (status) {
+        case 'pending': return 'Pending';
+        case 'received': return 'Received';
+        case 'partial': return 'Partial';
+        case 'returned': return 'Returned';
+        default: return status;
+      }
+    }
+  };
+
+  const getPaymentMethodText = (method: Purchase['paymentMethod']) => {
+    if (isArabic) {
+      switch (method) {
+        case 'full': return 'دفع كامل';
+        case 'partial': return 'دفع جزئي';
+        case 'credit': return 'آجل';
+        default: return method;
+      }
+    } else {
+      switch (method) {
+        case 'full': return 'Full Payment';
+        case 'partial': return 'Partial Payment';
+        case 'credit': return 'Credit';
+        default: return method;
+      }
+    }
+  };
+
+  const getPaymentStatusColor = (status: Purchase['paymentStatus']) => {
     switch (status) {
-      case 'pending': return 'قيد الانتظار';
-      case 'received': return 'تم الاستلام';
-      case 'partial': return 'استلام جزئي';
-      case 'returned': return 'مرتجع';
-      default: return status;
+      case 'paid': return 'bg-green-500/10 text-green-700 border-green-500/20';
+      case 'partial': return 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20';
+      case 'unpaid': return 'bg-red-500/10 text-red-700 border-red-500/20';
+      default: return 'bg-gray-500/10 text-gray-700 border-gray-500/20';
     }
   };
 
@@ -118,10 +180,14 @@ const Purchases = () => {
   });
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className={`p-6 max-w-7xl mx-auto ${isArabic ? 'rtl' : 'ltr'}`}>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground mb-2">المشتريات</h1>
-        <p className="text-muted-foreground">إدارة طلبات الشراء والموردين</p>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          {isArabic ? 'المشتريات' : 'Purchases'}
+        </h1>
+        <p className="text-muted-foreground">
+          {isArabic ? 'إدارة طلبات الشراء والموردين' : 'Manage purchase orders and suppliers'}
+        </p>
       </div>
 
       {/* Actions Bar */}
@@ -129,10 +195,10 @@ const Purchases = () => {
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
-            placeholder="البحث برقم الطلب أو اسم المورد..."
+            placeholder={isArabic ? "البحث برقم الطلب أو اسم المورد..." : "Search by order number or supplier..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className={isArabic ? "pr-10" : "pl-10"}
           />
         </div>
         <div className="flex gap-2">
@@ -141,11 +207,11 @@ const Purchases = () => {
             onChange={(e) => setSelectedStatus(e.target.value as any)}
             className="px-3 py-2 border border-input rounded-md bg-background text-foreground"
           >
-            <option value="all">جميع الحالات</option>
-            <option value="pending">قيد الانتظار</option>
-            <option value="received">تم الاستلام</option>
-            <option value="partial">استلام جزئي</option>
-            <option value="returned">مرتجع</option>
+            <option value="all">{isArabic ? 'جميع الحالات' : 'All Status'}</option>
+            <option value="pending">{isArabic ? 'قيد الانتظار' : 'Pending'}</option>
+            <option value="received">{isArabic ? 'تم الاستلام' : 'Received'}</option>
+            <option value="partial">{isArabic ? 'استلام جزئي' : 'Partial'}</option>
+            <option value="returned">{isArabic ? 'مرتجع' : 'Returned'}</option>
           </select>
           <Button variant="outline" size="icon">
             <Filter className="w-4 h-4" />
@@ -158,7 +224,7 @@ const Purchases = () => {
             }}
           >
             <Plus className="w-4 h-4" />
-            طلب شراء جديد
+            {isArabic ? 'طلب شراء جديد' : 'New Purchase Order'}
           </Button>
         </div>
       </div>
@@ -187,61 +253,111 @@ const Purchases = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">المجموع</p>
-                  <p className="font-semibold">{purchase.total.toLocaleString()} ر.س</p>
+                  <p className="text-sm text-muted-foreground">{isArabic ? 'المجموع' : 'Total'}</p>
+                  <p className="font-semibold">{purchase.total.toLocaleString()} {isArabic ? 'ر.س' : 'SAR'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">تاريخ الطلب</p>
+                  <p className="text-sm text-muted-foreground">{isArabic ? 'تاريخ الطلب' : 'Order Date'}</p>
                   <p className="font-medium">{purchase.orderDate}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">التاريخ المتوقع</p>
-                  <p className="font-medium">{purchase.expectedDate || 'غير محدد'}</p>
+                  <p className="text-sm text-muted-foreground">{isArabic ? 'التاريخ المتوقع' : 'Expected Date'}</p>
+                  <p className="font-medium">{purchase.expectedDate || (isArabic ? 'غير محدد' : 'Not set')}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">تاريخ الاستلام</p>
-                  <p className="font-medium">{purchase.receivedDate || 'لم يتم بعد'}</p>
+                  <p className="text-sm text-muted-foreground">{isArabic ? 'طريقة الدفع' : 'Payment Method'}</p>
+                  <Badge className={getPaymentStatusColor(purchase.paymentStatus)}>
+                    {getPaymentMethodText(purchase.paymentMethod)}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">{isArabic ? 'حالة الدفع' : 'Payment Status'}</p>
+                  <p className="font-medium">{purchase.paidAmount.toLocaleString()} / {purchase.total.toLocaleString()} {isArabic ? 'ر.س' : 'SAR'}</p>
                 </div>
               </div>
               
               {/* Items Summary */}
               <div className="border-t pt-3">
-                <p className="text-sm text-muted-foreground mb-2">العناصر ({purchase.items.length})</p>
+                <p className="text-sm text-muted-foreground mb-2">
+                  {isArabic ? `العناصر (${purchase.items.length})` : `Items (${purchase.items.length})`}
+                </p>
                 <div className="space-y-1">
                   {purchase.items.slice(0, 2).map((item) => (
                     <div key={item.id} className="flex justify-between text-sm">
                       <span>{item.name} × {item.quantity}</span>
-                      <span>{item.total.toLocaleString()} ر.س</span>
+                      <span>{item.total.toLocaleString()} {isArabic ? 'ر.س' : 'SAR'}</span>
                     </div>
                   ))}
                   {purchase.items.length > 2 && (
                     <p className="text-xs text-muted-foreground">
-                      و {purchase.items.length - 2} عنصر آخر...
+                      {isArabic ? `و ${purchase.items.length - 2} عنصر آخر...` : `And ${purchase.items.length - 2} more items...`}
                     </p>
                   )}
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2 mt-4 pt-3 border-t">
+              <div className="flex gap-2 mt-4 pt-3 border-t flex-wrap">
                 <Button variant="outline" size="sm">
-                  عرض التفاصيل
+                  {isArabic ? 'عرض التفاصيل' : 'View Details'}
                 </Button>
                 <Button variant="outline" size="sm">
-                  <Truck className="w-4 h-4 mr-1" />
-                  تسجيل الاستلام
+                  <Truck className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
+                  {isArabic ? 'تسجيل الاستلام' : 'Mark Received'}
                 </Button>
                 <Button variant="outline" size="sm">
-                  طباعة
+                  <DollarSign className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
+                  {isArabic ? 'إضافة دفعة' : 'Add Payment'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowPaymentHistory(showPaymentHistory === purchase.id ? null : purchase.id)}
+                >
+                  <History className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
+                  {isArabic ? 'تاريخ المدفوعات' : 'Payment History'}
                 </Button>
                 {purchase.status === 'received' && (
                   <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                    إضافة للمخزون
+                    {isArabic ? 'إضافة للمخزون' : 'Add to Inventory'}
                   </Button>
                 )}
               </div>
+              
+              {/* Payment History */}
+              {showPaymentHistory === purchase.id && (
+                <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                  <h4 className="font-medium mb-3">
+                    {isArabic ? 'تاريخ المدفوعات' : 'Payment History'}
+                  </h4>
+                  {purchase.paymentHistory.length > 0 ? (
+                    <div className="space-y-2">
+                      {purchase.paymentHistory.map((payment) => (
+                        <div key={payment.id} className="flex justify-between items-center p-2 bg-background rounded border">
+                          <div>
+                            <p className="font-medium">{payment.amount.toLocaleString()} {isArabic ? 'ر.س' : 'SAR'}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {payment.method === 'cash' ? (isArabic ? 'نقدي' : 'Cash') : 
+                               payment.method === 'bank_transfer' ? (isArabic ? 'تحويل بنكي' : 'Bank Transfer') : 
+                               payment.method === 'check' ? (isArabic ? 'شيك' : 'Check') : payment.method}
+                              {payment.reference && ` - ${payment.reference}`}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">{payment.date}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">
+                      {isArabic ? 'لا توجد مدفوعات مسجلة' : 'No payments recorded'}
+                    </p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -249,7 +365,9 @@ const Purchases = () => {
 
       {filteredPurchases.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">لا توجد طلبات شراء مطابقة للبحث</p>
+          <p className="text-muted-foreground">
+            {isArabic ? 'لا توجد طلبات شراء مطابقة للبحث' : 'No purchase orders found matching your search'}
+          </p>
         </div>
       )}
 
