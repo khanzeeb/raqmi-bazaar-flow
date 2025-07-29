@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,8 +14,11 @@ import {
   Grid3x3,
   List,
   Upload,
-  Download
+  Download,
+  Loader2
 } from "lucide-react";
+import { useProducts } from "@/hooks/useProducts";
+import { Product, CreateProductRequest, UpdateProductRequest } from "@/types/product";
 import {
   Table,
   TableBody,
@@ -58,7 +61,8 @@ import { ProductDialog } from "@/components/Products/ProductDialog";
 import { ProductCard } from "@/components/Products/ProductCard";
 import { useToast } from "@/hooks/use-toast";
 
-interface Product {
+// Convert API Product type to legacy format for compatibility with existing components
+interface LegacyProduct {
   id: string;
   name: string;
   nameAr: string;
@@ -72,67 +76,80 @@ interface Product {
   barcode?: string;
 }
 
-// Sample data
-const sampleProducts: Product[] = [
-  {
-    id: "1",
-    name: "Samsung Galaxy S24",
-    nameAr: "سامسونج جالاكسي S24",
-    sku: "SAM-S24-128",
-    category: "Smartphones",
-    price: 2999,
-    stock: 15,
-    status: 'active',
-    variants: ['128GB', '256GB'],
-    barcode: "1234567890123"
-  },
-  {
-    id: "2",
-    name: "Apple iPhone 15",
-    nameAr: "آيفون 15",
-    sku: "APL-IP15-128",
-    category: "Smartphones", 
-    price: 3499,
-    stock: 8,
-    status: 'active',
-    variants: ['128GB', '256GB', '512GB'],
-    barcode: "1234567890124"
-  },
-  {
-    id: "3",
-    name: "Sony WH-1000XM5",
-    nameAr: "سوني WH-1000XM5",
-    sku: "SNY-WH1000XM5",
-    category: "Audio",
-    price: 899,
-    stock: 0,
-    status: 'active',
-    barcode: "1234567890125"
-  }
-];
+// Helper function to convert API product to legacy format
+const convertToLegacyProduct = (product: Product): LegacyProduct => ({
+  id: product.id,
+  name: product.name,
+  nameAr: product.name, // For now, use same name - in real app this would come from API
+  sku: product.sku,
+  category: product.category,
+  price: product.price,
+  stock: product.stock,
+  status: product.status as 'active' | 'inactive',
+  image: product.image,
+  variants: product.variants?.map(v => v.value) || [],
+  barcode: product.barcode,
+});
+
+// Helper function to convert legacy product to API format
+const convertToApiProduct = (product: Partial<LegacyProduct>): Partial<CreateProductRequest | UpdateProductRequest> => ({
+  name: product.name || '',
+  sku: product.sku || '',
+  category: product.category || '',
+  price: product.price || 0,
+  cost: product.price ? product.price * 0.7 : 0, // Assume 30% margin
+  stock: product.stock || 0,
+  minStock: 5, // Default values
+  maxStock: 100,
+  image: product.image,
+  barcode: product.barcode,
+  variants: product.variants?.map((value, index) => ({
+    name: 'Option',
+    value,
+    priceModifier: 0,
+    stock: product.stock || 0,
+  })) || [],
+});
 
 interface ProductsProps {
   isArabic?: boolean;
 }
 
 export default function Products({ isArabic = false }: ProductsProps) {
-  const [products, setProducts] = useState<Product[]>(sampleProducts);
-  const [searchQuery, setSearchQuery] = useState("");
+  const {
+    products: apiProducts,
+    loading,
+    error,
+    pagination,
+    search,
+    filters,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    getProduct,
+    updateSearch,
+    updateFilters,
+    updatePage,
+    hasProducts,
+    isEmpty,
+  } = useProducts({
+    initialLimit: 50,
+  });
+
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<LegacyProduct | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [stockFilter, setStockFilter] = useState<string>("all");
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   const [viewProductId, setViewProductId] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Convert API products to legacy format for display
+  const products = apiProducts.map(convertToLegacyProduct);
+
+  // Apply additional client-side filters (status and stock filters)
   const filteredProducts = products.filter(product => {
-    // Text search
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.nameAr.includes(searchQuery) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase());
-    
     // Status filter
     const matchesStatus = statusFilter === "all" || product.status === statusFilter;
     
@@ -146,7 +163,7 @@ export default function Products({ isArabic = false }: ProductsProps) {
       matchesStock = product.stock === 0;
     }
     
-    return matchesSearch && matchesStatus && matchesStock;
+    return matchesStatus && matchesStock;
   });
 
   const handleAddProduct = () => {
@@ -154,7 +171,7 @@ export default function Products({ isArabic = false }: ProductsProps) {
     setIsProductDialogOpen(true);
   };
 
-  const handleEditProduct = (product: Product) => {
+  const handleEditProduct = async (product: LegacyProduct) => {
     setSelectedProduct(product);
     setIsProductDialogOpen(true);
   };
@@ -163,14 +180,12 @@ export default function Products({ isArabic = false }: ProductsProps) {
     setDeleteProductId(productId);
   };
 
-  const confirmDeleteProduct = () => {
+  const confirmDeleteProduct = async () => {
     if (deleteProductId) {
-      setProducts(products.filter(p => p.id !== deleteProductId));
-      setDeleteProductId(null);
-      toast({
-        title: isArabic ? "تم حذف المنتج" : "Product deleted",
-        description: isArabic ? "تم حذف المنتج بنجاح" : "Product has been deleted successfully",
-      });
+      const success = await deleteProduct(deleteProductId);
+      if (success) {
+        setDeleteProductId(null);
+      }
     }
   };
 
@@ -213,30 +228,27 @@ export default function Products({ isArabic = false }: ProductsProps) {
     });
   };
 
-  const handleSaveProduct = (productData: Partial<Product>) => {
+  const handleSaveProduct = async (productData: Partial<LegacyProduct>) => {
+    const apiProductData = convertToApiProduct(productData);
+    
     if (selectedProduct) {
       // Edit existing product
-      setProducts(products.map(p => 
-        p.id === selectedProduct.id 
-          ? { ...p, ...productData }
-          : p
-      ));
+      const success = await updateProduct({
+        id: selectedProduct.id,
+        ...apiProductData,
+      } as UpdateProductRequest);
+      
+      if (success) {
+        setIsProductDialogOpen(false);
+      }
     } else {
       // Add new product
-      const newProduct: Product = {
-        id: Date.now().toString(),
-        name: productData.name || '',
-        nameAr: productData.nameAr || '',
-        sku: productData.sku || '',
-        category: productData.category || '',
-        price: productData.price || 0,
-        stock: productData.stock || 0,
-        status: 'active',
-        ...productData
-      };
-      setProducts([...products, newProduct]);
+      const success = await createProduct(apiProductData as CreateProductRequest);
+      
+      if (success) {
+        setIsProductDialogOpen(false);
+      }
     }
-    setIsProductDialogOpen(false);
   };
 
   const getStockBadge = (stock: number) => {
@@ -246,6 +258,11 @@ export default function Products({ isArabic = false }: ProductsProps) {
       return <Badge variant="secondary" className="bg-warning/10 text-warning">{isArabic ? "مخزون منخفض" : "Low Stock"}</Badge>;
     }
     return <Badge variant="secondary" className="bg-success/10 text-success">{isArabic ? "متوفر" : "In Stock"}</Badge>;
+  };
+
+  // Handle search with debouncing
+  const handleSearchChange = (value: string) => {
+    updateSearch(value);
   };
 
   return (
@@ -291,7 +308,7 @@ export default function Products({ isArabic = false }: ProductsProps) {
             {isArabic ? "تصدير" : "Export"}
           </Button>
           
-          <Button onClick={handleAddProduct} size="sm">
+          <Button onClick={handleAddProduct} size="sm" disabled={loading}>
             <Plus className="h-4 w-4 mr-2" />
             {isArabic ? "منتج جديد" : "Add Product"}
           </Button>
@@ -310,7 +327,9 @@ export default function Products({ isArabic = false }: ProductsProps) {
                 <p className="text-sm text-muted-foreground">
                   {isArabic ? "إجمالي المنتجات" : "Total Products"}
                 </p>
-                <p className="text-2xl font-bold">{products.length}</p>
+                <p className="text-2xl font-bold">
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : pagination.total}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -326,7 +345,9 @@ export default function Products({ isArabic = false }: ProductsProps) {
                 <p className="text-sm text-muted-foreground">
                   {isArabic ? "متوفر" : "In Stock"}
                 </p>
-                <p className="text-2xl font-bold">{products.filter(p => p.stock > 10).length}</p>
+                <p className="text-2xl font-bold">
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : products.filter(p => p.stock > 10).length}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -342,7 +363,9 @@ export default function Products({ isArabic = false }: ProductsProps) {
                 <p className="text-sm text-muted-foreground">
                   {isArabic ? "مخزون منخفض" : "Low Stock"}
                 </p>
-                <p className="text-2xl font-bold">{products.filter(p => p.stock > 0 && p.stock <= 10).length}</p>
+                <p className="text-2xl font-bold">
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : products.filter(p => p.stock > 0 && p.stock <= 10).length}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -358,7 +381,9 @@ export default function Products({ isArabic = false }: ProductsProps) {
                 <p className="text-sm text-muted-foreground">
                   {isArabic ? "نفد المخزون" : "Out of Stock"}
                 </p>
-                <p className="text-2xl font-bold">{products.filter(p => p.stock === 0).length}</p>
+                <p className="text-2xl font-bold">
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : products.filter(p => p.stock === 0).length}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -373,8 +398,8 @@ export default function Products({ isArabic = false }: ProductsProps) {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder={isArabic ? "البحث في المنتجات..." : "Search products..."}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -426,87 +451,136 @@ export default function Products({ isArabic = false }: ProductsProps) {
         </CardContent>
       </Card>
 
-      {/* Products Display */}
-      {viewMode === 'list' ? (
+      {/* Loading State */}
+      {loading && (
         <Card>
-          <CardHeader>
-            <CardTitle>{isArabic ? "قائمة المنتجات" : "Products List"}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{isArabic ? "المنتج" : "Product"}</TableHead>
-                  <TableHead>{isArabic ? "رمز المنتج" : "SKU"}</TableHead>
-                  <TableHead>{isArabic ? "الفئة" : "Category"}</TableHead>
-                  <TableHead>{isArabic ? "السعر" : "Price"}</TableHead>
-                  <TableHead>{isArabic ? "المخزون" : "Stock"}</TableHead>
-                  <TableHead>{isArabic ? "الحالة" : "Status"}</TableHead>
-                  <TableHead>{isArabic ? "الإجراءات" : "Actions"}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">
-                      <div>
-                        <p>{isArabic ? product.nameAr : product.name}</p>
-                        {product.variants && (
-                          <p className="text-xs text-muted-foreground">
-                            {product.variants.join(', ')}
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">{product.sku}</TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell>{isArabic ? `${product.price} ر.س` : `SAR ${product.price}`}</TableCell>
-                    <TableCell>{product.stock}</TableCell>
-                    <TableCell>{getStockBadge(product.stock)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleViewProduct(product.id)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleEditProduct(product)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleDeleteProduct(product.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="p-8">
+            <div className="flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin mr-2" />
+              <span>{isArabic ? "جاري تحميل المنتجات..." : "Loading products..."}</span>
+            </div>
           </CardContent>
         </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              isArabic={isArabic}
-              onView={() => handleViewProduct(product.id)}
-              onEdit={() => handleEditProduct(product)}
-              onDelete={() => handleDeleteProduct(product.id)}
-            />
-          ))}
-        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <Card>
+          <CardContent className="p-8">
+            <div className="text-center text-destructive">
+              <p>{isArabic ? "خطأ في تحميل المنتجات" : "Error loading products"}</p>
+              <p className="text-sm text-muted-foreground mt-1">{error}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Empty State */}
+      {isEmpty && !loading && (
+        <Card>
+          <CardContent className="p-8">
+            <div className="text-center">
+              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-lg font-medium">
+                {isArabic ? "لا توجد منتجات" : "No products found"}
+              </p>
+              <p className="text-muted-foreground mb-4">
+                {isArabic ? "ابدأ بإضافة منتجك الأول" : "Get started by adding your first product"}
+              </p>
+              <Button onClick={handleAddProduct}>
+                <Plus className="h-4 w-4 mr-2" />
+                {isArabic ? "منتج جديد" : "Add Product"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Products Display */}
+      {hasProducts && !loading && (
+        <>
+          {viewMode === 'list' ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>{isArabic ? "قائمة المنتجات" : "Products List"}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{isArabic ? "المنتج" : "Product"}</TableHead>
+                      <TableHead>{isArabic ? "رمز المنتج" : "SKU"}</TableHead>
+                      <TableHead>{isArabic ? "الفئة" : "Category"}</TableHead>
+                      <TableHead>{isArabic ? "السعر" : "Price"}</TableHead>
+                      <TableHead>{isArabic ? "المخزون" : "Stock"}</TableHead>
+                      <TableHead>{isArabic ? "الحالة" : "Status"}</TableHead>
+                      <TableHead>{isArabic ? "الإجراءات" : "Actions"}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredProducts.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell className="font-medium">
+                          <div>
+                            <p>{isArabic ? product.nameAr : product.name}</p>
+                            {product.variants && product.variants.length > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                {product.variants.join(', ')}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{product.sku}</TableCell>
+                        <TableCell>{product.category}</TableCell>
+                        <TableCell>{isArabic ? `${product.price} ر.س` : `SAR ${product.price}`}</TableCell>
+                        <TableCell>{product.stock}</TableCell>
+                        <TableCell>{getStockBadge(product.stock)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleViewProduct(product.id)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleEditProduct(product)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDeleteProduct(product.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  isArabic={isArabic}
+                  onView={() => handleViewProduct(product.id)}
+                  onEdit={() => handleEditProduct(product)}
+                  onDelete={() => handleDeleteProduct(product.id)}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Product Dialog */}
@@ -536,7 +610,12 @@ export default function Products({ isArabic = false }: ProductsProps) {
             <AlertDialogCancel>
               {isArabic ? "إلغاء" : "Cancel"}
             </AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteProduct} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction 
+              onClick={confirmDeleteProduct} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={loading}
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               {isArabic ? "حذف" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
