@@ -11,6 +11,7 @@ require('dotenv').config();
 const db = require('./config/database');
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
+const translationRoutes = require('./routes/translationRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
@@ -61,6 +62,7 @@ socketHandler(io);
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/translations', translationRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/inventory', inventoryRoutes);
