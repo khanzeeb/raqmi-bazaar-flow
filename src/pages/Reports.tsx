@@ -28,8 +28,11 @@ import {
   Filter,
   Calendar
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Reports = () => {
+  const { language } = useLanguage();
+  const isArabic = language === 'ar';
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedReport, setSelectedReport] = useState('overview');
 
@@ -104,10 +107,14 @@ const Reports = () => {
   ];
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className={`p-6 max-w-7xl mx-auto ${isArabic ? 'rtl' : 'ltr'}`}>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground mb-2">التقارير والتحليلات</h1>
-        <p className="text-muted-foreground">تحليل الأداء وإحصائيات العمل</p>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          {isArabic ? 'التقارير والتحليلات' : 'Reports & Analytics'}
+        </h1>
+        <p className="text-muted-foreground">
+          {isArabic ? 'تحليل الأداء وإحصائيات العمل' : 'Performance analysis and business statistics'}
+        </p>
       </div>
 
       {/* Controls */}

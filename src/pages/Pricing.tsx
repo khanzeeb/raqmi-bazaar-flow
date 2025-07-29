@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Plus, Search, Filter, Tag, Percent, Clock, Users, Package } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export interface PricingRule {
   id: string;
@@ -34,6 +35,8 @@ export interface PricingRule {
 }
 
 const Pricing = () => {
+  const { language } = useLanguage();
+  const isArabic = language === 'ar';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | PricingRule['type']>('all');
   const [pricingRules] = useState<PricingRule[]>([
@@ -181,10 +184,14 @@ const Pricing = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className={`p-6 max-w-7xl mx-auto ${isArabic ? 'rtl' : 'ltr'}`}>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground mb-2">التسعير والخصومات</h1>
-        <p className="text-muted-foreground">إدارة قواعد التسعير والعروض التجارية</p>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          {isArabic ? 'التسعير والخصومات' : 'Pricing & Discounts'}
+        </h1>
+        <p className="text-muted-foreground">
+          {isArabic ? 'إدارة قواعد التسعير والعروض التجارية' : 'Manage pricing rules and promotional offers'}
+        </p>
       </div>
 
       {/* Summary Cards */}

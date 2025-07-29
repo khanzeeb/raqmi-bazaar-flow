@@ -182,10 +182,14 @@ const Invoices = () => {
     .reduce((sum, invoice) => sum + invoice.total, 0);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className={`p-6 max-w-7xl mx-auto ${isArabic ? 'rtl' : 'ltr'}`}>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground mb-2">الفواتير</h1>
-        <p className="text-muted-foreground">إدارة الفواتير والمستندات المالية</p>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          {isArabic ? 'الفواتير' : 'Invoices'}
+        </h1>
+        <p className="text-muted-foreground">
+          {isArabic ? 'إدارة الفواتير والمستندات المالية' : 'Manage invoices and financial documents'}
+        </p>
       </div>
 
       {/* Summary Cards */}
