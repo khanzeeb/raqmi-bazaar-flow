@@ -6,6 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { QrCode, Plus, Search, Filter, Download, Send, Printer, Eye } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { InvoiceDialog } from "@/components/Invoices/InvoiceDialog";
+import { InvoiceViewDialog } from "@/components/Invoices/InvoiceViewDialog";
+import { InvoicePDFDialog } from "@/components/Invoices/InvoicePDFDialog";
+import { InvoiceSendDialog } from "@/components/Invoices/InvoiceSendDialog";
+import { InvoicePaymentDialog } from "@/components/Invoices/InvoicePaymentDialog";
+import { InvoiceQRDialog } from "@/components/Invoices/InvoiceQRDialog";
 import { useToast } from "@/hooks/use-toast";
 
 export interface Invoice {
@@ -53,6 +58,14 @@ const Invoices = () => {
   const [selectedStatus, setSelectedStatus] = useState<'all' | Invoice['status']>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | undefined>(undefined);
+  
+  // Dialog states
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [dialogInvoice, setDialogInvoice] = useState<Invoice | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([
     {
       id: '1',
@@ -393,10 +406,8 @@ const Invoices = () => {
                   variant="outline" 
                   size="sm"
                   onClick={() => {
-                    toast({
-                      title: isArabic ? "عرض الفاتورة" : "View Invoice",
-                      description: isArabic ? `عرض تفاصيل الفاتورة ${invoice.invoiceNumber}` : `Viewing invoice details for ${invoice.invoiceNumber}`,
-                    });
+                    setDialogInvoice(invoice);
+                    setViewDialogOpen(true);
                   }}
                 >
                   <Eye className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
@@ -420,10 +431,8 @@ const Invoices = () => {
                   variant="outline" 
                   size="sm"
                   onClick={() => {
-                    toast({
-                      title: isArabic ? "تحميل PDF" : "Download PDF",
-                      description: isArabic ? `تم تحميل الفاتورة ${invoice.invoiceNumber} بصيغة PDF` : `Downloading ${invoice.invoiceNumber} as PDF`,
-                    });
+                    setDialogInvoice(invoice);
+                    setPdfDialogOpen(true);
                   }}
                 >
                   <Download className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
@@ -433,10 +442,8 @@ const Invoices = () => {
                   variant="outline" 
                   size="sm"
                   onClick={() => {
-                    toast({
-                      title: isArabic ? "إرسال الفاتورة" : "Send Invoice",
-                      description: isArabic ? `تم إرسال الفاتورة ${invoice.invoiceNumber} بالبريد الإلكتروني` : `Invoice ${invoice.invoiceNumber} sent via email`,
-                    });
+                    setDialogInvoice(invoice);
+                    setSendDialogOpen(true);
                   }}
                 >
                   <Send className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
@@ -447,10 +454,8 @@ const Invoices = () => {
                     size="sm" 
                     className="bg-green-600 hover:bg-green-700"
                     onClick={() => {
-                      toast({
-                        title: isArabic ? "تسجيل دفعة" : "Record Payment",
-                        description: isArabic ? `تم تسجيل دفعة للفاتورة ${invoice.invoiceNumber}` : `Payment recorded for invoice ${invoice.invoiceNumber}`,
-                      });
+                      setDialogInvoice(invoice);
+                      setPaymentDialogOpen(true);
                     }}
                   >
                     {isArabic ? 'تسجيل دفعة' : 'Record Payment'}
@@ -461,10 +466,8 @@ const Invoices = () => {
                     variant="outline" 
                     size="sm"
                     onClick={() => {
-                      toast({
-                        title: isArabic ? "رمز الاستجابة السريعة" : "QR Code",
-                        description: isArabic ? `عرض رمز الاستجابة للفاتورة ${invoice.invoiceNumber}` : `Displaying QR code for invoice ${invoice.invoiceNumber}`,
-                      });
+                      setDialogInvoice(invoice);
+                      setQrDialogOpen(true);
                     }}
                   >
                     <QrCode className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
@@ -485,6 +488,7 @@ const Invoices = () => {
         </div>
       )}
 
+      {/* All Dialogs */}
       <InvoiceDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
@@ -493,6 +497,36 @@ const Invoices = () => {
           // Dialog functionality removed - only keeping for potential future use
           setIsDialogOpen(false);
         }}
+      />
+
+      <InvoiceViewDialog
+        open={viewDialogOpen}
+        onOpenChange={setViewDialogOpen}
+        invoice={dialogInvoice}
+      />
+
+      <InvoicePDFDialog
+        open={pdfDialogOpen}
+        onOpenChange={setPdfDialogOpen}
+        invoice={dialogInvoice}
+      />
+
+      <InvoiceSendDialog
+        open={sendDialogOpen}
+        onOpenChange={setSendDialogOpen}
+        invoice={dialogInvoice}
+      />
+
+      <InvoicePaymentDialog
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        invoice={dialogInvoice}
+      />
+
+      <InvoiceQRDialog
+        open={qrDialogOpen}
+        onOpenChange={setQrDialogOpen}
+        invoice={dialogInvoice}
       />
     </div>
   );
