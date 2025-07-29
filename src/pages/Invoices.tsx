@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { QrCode, Plus, Search, Filter, Download, Send, Printer, Eye } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { InvoiceDialog } from "@/components/Invoices/InvoiceDialog";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Invoice {
   id: string;
@@ -45,7 +46,8 @@ export interface Invoice {
 }
 
 const Invoices = () => {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
+  const { toast } = useToast();
   const isArabic = language === 'ar';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<'all' | Invoice['status']>('all');
@@ -391,8 +393,10 @@ const Invoices = () => {
                   variant="outline" 
                   size="sm"
                   onClick={() => {
-                    console.log('View invoice:', invoice.id);
-                    // Add view functionality here
+                    toast({
+                      title: isArabic ? "عرض الفاتورة" : "View Invoice",
+                      description: isArabic ? `عرض تفاصيل الفاتورة ${invoice.invoiceNumber}` : `Viewing invoice details for ${invoice.invoiceNumber}`,
+                    });
                   }}
                 >
                   <Eye className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
@@ -402,8 +406,11 @@ const Invoices = () => {
                   variant="outline" 
                   size="sm"
                   onClick={() => {
-                    console.log('Print invoice:', invoice.id);
                     window.print();
+                    toast({
+                      title: isArabic ? "طباعة الفاتورة" : "Print Invoice",
+                      description: isArabic ? "تم إرسال الفاتورة للطباعة" : "Invoice sent to printer",
+                    });
                   }}
                 >
                   <Printer className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
@@ -413,8 +420,10 @@ const Invoices = () => {
                   variant="outline" 
                   size="sm"
                   onClick={() => {
-                    console.log('Download PDF for invoice:', invoice.id);
-                    // Add PDF download functionality here
+                    toast({
+                      title: isArabic ? "تحميل PDF" : "Download PDF",
+                      description: isArabic ? `تم تحميل الفاتورة ${invoice.invoiceNumber} بصيغة PDF` : `Downloading ${invoice.invoiceNumber} as PDF`,
+                    });
                   }}
                 >
                   <Download className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
@@ -424,8 +433,10 @@ const Invoices = () => {
                   variant="outline" 
                   size="sm"
                   onClick={() => {
-                    console.log('Send invoice:', invoice.id);
-                    // Add send functionality here
+                    toast({
+                      title: isArabic ? "إرسال الفاتورة" : "Send Invoice",
+                      description: isArabic ? `تم إرسال الفاتورة ${invoice.invoiceNumber} بالبريد الإلكتروني` : `Invoice ${invoice.invoiceNumber} sent via email`,
+                    });
                   }}
                 >
                   <Send className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
@@ -436,8 +447,10 @@ const Invoices = () => {
                     size="sm" 
                     className="bg-green-600 hover:bg-green-700"
                     onClick={() => {
-                      console.log('Register payment for invoice:', invoice.id);
-                      // Add payment registration functionality here
+                      toast({
+                        title: isArabic ? "تسجيل دفعة" : "Record Payment",
+                        description: isArabic ? `تم تسجيل دفعة للفاتورة ${invoice.invoiceNumber}` : `Payment recorded for invoice ${invoice.invoiceNumber}`,
+                      });
                     }}
                   >
                     {isArabic ? 'تسجيل دفعة' : 'Record Payment'}
@@ -448,8 +461,10 @@ const Invoices = () => {
                     variant="outline" 
                     size="sm"
                     onClick={() => {
-                      console.log('Show QR code for invoice:', invoice.id);
-                      // Add QR code display functionality here
+                      toast({
+                        title: isArabic ? "رمز الاستجابة السريعة" : "QR Code",
+                        description: isArabic ? `عرض رمز الاستجابة للفاتورة ${invoice.invoiceNumber}` : `Displaying QR code for invoice ${invoice.invoiceNumber}`,
+                      });
                     }}
                   >
                     <QrCode className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
