@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -145,6 +146,7 @@ interface CustomersProps {
 }
 
 export default function Customers({ isArabic = false }: CustomersProps) {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>(sampleCustomers);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
@@ -170,6 +172,17 @@ export default function Customers({ isArabic = false }: CustomersProps) {
 
   const handleDeleteCustomer = (customerId: string) => {
     setCustomers(customers.filter(c => c.id !== customerId));
+  };
+
+  const handleNewPaymentForCustomer = (customer: Customer) => {
+    // Navigate to payments page and pass customer data via state
+    navigate('/payments', { 
+      state: { 
+        customerId: customer.id, 
+        customerName: customer.name,
+        action: 'newPayment' 
+      } 
+    });
   };
 
   const handleSaveCustomer = (customerData: Partial<Customer>) => {
@@ -476,7 +489,7 @@ export default function Customers({ isArabic = false }: CustomersProps) {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => window.location.href = `/payments?customer=${customer.id}`}
+                          onClick={() => handleNewPaymentForCustomer(customer)}
                           title={isArabic ? "دفعة جديدة" : "New Payment"}
                         >
                           <Plus className="h-4 w-4" />
@@ -505,7 +518,7 @@ export default function Customers({ isArabic = false }: CustomersProps) {
               isArabic={isArabic}
               onEdit={() => handleEditCustomer(customer)}
               onDelete={() => handleDeleteCustomer(customer.id)}
-              onNewPayment={() => window.location.href = `/payments?customer=${customer.id}`}
+              onNewPayment={() => handleNewPaymentForCustomer(customer)}
             />
           ))}
         </div>

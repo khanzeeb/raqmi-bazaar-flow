@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +17,7 @@ const Payments = () => {
   const { language } = useLanguage();
   const isArabic = language === 'ar';
   const { toast } = useToast();
+  const location = useLocation();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<'all' | Payment['status']>('all');
@@ -133,6 +135,16 @@ const Payments = () => {
     }
   ];
 
+  // Check if we came from customer page with specific customer data
+  useEffect(() => {
+    if (location.state?.action === 'newPayment' && location.state?.customerId) {
+      const { customerId, customerName } = location.state;
+      handleNewPaymentForCustomer(customerId, customerName);
+      // Clear the state to prevent reopening
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   const getStatusColor = (status: Payment['status']) => {
     switch (status) {
       case 'completed': return 'bg-green-500/10 text-green-700 border-green-500/20';
@@ -208,10 +220,12 @@ const Payments = () => {
   };
 
   const handleDeletePayment = (payment: Payment) => {
+    console.log('Attempting to delete payment:', payment);
     setPaymentToDelete(payment);
   };
 
   const confirmDeletePayment = () => {
+    console.log('Confirming payment deletion:', paymentToDelete);
     if (paymentToDelete) {
       setPayments(payments.filter(p => p.id !== paymentToDelete.id));
       setPaymentToDelete(null);
@@ -224,14 +238,18 @@ const Payments = () => {
   };
 
   const canDeletePayment = (payment: Payment): boolean => {
+    console.log('Checking if payment can be deleted:', payment.paymentNumber);
     // Only allow deletion if customer has no other credit or debit transactions
     const customerPayments = payments.filter(p => p.customerId === payment.customerId && p.id !== payment.id);
     const customerCredit = customerCredits.find(c => c.customerId === payment.customerId);
     
-    return customerPayments.length === 0 && (!customerCredit || (customerCredit.usedCredit === 0 && customerCredit.totalOutstanding === 0));
+    const canDelete = customerPayments.length === 0 && (!customerCredit || (customerCredit.usedCredit === 0 && customerCredit.totalOutstanding === 0));
+    console.log('Can delete payment:', canDelete, { customerPayments: customerPayments.length, customerCredit });
+    return canDelete;
   };
 
   const handleViewPayment = (payment: Payment) => {
+    console.log('Opening payment in view mode:', payment);
     setSelectedPayment(payment);
     setIsViewMode(true);
     setIsPaymentDialogOpen(true);
@@ -253,6 +271,22 @@ const Payments = () => {
       true
     );
     
+    // Pre-populate the payment dialog with customer info
+    const preFilledPayment = {
+      paymentNumber: `PAY-${Date.now().toString().slice(-6)}`,
+      customerId: customerId,
+      customerName: customerName,
+      amount: 0,
+      paymentMethod: 'cash' as const,
+      paymentDate: new Date().toISOString().split('T')[0],
+      status: 'completed' as const,
+      reference: '',
+      notes: '',
+      relatedOrderIds: [],
+      allocations: [],
+    };
+    
+    setSelectedPayment(preFilledPayment as any);
     setIsPaymentDialogOpen(true);
   };
 

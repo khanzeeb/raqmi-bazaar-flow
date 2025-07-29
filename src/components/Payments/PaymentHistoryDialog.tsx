@@ -192,7 +192,8 @@ export function PaymentHistoryDialog({
               <ScrollArea className="h-96">
                 <div className="space-y-2 p-4">
                   {filteredPayments.map((payment) => (
-                    <Card key={payment.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => onViewPayment(payment)}>
+                    <Card key={payment.id} className="hover:shadow-md transition-shadow cursor-pointer" 
+                          onClick={() => onViewPayment(payment)}>
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
