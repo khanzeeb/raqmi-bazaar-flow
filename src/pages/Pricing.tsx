@@ -41,7 +41,7 @@ const Pricing = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | PricingRule['type']>('all');
-  const [pricingRules] = useState<PricingRule[]>([
+  const [pricingRules, setPricingRules] = useState<PricingRule[]>([
     {
       id: '1',
       name: isArabic ? 'خصم الجملة - إلكترونيات' : 'Bulk Discount - Electronics',
@@ -201,6 +201,11 @@ const Pricing = () => {
   });
 
   const toggleRuleStatus = (ruleId: string) => {
+    setPricingRules(prev => prev.map(rule => 
+      rule.id === ruleId 
+        ? { ...rule, status: rule.status === 'active' ? 'inactive' : 'active' }
+        : rule
+    ));
     toast({
       title: isArabic ? "تغيير حالة القاعدة" : "Rule Status Changed",
       description: isArabic ? "تم تغيير حالة قاعدة التسعير" : "Pricing rule status has been changed",
