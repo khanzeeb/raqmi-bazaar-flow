@@ -28,60 +28,62 @@ import {
   Filter,
   Calendar
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const Reports = () => {
   const { language } = useLanguage();
   const isArabic = language === 'ar';
+  const { toast } = useToast();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedReport, setSelectedReport] = useState('overview');
 
   // Sample data
   const salesData = [
-    { month: 'يناير', sales: 45000, purchases: 25000, profit: 20000 },
-    { month: 'فبراير', sales: 52000, purchases: 28000, profit: 24000 },
-    { month: 'مارس', sales: 48000, purchases: 26000, profit: 22000 },
-    { month: 'أبريل', sales: 61000, purchases: 32000, profit: 29000 },
-    { month: 'مايو', sales: 55000, purchases: 30000, profit: 25000 },
-    { month: 'يونيو', sales: 67000, purchases: 35000, profit: 32000 }
+    { month: isArabic ? 'يناير' : 'Jan', sales: 45000, purchases: 25000, profit: 20000 },
+    { month: isArabic ? 'فبراير' : 'Feb', sales: 52000, purchases: 28000, profit: 24000 },
+    { month: isArabic ? 'مارس' : 'Mar', sales: 48000, purchases: 26000, profit: 22000 },
+    { month: isArabic ? 'أبريل' : 'Apr', sales: 61000, purchases: 32000, profit: 29000 },
+    { month: isArabic ? 'مايو' : 'May', sales: 55000, purchases: 30000, profit: 25000 },
+    { month: isArabic ? 'يونيو' : 'Jun', sales: 67000, purchases: 35000, profit: 32000 }
   ];
 
   const productCategoryData = [
-    { name: 'إلكترونيات', value: 45, color: '#8884d8' },
-    { name: 'إكسسوارات', value: 25, color: '#82ca9d' },
-    { name: 'طابعات', value: 20, color: '#ffc658' },
-    { name: 'شاشات', value: 10, color: '#ff7300' }
+    { name: isArabic ? 'إلكترونيات' : 'Electronics', value: 45, color: '#8884d8' },
+    { name: isArabic ? 'إكسسوارات' : 'Accessories', value: 25, color: '#82ca9d' },
+    { name: isArabic ? 'طابعات' : 'Printers', value: 20, color: '#ffc658' },
+    { name: isArabic ? 'شاشات' : 'Monitors', value: 10, color: '#ff7300' }
   ];
 
   const topProductsData = [
-    { name: 'جهاز كمبيوتر محمول', sales: 35, revenue: 87500 },
-    { name: 'طابعة ليزر', sales: 28, revenue: 22400 },
-    { name: 'شاشة 24 بوصة', sales: 22, revenue: 13200 },
-    { name: 'ماوس لاسلكي', sales: 45, revenue: 2250 },
-    { name: 'لوحة مفاتيح', sales: 30, revenue: 3600 }
+    { name: isArabic ? 'جهاز كمبيوتر محمول' : 'Laptop Computer', sales: 35, revenue: 87500 },
+    { name: isArabic ? 'طابعة ليزر' : 'Laser Printer', sales: 28, revenue: 22400 },
+    { name: isArabic ? 'شاشة 24 بوصة' : '24-inch Monitor', sales: 22, revenue: 13200 },
+    { name: isArabic ? 'ماوس لاسلكي' : 'Wireless Mouse', sales: 45, revenue: 2250 },
+    { name: isArabic ? 'لوحة مفاتيح' : 'Keyboard', sales: 30, revenue: 3600 }
   ];
 
   const expenseData = [
-    { category: 'إيجار', amount: 5000, percentage: 35 },
-    { category: 'مرافق', amount: 1500, percentage: 10 },
-    { category: 'مواصلات', amount: 800, percentage: 6 },
-    { category: 'مكتب', amount: 1200, percentage: 8 },
-    { category: 'تسويق', amount: 2000, percentage: 14 },
-    { category: 'صيانة', amount: 900, percentage: 6 },
-    { category: 'أخرى', amount: 3000, percentage: 21 }
+    { category: isArabic ? 'إيجار' : 'Rent', amount: 5000, percentage: 35 },
+    { category: isArabic ? 'مرافق' : 'Utilities', amount: 1500, percentage: 10 },
+    { category: isArabic ? 'مواصلات' : 'Transport', amount: 800, percentage: 6 },
+    { category: isArabic ? 'مكتب' : 'Office', amount: 1200, percentage: 8 },
+    { category: isArabic ? 'تسويق' : 'Marketing', amount: 2000, percentage: 14 },
+    { category: isArabic ? 'صيانة' : 'Maintenance', amount: 900, percentage: 6 },
+    { category: isArabic ? 'أخرى' : 'Other', amount: 3000, percentage: 21 }
   ];
 
   const kpiData = [
     {
-      title: 'إجمالي المبيعات',
-      value: '328,000 ر.س',
+      title: isArabic ? 'إجمالي المبيعات' : 'Total Sales',
+      value: isArabic ? '328,000 ر.س' : 'SAR 328,000',
       change: '+12.5%',
       trend: 'up',
       icon: DollarSign,
       color: 'text-green-600'
     },
     {
-      title: 'إجمالي الطلبات',
+      title: isArabic ? 'إجمالي الطلبات' : 'Total Orders',
       value: '1,247',
       change: '+8.2%',
       trend: 'up',
@@ -89,7 +91,7 @@ const Reports = () => {
       color: 'text-blue-600'
     },
     {
-      title: 'العملاء الجدد',
+      title: isArabic ? 'العملاء الجدد' : 'New Customers',
       value: '89',
       change: '+15.3%',
       trend: 'up',
@@ -97,7 +99,7 @@ const Reports = () => {
       color: 'text-purple-600'
     },
     {
-      title: 'المنتجات المباعة',
+      title: isArabic ? 'المنتجات المباعة' : 'Products Sold',
       value: '2,156',
       change: '-2.1%',
       trend: 'down',
@@ -105,6 +107,27 @@ const Reports = () => {
       color: 'text-orange-600'
     }
   ];
+
+  const handleExport = () => {
+    toast({
+      title: isArabic ? "تصدير التقرير" : "Export Report",
+      description: isArabic ? "تم تصدير التقرير بنجاح" : "Report exported successfully",
+    });
+  };
+
+  const handleFilter = () => {
+    toast({
+      title: isArabic ? "تطبيق المرشحات" : "Apply Filters",
+      description: isArabic ? "تم تطبيق المرشحات المحددة" : "Selected filters have been applied",
+    });
+  };
+
+  const handleDateCustomize = () => {
+    toast({
+      title: isArabic ? "تخصيص التاريخ" : "Customize Date",
+      description: isArabic ? "فتح نافذة تخصيص التاريخ" : "Opening date customization window",
+    });
+  };
 
   return (
     <div className={`p-6 max-w-7xl mx-auto ${isArabic ? 'rtl' : 'ltr'}`}>
@@ -125,10 +148,10 @@ const Reports = () => {
             onChange={(e) => setSelectedPeriod(e.target.value)}
             className="px-3 py-2 border border-input rounded-md bg-background text-foreground"
           >
-            <option value="week">هذا الأسبوع</option>
-            <option value="month">هذا الشهر</option>
-            <option value="quarter">هذا الربع</option>
-            <option value="year">هذا العام</option>
+            <option value="week">{isArabic ? "هذا الأسبوع" : "This Week"}</option>
+            <option value="month">{isArabic ? "هذا الشهر" : "This Month"}</option>
+            <option value="quarter">{isArabic ? "هذا الربع" : "This Quarter"}</option>
+            <option value="year">{isArabic ? "هذا العام" : "This Year"}</option>
           </select>
           
           <select
@@ -136,27 +159,27 @@ const Reports = () => {
             onChange={(e) => setSelectedReport(e.target.value)}
             className="px-3 py-2 border border-input rounded-md bg-background text-foreground"
           >
-            <option value="overview">نظرة عامة</option>
-            <option value="sales">تقرير المبيعات</option>
-            <option value="purchases">تقرير المشتريات</option>
-            <option value="expenses">تقرير المصروفات</option>
-            <option value="inventory">تقرير المخزون</option>
-            <option value="customers">تقرير العملاء</option>
+            <option value="overview">{isArabic ? "نظرة عامة" : "Overview"}</option>
+            <option value="sales">{isArabic ? "تقرير المبيعات" : "Sales Report"}</option>
+            <option value="purchases">{isArabic ? "تقرير المشتريات" : "Purchases Report"}</option>
+            <option value="expenses">{isArabic ? "تقرير المصروفات" : "Expenses Report"}</option>
+            <option value="inventory">{isArabic ? "تقرير المخزون" : "Inventory Report"}</option>
+            <option value="customers">{isArabic ? "تقرير العملاء" : "Customers Report"}</option>
           </select>
         </div>
         
-        <div className="flex gap-2 sm:ml-auto">
-          <Button variant="outline" size="sm">
-            <Filter className="w-4 h-4 mr-1" />
-            تصفية
+        <div className={`flex gap-2 ${isArabic ? 'sm:mr-auto' : 'sm:ml-auto'}`}>
+          <Button variant="outline" size="sm" onClick={handleFilter}>
+            <Filter className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
+            {isArabic ? "تصفية" : "Filter"}
           </Button>
-          <Button variant="outline" size="sm">
-            <Calendar className="w-4 h-4 mr-1" />
-            تخصيص التاريخ
+          <Button variant="outline" size="sm" onClick={handleDateCustomize}>
+            <Calendar className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
+            {isArabic ? "تخصيص التاريخ" : "Customize Date"}
           </Button>
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-1" />
-            تصدير
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
+            {isArabic ? "تصدير" : "Export"}
           </Button>
         </div>
       </div>
@@ -192,7 +215,7 @@ const Reports = () => {
         {/* Sales Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>المبيعات والأرباح الشهرية</CardTitle>
+            <CardTitle>{isArabic ? "المبيعات والأرباح الشهرية" : "Monthly Sales & Profits"}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -202,8 +225,8 @@ const Reports = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="sales" fill="#8884d8" name="المبيعات" />
-                <Bar dataKey="profit" fill="#82ca9d" name="الربح" />
+                <Bar dataKey="sales" fill="#8884d8" name={isArabic ? "المبيعات" : "Sales"} />
+                <Bar dataKey="profit" fill="#82ca9d" name={isArabic ? "الربح" : "Profit"} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -212,7 +235,7 @@ const Reports = () => {
         {/* Product Categories */}
         <Card>
           <CardHeader>
-            <CardTitle>توزيع المبيعات حسب الفئة</CardTitle>
+            <CardTitle>{isArabic ? "توزيع المبيعات حسب الفئة" : "Sales Distribution by Category"}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -242,7 +265,7 @@ const Reports = () => {
         {/* Top Products */}
         <Card>
           <CardHeader>
-            <CardTitle>أفضل المنتجات مبيعاً</CardTitle>
+            <CardTitle>{isArabic ? "أفضل المنتجات مبيعاً" : "Top Selling Products"}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -250,10 +273,14 @@ const Reports = () => {
                 <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
                     <p className="font-medium">{product.name}</p>
-                    <p className="text-sm text-muted-foreground">{product.sales} قطعة</p>
+                    <p className="text-sm text-muted-foreground">
+                      {product.sales} {isArabic ? "قطعة" : "units"}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">{product.revenue.toLocaleString()} ر.س</p>
+                    <p className="font-semibold">
+                      {product.revenue.toLocaleString()} {isArabic ? "ر.س" : "SAR"}
+                    </p>
                     <Badge variant="secondary" className="text-xs">
                       #{index + 1}
                     </Badge>
@@ -267,7 +294,7 @@ const Reports = () => {
         {/* Expenses Breakdown */}
         <Card>
           <CardHeader>
-            <CardTitle>تحليل المصروفات</CardTitle>
+            <CardTitle>{isArabic ? "تحليل المصروفات" : "Expenses Analysis"}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -275,7 +302,9 @@ const Reports = () => {
                 <div key={index} className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">{expense.category}</span>
-                    <span className="text-sm font-semibold">{expense.amount.toLocaleString()} ر.س</span>
+                    <span className="text-sm font-semibold">
+                      {expense.amount.toLocaleString()} {isArabic ? "ر.س" : "SAR"}
+                    </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
@@ -296,25 +325,33 @@ const Reports = () => {
       {/* Summary Stats */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>ملخص الأداء</CardTitle>
+          <CardTitle>{isArabic ? "ملخص الأداء" : "Performance Summary"}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-4 border rounded-lg">
               <div className="text-2xl font-bold text-green-600">68%</div>
-              <div className="text-sm text-muted-foreground">معدل هامش الربح</div>
+              <div className="text-sm text-muted-foreground">
+                {isArabic ? "معدل هامش الربح" : "Profit Margin Rate"}
+              </div>
             </div>
             <div className="text-center p-4 border rounded-lg">
               <div className="text-2xl font-bold text-blue-600">156</div>
-              <div className="text-sm text-muted-foreground">متوسط قيمة الطلب</div>
+              <div className="text-sm text-muted-foreground">
+                {isArabic ? "متوسط قيمة الطلب" : "Average Order Value"}
+              </div>
             </div>
             <div className="text-center p-4 border rounded-lg">
               <div className="text-2xl font-bold text-purple-600">4.8</div>
-              <div className="text-sm text-muted-foreground">متوسط التقييم</div>
+              <div className="text-sm text-muted-foreground">
+                {isArabic ? "متوسط التقييم" : "Average Rating"}
+              </div>
             </div>
             <div className="text-center p-4 border rounded-lg">
               <div className="text-2xl font-bold text-orange-600">92%</div>
-              <div className="text-sm text-muted-foreground">رضا العملاء</div>
+              <div className="text-sm text-muted-foreground">
+                {isArabic ? "رضا العملاء" : "Customer Satisfaction"}
+              </div>
             </div>
           </div>
         </CardContent>
