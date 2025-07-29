@@ -131,7 +131,7 @@ export function AppSidebar({ isArabic = false }: AppSidebarProps) {
   };
 
   const getNavClasses = (path: string) => {
-    const baseClasses = "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200";
+    const baseClasses = `flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${isArabic ? 'flex-row-reverse' : ''}`;
     if (isActive(path)) {
       return `${baseClasses} bg-primary text-primary-foreground shadow-sm`;
     }
@@ -139,7 +139,7 @@ export function AppSidebar({ isArabic = false }: AppSidebarProps) {
   };
 
   return (
-    <Sidebar className={`${collapsed ? "w-16" : "w-64"} border-r border-border`}>
+    <Sidebar className={`${collapsed ? "w-16" : "w-64"} border-border ${isArabic ? 'border-l' : 'border-r'}`}>
       <SidebarHeader className="border-b border-border p-4">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
@@ -169,7 +169,7 @@ export function AppSidebar({ isArabic = false }: AppSidebarProps) {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} className={getNavClasses(item.url)}>
-                      <item.icon className={`h-5 w-5 ${item.iconColor}`} />
+                      <item.icon className={`h-5 w-5 ${item.iconColor} ${isArabic ? 'ml-3' : ''}`} />
                       {!collapsed && (
                         <span className="font-medium">
                           {isArabic ? item.titleAr : item.title}
