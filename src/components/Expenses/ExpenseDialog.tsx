@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -118,14 +119,15 @@ export function ExpenseDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>
             {expense ? (isArabic ? 'تعديل المصروف' : 'Edit Expense') : (isArabic ? 'مصروف جديد' : 'New Expense')}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <ScrollArea className="max-h-[calc(90vh-120px)]">
+          <form onSubmit={handleSubmit} className="space-y-6 pr-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="expenseNumber">{isArabic ? "رقم المصروف" : "Expense Number"}</Label>
@@ -323,7 +325,8 @@ export function ExpenseDialog({
               {expense ? (isArabic ? 'تحديث المصروف' : 'Update Expense') : (isArabic ? 'حفظ المصروف' : 'Save Expense')}
             </Button>
           </div>
-        </form>
+          </form>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

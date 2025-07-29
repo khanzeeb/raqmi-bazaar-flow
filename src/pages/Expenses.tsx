@@ -317,7 +317,7 @@ const Expenses = () => {
       {/* Actions Bar */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Search className={`absolute top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 ${isArabic ? 'right-3' : 'left-3'}`} />
           <Input
             placeholder={isArabic ? "البحث برقم المصروف أو الوصف..." : "Search by expense number or description..."}
             value={searchTerm}
