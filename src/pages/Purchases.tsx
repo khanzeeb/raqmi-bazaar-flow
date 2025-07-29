@@ -7,6 +7,7 @@ import { Plus, Search, Filter, Truck, Package, Clock, CheckCircle, DollarSign, H
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PurchaseDialog } from "@/components/Purchases/PurchaseDialog";
 import { PaymentDialog } from "@/components/Purchases/PaymentDialog";
+import { PaymentHistoryDialog } from "@/components/Purchases/PaymentHistoryDialog";
 
 export interface Purchase {
   id: string;
@@ -31,6 +32,7 @@ export interface Purchase {
   paymentStatus: 'paid' | 'partial' | 'unpaid';
   paidAmount: number;
   remainingAmount: number;
+  addedToInventory?: boolean;
   paymentHistory: {
     id: string;
     amount: number;
@@ -54,6 +56,8 @@ const Purchases = () => {
   const [showPaymentHistory, setShowPaymentHistory] = useState<string | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedPurchaseForPayment, setSelectedPurchaseForPayment] = useState<Purchase | null>(null);
+  const [isPaymentHistoryDialogOpen, setIsPaymentHistoryDialogOpen] = useState(false);
+  const [selectedPurchaseForHistory, setSelectedPurchaseForHistory] = useState<Purchase | null>(null);
   const [purchases, setPurchases] = useState<Purchase[]>([
     {
       id: '1',
@@ -201,8 +205,18 @@ const Purchases = () => {
   };
 
   const handleAddToInventory = (purchase: Purchase) => {
-    // Here you would typically navigate to inventory or show a success message
+    setPurchases(prev => prev.map(p => 
+      p.id === purchase.id 
+        ? { ...p, addedToInventory: true }
+        : p
+    ));
+    // Show success message
     alert(isArabic ? 'تم إضافة العناصر للمخزون بنجاح' : 'Items added to inventory successfully');
+  };
+
+  const handleViewPaymentHistory = (purchase: Purchase) => {
+    setSelectedPurchaseForHistory(purchase);
+    setIsPaymentHistoryDialogOpen(true);
   };
 
   const handleSavePayment = (paymentData: any) => {
@@ -384,12 +398,12 @@ const Purchases = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => setShowPaymentHistory(showPaymentHistory === purchase.id ? null : purchase.id)}
+                  onClick={() => handleViewPaymentHistory(purchase)}
                 >
                   <History className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
-                  {isArabic ? 'تاريخ المدفوعات' : 'Payment History'}
+                  {isArabic ? 'عرض تاريخ المدفوعات' : 'View Payment History'}
                 </Button>
-                {purchase.status === 'received' && (
+                {purchase.status === 'received' && !purchase.addedToInventory && (
                   <Button 
                     size="sm" 
                     className="bg-blue-600 hover:bg-blue-700"
@@ -399,39 +413,6 @@ const Purchases = () => {
                   </Button>
                 )}
               </div>
-              
-              {/* Payment History */}
-              {showPaymentHistory === purchase.id && (
-                <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium mb-3">
-                    {isArabic ? 'تاريخ المدفوعات' : 'Payment History'}
-                  </h4>
-                  {purchase.paymentHistory.length > 0 ? (
-                    <div className="space-y-2">
-                      {purchase.paymentHistory.map((payment) => (
-                        <div key={payment.id} className="flex justify-between items-center p-2 bg-background rounded border">
-                          <div>
-                            <p className="font-medium">{payment.amount.toLocaleString()} {isArabic ? 'ر.س' : 'SAR'}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {payment.method === 'cash' ? (isArabic ? 'نقدي' : 'Cash') : 
-                               payment.method === 'bank_transfer' ? (isArabic ? 'تحويل بنكي' : 'Bank Transfer') : 
-                               payment.method === 'check' ? (isArabic ? 'شيك' : 'Check') : payment.method}
-                              {payment.reference && ` - ${payment.reference}`}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm text-muted-foreground">{payment.date}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-sm">
-                      {isArabic ? 'لا توجد مدفوعات مسجلة' : 'No payments recorded'}
-                    </p>
-                  )}
-                </div>
-              )}
             </CardContent>
           </Card>
         ))}
@@ -472,6 +453,12 @@ const Purchases = () => {
         onOpenChange={setIsPaymentDialogOpen}
         purchase={selectedPurchaseForPayment}
         onSave={handleSavePayment}
+      />
+
+      <PaymentHistoryDialog
+        open={isPaymentHistoryDialogOpen}
+        onOpenChange={setIsPaymentHistoryDialogOpen}
+        purchase={selectedPurchaseForHistory}
       />
     </div>
   );
