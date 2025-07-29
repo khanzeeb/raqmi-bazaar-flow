@@ -289,10 +289,10 @@ const SalesOrders = () => {
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground mb-2">
-          {isArabic ? "أوامر البيع" : "Sales Orders"}
+          {t('sales_orders')}
         </h1>
         <p className="text-muted-foreground">
-          {isArabic ? "إدارة أوامر البيع والمدفوعات" : "Manage sales orders and payments"}
+          {t('sales_orders_management')}
         </p>
       </div>
 
@@ -313,10 +313,10 @@ const SalesOrders = () => {
             onChange={(e) => setSelectedStatus(e.target.value as any)}
             className="px-3 py-2 border border-input rounded-md bg-background text-foreground"
           >
-            <option value="all">{isArabic ? "جميع الحالات" : "All Status"}</option>
-            <option value="pending">{isArabic ? "معلق" : "Pending"}</option>
-            <option value="completed">{isArabic ? "مكتمل" : "Completed"}</option>
-            <option value="returned">{isArabic ? "مرتجع" : "Returned"}</option>
+            <option value="all">{t('all_statuses')}</option>
+            <option value="pending">{t('pending')}</option>
+            <option value="completed">{t('completed')}</option>
+            <option value="returned">{t('returned')}</option>
           </select>
           <Button variant="outline" size="icon">
             <Filter className="w-4 h-4" />
@@ -329,7 +329,7 @@ const SalesOrders = () => {
             className="flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
-            {isArabic ? "طلب جديد" : "New Order"}
+            {t('new_order')}
           </Button>
         </div>
       </div>
@@ -360,19 +360,19 @@ const SalesOrders = () => {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">{isArabic ? "المجموع" : "Total"}</p>
+                  <p className="text-sm text-muted-foreground">{t('total')}</p>
                   <p className="font-semibold">{order.total.toLocaleString()} {isArabic ? "ر.س" : "SAR"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{isArabic ? "طريقة الدفع" : "Payment Method"}</p>
+                  <p className="text-sm text-muted-foreground">{t('payment_method')}</p>
                   <p className="font-medium">{getPaymentModeText(order.paymentMode)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{isArabic ? "المدفوع" : "Paid"}</p>
+                  <p className="text-sm text-muted-foreground">{t('paid_amount')}</p>
                   <p className="font-medium">{order.paidAmount.toLocaleString()} {isArabic ? "ر.س" : "SAR"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{isArabic ? "التاريخ" : "Date"}</p>
+                  <p className="text-sm text-muted-foreground">{t('date')}</p>
                   <p className="font-medium">{order.createdAt}</p>
                 </div>
               </div>
@@ -380,7 +380,7 @@ const SalesOrders = () => {
               {/* Items Summary */}
               <div className="border-t pt-3">
                 <p className="text-sm text-muted-foreground mb-2">
-                  {isArabic ? `العناصر (${order.items.length})` : `Items (${order.items.length})`}
+                  {t('items')} ({order.items.length})
                 </p>
                 <div className="space-y-1">
                   {order.items.slice(0, 2).map((item) => (
@@ -411,7 +411,7 @@ const SalesOrders = () => {
                   }}
                 >
                   <Eye className="w-4 h-4 mr-1" />
-                  {isArabic ? "عرض" : "View"}
+                  {t('view')}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -419,7 +419,7 @@ const SalesOrders = () => {
                   onClick={() => handlePrintOrder(order)}
                 >
                   <Printer className="w-4 h-4 mr-1" />
-                  {isArabic ? "طباعة" : "Print"}
+                  {t('print')}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -427,7 +427,7 @@ const SalesOrders = () => {
                   onClick={() => handleDownloadOrder(order)}
                 >
                   <Download className="w-4 h-4 mr-1" />
-                  {isArabic ? "تحميل" : "Download"}
+                  {t('download')}
                 </Button>
               </div>
             </CardContent>
@@ -448,7 +448,6 @@ const SalesOrders = () => {
         onOpenChange={setIsOrderDialogOpen}
         order={selectedOrder}
         onSave={handleSaveOrder}
-        isArabic={isArabic}
       />
     </div>
   );

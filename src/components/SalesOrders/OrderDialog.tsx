@@ -15,13 +15,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Minus, Search, Calculator } from "lucide-react";
 import { SalesOrder } from "@/pages/SalesOrders";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface OrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   order: SalesOrder | null;
   onSave: (order: Partial<SalesOrder>) => void;
-  isArabic?: boolean;
 }
 
 interface Product {
@@ -51,9 +51,10 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
   open,
   onOpenChange,
   order,
-  onSave,
-  isArabic = true
+  onSave
 }) => {
+  const { t, language } = useLanguage();
+  const isArabic = language === 'ar';
   const [formData, setFormData] = useState({
     customer: { name: '', phone: '', type: 'individual' as 'individual' | 'business' },
     items: [] as Array<{
@@ -195,11 +196,11 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
 
   const handleSave = () => {
     if (formData.items.length === 0) {
-      alert('يرجى إضافة منتجات للطلب');
+      alert(isArabic ? 'يرجى إضافة منتجات للطلب' : 'Please add products to order');
       return;
     }
     if (!formData.customer.name) {
-      alert('يرجى اختيار العميل');
+      alert(isArabic ? 'يرجى اختيار العميل' : 'Please select customer');
       return;
     }
     
@@ -215,7 +216,7 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {order ? `تعديل الطلب ${order.orderNumber}` : 'طلب بيع جديد'}
+            {order ? `${t('edit')} ${t('order_number')} ${order.orderNumber}` : t('new_order')}
           </DialogTitle>
         </DialogHeader>
 
@@ -225,16 +226,16 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
             {/* Customer Selection */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">معلومات العميل</CardTitle>
+                <CardTitle className="text-lg">{t('customer_info')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label>اختيار العميل</Label>
+                  <Label>{t('select_customer')}</Label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Select value={selectedCustomer} onValueChange={handleCustomerSelect}>
                       <SelectTrigger className="pl-10">
-                        <SelectValue placeholder="البحث عن عميل بالاسم أو رقم الهاتف..." />
+                        <SelectValue placeholder={isArabic ? "البحث عن عميل بالاسم أو رقم الهاتف..." : "Search customer by name or phone..."} />
                       </SelectTrigger>
                       <SelectContent>
                         {mockCustomers.map((customer) => (
@@ -249,25 +250,25 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>اسم العميل</Label>
+                    <Label>{t('customer_name')}</Label>
                     <Input
                       value={formData.customer.name}
                       onChange={(e) => setFormData(prev => ({
                         ...prev,
                         customer: { ...prev.customer, name: e.target.value }
                       }))}
-                      placeholder="أدخل اسم العميل"
+                      placeholder={isArabic ? "أدخل اسم العميل" : "Enter customer name"}
                     />
                   </div>
                   <div>
-                    <Label>رقم الهاتف</Label>
+                    <Label>{t('phone')}</Label>
                     <Input
                       value={formData.customer.phone}
                       onChange={(e) => setFormData(prev => ({
                         ...prev,
                         customer: { ...prev.customer, phone: e.target.value }
                       }))}
-                      placeholder="رقم الهاتف"
+                      placeholder={isArabic ? "رقم الهاتف" : "Phone number"}
                     />
                   </div>
                 </div>
@@ -278,14 +279,14 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
-                  <CardTitle className="text-lg">المنتجات</CardTitle>
+                  <CardTitle className="text-lg">{t('products')}</CardTitle>
                   <Button
                     onClick={() => setShowProductSearch(!showProductSearch)}
                     size="sm"
                     variant="outline"
                   >
                     <Plus className="w-4 h-4 mr-1" />
-                    إضافة منتج
+                    {t('add_product_to_order')}
                   </Button>
                 </div>
               </CardHeader>
@@ -295,7 +296,7 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
                     <div className="relative mb-3">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                       <Input
-                        placeholder="البحث عن منتج..."
+                        placeholder={t('search_product')}
                         value={productSearch}
                         onChange={(e) => setProductSearch(e.target.value)}
                         className="pl-10"
@@ -323,7 +324,7 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
 
                 {formData.items.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">
-                    لا توجد منتجات مضافة للطلب
+                    {isArabic ? "لا توجد منتجات مضافة للطلب" : "No products added to order"}
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -397,17 +398,17 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">ملخص الطلب</CardTitle>
+                <CardTitle className="text-lg">{isArabic ? "ملخص الطلب" : "Order Summary"}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span>المجموع الفرعي:</span>
-                    <span>{formData.subtotal.toLocaleString()} ر.س</span>
+                    <span>{t('subtotal')}:</span>
+                    <span>{formData.subtotal.toLocaleString()} {isArabic ? "ر.س" : "SAR"}</span>
                   </div>
                   
                   <div>
-                    <Label>الخصم</Label>
+                    <Label>{t('discount')}</Label>
                     <Input
                       type="number"
                       value={formData.discount}
@@ -420,7 +421,7 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
                   </div>
 
                   <div>
-                    <Label>معدل الضريبة (%)</Label>
+                    <Label>{t('tax_rate')} (%)</Label>
                     <Input
                       type="number"
                       value={formData.taxRate}
@@ -434,15 +435,15 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
                   </div>
 
                   <div className="flex justify-between text-sm">
-                    <span>الضريبة ({formData.taxRate}%):</span>
-                    <span>{formData.taxAmount.toLocaleString()} ر.س</span>
+                    <span>{t('tax')} ({formData.taxRate}%):</span>
+                    <span>{formData.taxAmount.toLocaleString()} {isArabic ? "ر.س" : "SAR"}</span>
                   </div>
 
                   <Separator />
 
                   <div className="flex justify-between font-bold text-lg">
-                    <span>المجموع الكلي:</span>
-                    <span>{formData.total.toLocaleString()} ر.س</span>
+                    <span>{t('grand_total')}:</span>
+                    <span>{formData.total.toLocaleString()} {isArabic ? "ر.س" : "SAR"}</span>
                   </div>
                 </div>
               </CardContent>
@@ -450,11 +451,11 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">تفاصيل الدفع</CardTitle>
+                <CardTitle className="text-lg">{t('payment_details')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label>طريقة الدفع</Label>
+                  <Label>{t('payment_method')}</Label>
                   <Select
                     value={formData.paymentMode}
                     onValueChange={(value: any) => setFormData(prev => ({ ...prev, paymentMode: value }))}
@@ -463,15 +464,15 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cash">نقدي</SelectItem>
-                      <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
-                      <SelectItem value="credit">آجل</SelectItem>
+                      <SelectItem value="cash">{t('cash')}</SelectItem>
+                      <SelectItem value="bank_transfer">{t('bank_transfer')}</SelectItem>
+                      <SelectItem value="credit">{t('credit')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label>حالة الدفع</Label>
+                  <Label>{t('payment_status')}</Label>
                   <Select
                     value={formData.paymentStatus}
                     onValueChange={(value: any) => setFormData(prev => ({ ...prev, paymentStatus: value }))}
@@ -480,15 +481,15 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">غير مدفوع</SelectItem>
-                      <SelectItem value="partial">مدفوع جزئياً</SelectItem>
-                      <SelectItem value="paid">مدفوع بالكامل</SelectItem>
+                      <SelectItem value="pending">{t('unpaid')}</SelectItem>
+                      <SelectItem value="partial">{t('partially_paid')}</SelectItem>
+                      <SelectItem value="paid">{t('fully_paid')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label>المبلغ المدفوع</Label>
+                  <Label>{t('paid_amount')}</Label>
                   <Input
                     type="number"
                     value={formData.paidAmount}
@@ -498,7 +499,7 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
                 </div>
 
                 <div>
-                  <Label>حالة الطلب</Label>
+                  <Label>{t('order_status')}</Label>
                   <Select
                     value={formData.status}
                     onValueChange={(value: any) => setFormData(prev => ({ ...prev, status: value }))}
@@ -507,9 +508,9 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">معلق</SelectItem>
-                      <SelectItem value="completed">مكتمل</SelectItem>
-                      <SelectItem value="returned">مرتجع</SelectItem>
+                      <SelectItem value="pending">{t('pending')}</SelectItem>
+                      <SelectItem value="completed">{t('completed')}</SelectItem>
+                      <SelectItem value="returned">{t('returned')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -518,13 +519,13 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">ملاحظات</CardTitle>
+                <CardTitle className="text-lg">{t('notes')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <Textarea
                   value={formData.notes}
                   onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="ملاحظات إضافية..."
+                  placeholder={isArabic ? "ملاحظات إضافية..." : "Additional notes..."}
                   rows={3}
                 />
               </CardContent>
@@ -532,10 +533,10 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
 
             <div className="flex gap-2">
               <Button onClick={handleSave} className="flex-1">
-                {order ? 'تحديث الطلب' : 'حفظ الطلب'}
+                {order ? t('update_order') : t('save_order')}
               </Button>
               <Button variant="outline" onClick={() => onOpenChange(false)}>
-                إلغاء
+                {t('cancel')}
               </Button>
             </div>
           </div>
