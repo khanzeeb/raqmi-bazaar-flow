@@ -11,6 +11,8 @@ require('dotenv').config();
 const db = require('./config/database');
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
+const messageRoutes = require('./routes/messageRoutes');
+const languageMiddleware = require('./middleware/language');
 const translationRoutes = require('./routes/translationRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes');
@@ -31,6 +33,9 @@ const io = new Server(server, {
     credentials: true
   }
 });
+
+// Language middleware
+app.use(languageMiddleware);
 
 // Security middleware
 app.use(helmet());
@@ -62,6 +67,7 @@ socketHandler(io);
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/messages', messageRoutes);
 app.use('/api/translations', translationRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/invoices', invoiceRoutes);

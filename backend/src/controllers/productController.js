@@ -1,4 +1,5 @@
 const Product = require('../models/Product');
+const MessageService = require('../services/messageService');
 const { validationResult } = require('express-validator');
 
 class ProductController {
