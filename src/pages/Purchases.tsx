@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Filter, Truck, Package, Clock, CheckCircle, DollarSign, History } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PurchaseDialog } from "@/components/Purchases/PurchaseDialog";
+import { PaymentDialog } from "@/components/Purchases/PaymentDialog";
 
 export interface Purchase {
   id: string;
@@ -51,6 +52,8 @@ const Purchases = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | undefined>(undefined);
   const [showPaymentHistory, setShowPaymentHistory] = useState<string | null>(null);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [selectedPurchaseForPayment, setSelectedPurchaseForPayment] = useState<Purchase | null>(null);
   const [purchases, setPurchases] = useState<Purchase[]>([
     {
       id: '1',
@@ -179,6 +182,60 @@ const Purchases = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const handleViewDetails = (purchase: Purchase) => {
+    setSelectedPurchase(purchase);
+    setIsDialogOpen(true);
+  };
+
+  const handleMarkReceived = (purchase: Purchase) => {
+    setPurchases(prev => prev.map(p => 
+      p.id === purchase.id 
+        ? { ...p, status: 'received', receivedDate: new Date().toISOString().split('T')[0] }
+        : p
+    ));
+  };
+
+  const handleAddPayment = (purchase: Purchase) => {
+    setSelectedPurchaseForPayment(purchase);
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handleAddToInventory = (purchase: Purchase) => {
+    // Here you would typically navigate to inventory or show a success message
+    alert(isArabic ? 'تم إضافة العناصر للمخزون بنجاح' : 'Items added to inventory successfully');
+  };
+
+  const handleSavePayment = (paymentData: any) => {
+    if (selectedPurchaseForPayment) {
+      const newPayment = {
+        id: Date.now().toString(),
+        amount: paymentData.amount,
+        date: paymentData.date || new Date().toISOString().split('T')[0],
+        method: paymentData.method,
+        reference: paymentData.reference
+      };
+
+      setPurchases(prev => prev.map(p => {
+        if (p.id === selectedPurchaseForPayment.id) {
+          const newPaidAmount = p.paidAmount + paymentData.amount;
+          const newRemainingAmount = p.total - newPaidAmount;
+          const newPaymentStatus = newRemainingAmount <= 0 ? 'paid' : newPaidAmount > 0 ? 'partial' : 'unpaid';
+          
+          return {
+            ...p,
+            paidAmount: newPaidAmount,
+            remainingAmount: newRemainingAmount,
+            paymentStatus: newPaymentStatus,
+            paymentHistory: [...p.paymentHistory, newPayment]
+          };
+        }
+        return p;
+      }));
+    }
+    setIsPaymentDialogOpen(false);
+    setSelectedPurchaseForPayment(null);
+  };
+
   return (
     <div className={`p-6 max-w-7xl mx-auto ${isArabic ? 'rtl' : 'ltr'}`}>
       <div className="mb-6">
@@ -300,14 +357,27 @@ const Purchases = () => {
 
               {/* Actions */}
               <div className="flex gap-2 mt-4 pt-3 border-t flex-wrap">
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleViewDetails(purchase)}
+                >
                   {isArabic ? 'عرض التفاصيل' : 'View Details'}
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleMarkReceived(purchase)}
+                  disabled={purchase.status === 'received'}
+                >
                   <Truck className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                   {isArabic ? 'تسجيل الاستلام' : 'Mark Received'}
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleAddPayment(purchase)}
+                >
                   <DollarSign className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
                   {isArabic ? 'إضافة دفعة' : 'Add Payment'}
                 </Button>
@@ -320,7 +390,11 @@ const Purchases = () => {
                   {isArabic ? 'تاريخ المدفوعات' : 'Payment History'}
                 </Button>
                 {purchase.status === 'received' && (
-                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                  <Button 
+                    size="sm" 
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => handleAddToInventory(purchase)}
+                  >
                     {isArabic ? 'إضافة للمخزون' : 'Add to Inventory'}
                   </Button>
                 )}
@@ -391,6 +465,13 @@ const Purchases = () => {
           }
           setIsDialogOpen(false);
         }}
+      />
+
+      <PaymentDialog
+        open={isPaymentDialogOpen}
+        onOpenChange={setIsPaymentDialogOpen}
+        purchase={selectedPurchaseForPayment}
+        onSave={handleSavePayment}
       />
     </div>
   );
