@@ -21,7 +21,8 @@ export function ExpenseDialog({
   expense,
   onSave,
 }: ExpenseDialogProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isArabic = language === 'ar';
   const [formData, setFormData] = useState({
     expenseNumber: '',
     category: 'office' as 'rent' | 'utilities' | 'transport' | 'office' | 'marketing' | 'maintenance' | 'other',
@@ -83,15 +84,15 @@ export function ExpenseDialog({
 
   const getCategoryText = (category: string) => {
     const categoryMap = {
-      rent: 'الإيجار',
-      utilities: 'المرافق',
-      transport: 'النقل',
-      office: 'لوازم المكتب',
-      marketing: 'التسويق',
-      maintenance: 'الصيانة',
-      other: 'أخرى'
+      rent: { ar: 'الإيجار', en: 'Rent' },
+      utilities: { ar: 'المرافق', en: 'Utilities' },
+      transport: { ar: 'النقل', en: 'Transport' },
+      office: { ar: 'لوازم المكتب', en: 'Office Supplies' },
+      marketing: { ar: 'التسويق', en: 'Marketing' },
+      maintenance: { ar: 'الصيانة', en: 'Maintenance' },
+      other: { ar: 'أخرى', en: 'Other' }
     };
-    return categoryMap[category as keyof typeof categoryMap] || category;
+    return categoryMap[category as keyof typeof categoryMap]?.[isArabic ? 'ar' : 'en'] || category;
   };
 
   return (
@@ -99,14 +100,14 @@ export function ExpenseDialog({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {expense ? 'تعديل المصروف' : 'مصروف جديد'}
+            {expense ? (isArabic ? 'تعديل المصروف' : 'Edit Expense') : (isArabic ? 'مصروف جديد' : 'New Expense')}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="expenseNumber">رقم المصروف</Label>
+              <Label htmlFor="expenseNumber">{isArabic ? "رقم المصروف" : "Expense Number"}</Label>
               <Input
                 id="expenseNumber"
                 value={formData.expenseNumber}
@@ -115,7 +116,7 @@ export function ExpenseDialog({
               />
             </div>
             <div>
-              <Label htmlFor="date">التاريخ</Label>
+              <Label htmlFor="date">{isArabic ? "التاريخ" : "Date"}</Label>
               <Input
                 id="date"
                 type="date"
@@ -127,7 +128,7 @@ export function ExpenseDialog({
           </div>
 
           <div>
-            <Label htmlFor="description">وصف المصروف</Label>
+            <Label htmlFor="description">{isArabic ? "وصف المصروف" : "Expense Description"}</Label>
             <Input
               id="description"
               value={formData.description}
@@ -138,13 +139,13 @@ export function ExpenseDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="category">الفئة</Label>
+              <Label htmlFor="category">{isArabic ? "الفئة" : "Category"}</Label>
               <Select
                 value={formData.category}
                 onValueChange={(value: any) => setFormData({ ...formData, category: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="اختر الفئة" />
+                  <SelectValue placeholder={isArabic ? "اختر الفئة" : "Select category"} />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((category) => (
@@ -156,7 +157,7 @@ export function ExpenseDialog({
               </Select>
             </div>
             <div>
-              <Label htmlFor="amount">المبلغ</Label>
+              <Label htmlFor="amount">{isArabic ? "المبلغ" : "Amount"}</Label>
               <Input
                 id="amount"
                 type="number"
@@ -171,7 +172,7 @@ export function ExpenseDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="paymentMethod">طريقة الدفع</Label>
+              <Label htmlFor="paymentMethod">{isArabic ? "طريقة الدفع" : "Payment Method"}</Label>
               <Select
                 value={formData.paymentMethod}
                 onValueChange={(value: any) => setFormData({ ...formData, paymentMethod: value })}
@@ -180,14 +181,14 @@ export function ExpenseDialog({
                   <SelectValue />
                 </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cash">نقدي</SelectItem>
-                      <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
-                      <SelectItem value="card">بطاقة</SelectItem>
+                      <SelectItem value="cash">{isArabic ? "نقدي" : "Cash"}</SelectItem>
+                      <SelectItem value="bank_transfer">{isArabic ? "تحويل بنكي" : "Bank Transfer"}</SelectItem>
+                      <SelectItem value="card">{isArabic ? "بطاقة" : "Card"}</SelectItem>
                     </SelectContent>
               </Select>
             </div>
             <div>
-              <Label htmlFor="vendor">المورد</Label>
+              <Label htmlFor="vendor">{isArabic ? "المورد" : "Vendor"}</Label>
               <Input
                 id="vendor"
                 value={formData.vendor}
@@ -199,7 +200,7 @@ export function ExpenseDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="status">الحالة</Label>
+              <Label htmlFor="status">{isArabic ? "الحالة" : "Status"}</Label>
               <Select
                 value={formData.status}
                 onValueChange={(value: any) => setFormData({ ...formData, status: value })}
@@ -208,9 +209,9 @@ export function ExpenseDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">معلق</SelectItem>
-                  <SelectItem value="approved">موافق عليه</SelectItem>
-                  <SelectItem value="paid">مدفوع</SelectItem>
+                  <SelectItem value="pending">{isArabic ? "معلق" : "Pending"}</SelectItem>
+                  <SelectItem value="approved">{isArabic ? "موافق عليه" : "Approved"}</SelectItem>
+                  <SelectItem value="paid">{isArabic ? "مدفوع" : "Paid"}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -222,12 +223,12 @@ export function ExpenseDialog({
                 onChange={(e) => setFormData({ ...formData, receiptAttached: e.target.checked })}
                 className="rounded border border-input"
               />
-              <Label htmlFor="receiptAttached">إيصال مرفق</Label>
+              <Label htmlFor="receiptAttached">{isArabic ? "إيصال مرفق" : "Receipt Attached"}</Label>
             </div>
           </div>
 
           <div>
-            <Label htmlFor="notes">ملاحظات</Label>
+            <Label htmlFor="notes">{isArabic ? "ملاحظات" : "Notes"}</Label>
             <Textarea
               id="notes"
               value={formData.notes}
@@ -238,10 +239,10 @@ export function ExpenseDialog({
 
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              إلغاء
+              {isArabic ? "إلغاء" : "Cancel"}
             </Button>
             <Button type="submit">
-              {expense ? 'تحديث المصروف' : 'حفظ المصروف'}
+              {expense ? (isArabic ? 'تحديث المصروف' : 'Update Expense') : (isArabic ? 'حفظ المصروف' : 'Save Expense')}
             </Button>
           </div>
         </form>
