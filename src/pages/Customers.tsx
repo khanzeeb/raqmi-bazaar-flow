@@ -476,6 +476,14 @@ export default function Customers({ isArabic = false }: CustomersProps) {
                         <Button 
                           variant="ghost" 
                           size="sm"
+                          onClick={() => window.location.href = `/payments?customer=${customer.id}`}
+                          title={isArabic ? "دفعة جديدة" : "New Payment"}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
                           onClick={() => handleDeleteCustomer(customer.id)}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -497,6 +505,7 @@ export default function Customers({ isArabic = false }: CustomersProps) {
               isArabic={isArabic}
               onEdit={() => handleEditCustomer(customer)}
               onDelete={() => handleDeleteCustomer(customer.id)}
+              onNewPayment={() => window.location.href = `/payments?customer=${customer.id}`}
             />
           ))}
         </div>

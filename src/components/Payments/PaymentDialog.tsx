@@ -56,6 +56,7 @@ interface PaymentDialogProps {
   customerName?: string;
   onSave: (payment: Partial<Payment>) => void;
   isArabic?: boolean;
+  isViewMode?: boolean;
   customerCredit?: CustomerCredit;
   outstandingOrders?: Array<{
     id: string;
@@ -76,6 +77,7 @@ export function PaymentDialog({
   customerName,
   onSave,
   isArabic = false,
+  isViewMode = false,
   customerCredit,
   outstandingOrders = []
 }: PaymentDialogProps) {
@@ -223,6 +225,11 @@ export function PaymentDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (isViewMode) {
+      onOpenChange(false);
+      return;
+    }
+    
     if (!validatePayment()) return;
 
     const paymentData = {
@@ -259,9 +266,11 @@ export function PaymentDialog({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {payment 
-              ? (isArabic ? "تعديل الدفعة" : "Edit Payment")
-              : (isArabic ? "دفعة جديدة" : "New Payment")
+            {isViewMode 
+              ? (isArabic ? "عرض الدفعة" : "View Payment")
+              : payment 
+                ? (isArabic ? "تعديل الدفعة" : "Edit Payment")
+                : (isArabic ? "دفعة جديدة" : "New Payment")
             }
           </DialogTitle>
         </DialogHeader>
@@ -319,6 +328,7 @@ export function PaymentDialog({
                     value={formData.paymentNumber}
                     onChange={(e) => setFormData({ ...formData, paymentNumber: e.target.value })}
                     required
+                    disabled={isViewMode}
                   />
                 </div>
                 <div>
@@ -329,6 +339,7 @@ export function PaymentDialog({
                     value={formData.paymentDate}
                     onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })}
                     required
+                    disabled={isViewMode}
                   />
                 </div>
               </div>
@@ -344,6 +355,7 @@ export function PaymentDialog({
                     value={formData.amount}
                     onChange={(e) => handleAmountChange(parseFloat(e.target.value) || 0)}
                     required
+                    disabled={isViewMode}
                   />
                 </div>
                 <div>
@@ -351,6 +363,7 @@ export function PaymentDialog({
                   <Select
                     value={formData.paymentMethod}
                     onValueChange={(value: any) => setFormData({ ...formData, paymentMethod: value })}
+                    disabled={isViewMode}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -372,6 +385,7 @@ export function PaymentDialog({
                   value={formData.reference}
                   onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
                   placeholder={isArabic ? "رقم المرجع أو الشيك" : "Reference or check number"}
+                  disabled={isViewMode}
                 />
               </div>
 
@@ -382,6 +396,7 @@ export function PaymentDialog({
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   rows={3}
+                  disabled={isViewMode}
                 />
               </div>
             </CardContent>
@@ -406,6 +421,7 @@ export function PaymentDialog({
                         }
                       }}
                       className="rounded"
+                      disabled={isViewMode}
                     />
                     <Label htmlFor="autoAllocate" className="text-sm">
                       {isArabic ? "توزيع تلقائي" : "Auto Allocate"}
@@ -468,7 +484,7 @@ export function PaymentDialog({
                                   setManualAllocations([...manualAllocations, newAllocation]);
                                 }
                               }}
-                              disabled={autoAllocate}
+                              disabled={autoAllocate || isViewMode}
                             />
                           </div>
                           <div className="col-span-1 text-center">
@@ -512,12 +528,14 @@ export function PaymentDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {isArabic ? "إلغاء" : "Cancel"}
             </Button>
-            <Button type="submit">
-              {payment 
-                ? (isArabic ? "تحديث الدفعة" : "Update Payment")
-                : (isArabic ? "حفظ الدفعة" : "Save Payment")
-              }
-            </Button>
+            {!isViewMode && (
+              <Button type="submit">
+                {payment 
+                  ? (isArabic ? "تحديث الدفعة" : "Update Payment")
+                  : (isArabic ? "حفظ الدفعة" : "Save Payment")
+                }
+              </Button>
+            )}
           </div>
         </form>
       </DialogContent>

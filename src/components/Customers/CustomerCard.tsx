@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Eye, User, Building, Phone, Mail, MapPin } from "lucide-react";
+import { Edit, Trash2, Eye, User, Building, Phone, Mail, MapPin, Plus } from "lucide-react";
 
 interface Customer {
   id: string;
@@ -30,9 +30,10 @@ interface CustomerCardProps {
   isArabic?: boolean;
   onEdit: () => void;
   onDelete: () => void;
+  onNewPayment?: () => void;
 }
 
-export function CustomerCard({ customer, isArabic = false, onEdit, onDelete }: CustomerCardProps) {
+export function CustomerCard({ customer, isArabic = false, onEdit, onDelete, onNewPayment }: CustomerCardProps) {
   const getBalanceBadge = (balance: number) => {
     if (balance > 0) {
       return <Badge variant="secondary" className="bg-success/10 text-success">{isArabic ? `رصيد ${balance} ر.س` : `Credit SAR ${balance}`}</Badge>;
@@ -145,6 +146,11 @@ export function CustomerCard({ customer, isArabic = false, onEdit, onDelete }: C
             <Button variant="ghost" size="sm" onClick={onEdit}>
               <Edit className="h-4 w-4" />
             </Button>
+            {onNewPayment && (
+              <Button variant="ghost" size="sm" onClick={onNewPayment}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={onDelete}>
               <Trash2 className="h-4 w-4" />
             </Button>

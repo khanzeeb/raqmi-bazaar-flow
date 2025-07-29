@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Filter, Download, Eye, CreditCard, History, Users, AlertTriangle } from "lucide-react";
+import { Plus, Search, Filter, Download, Eye, CreditCard, History, Users, AlertTriangle, Trash2, Edit } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PaymentDialog, Payment, CustomerCredit } from "@/components/Payments/PaymentDialog";
 import { PaymentHistoryDialog } from "@/components/Payments/PaymentHistoryDialog";
 import { CustomerCreditDialog } from "@/components/Payments/CustomerCreditDialog";
@@ -23,6 +24,8 @@ const Payments = () => {
   const [isCreditDialogOpen, setIsCreditDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; name: string } | null>(null);
+  const [isViewMode, setIsViewMode] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
 
   // Sample data
   const [payments, setPayments] = useState<Payment[]>([
@@ -178,13 +181,13 @@ const Payments = () => {
   });
 
   const handleSavePayment = (paymentData: Partial<Payment>) => {
-    if (selectedPayment) {
+    if (selectedPayment && !isViewMode) {
       setPayments(payments.map(payment => 
         payment.id === selectedPayment.id 
           ? { ...payment, ...paymentData }
           : payment
       ));
-    } else {
+    } else if (!isViewMode) {
       const newPayment: Payment = {
         id: Date.now().toString(),
         createdAt: new Date().toISOString(),
@@ -194,11 +197,63 @@ const Payments = () => {
     }
     setSelectedPayment(null);
     setIsPaymentDialogOpen(false);
+    setIsViewMode(false);
     
-    toast({
-      title: isArabic ? "تم حفظ الدفعة" : "Payment saved",
-      description: isArabic ? "تم حفظ الدفعة بنجاح" : "Payment has been saved successfully",
-    });
+    if (!isViewMode) {
+      toast({
+        title: isArabic ? "تم حفظ الدفعة" : "Payment saved",
+        description: isArabic ? "تم حفظ الدفعة بنجاح" : "Payment has been saved successfully",
+      });
+    }
+  };
+
+  const handleDeletePayment = (payment: Payment) => {
+    setPaymentToDelete(payment);
+  };
+
+  const confirmDeletePayment = () => {
+    if (paymentToDelete) {
+      setPayments(payments.filter(p => p.id !== paymentToDelete.id));
+      setPaymentToDelete(null);
+      
+      toast({
+        title: isArabic ? "تم حذف الدفعة" : "Payment deleted",
+        description: isArabic ? "تم حذف الدفعة بنجاح" : "Payment has been deleted successfully",
+      });
+    }
+  };
+
+  const canDeletePayment = (payment: Payment): boolean => {
+    // Only allow deletion if customer has no other credit or debit transactions
+    const customerPayments = payments.filter(p => p.customerId === payment.customerId && p.id !== payment.id);
+    const customerCredit = customerCredits.find(c => c.customerId === payment.customerId);
+    
+    return customerPayments.length === 0 && (!customerCredit || (customerCredit.usedCredit === 0 && customerCredit.totalOutstanding === 0));
+  };
+
+  const handleViewPayment = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setIsViewMode(true);
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handleEditPayment = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setIsViewMode(false);
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handleNewPaymentForCustomer = (customerId: string, customerName: string) => {
+    setSelectedPayment(null);
+    setIsViewMode(false);
+    // Pre-fill customer information for new payment
+    const customerCredit = customerCredits.find(c => c.customerId === customerId);
+    const customerOutstandingOrders = outstandingOrders.filter(o => 
+      // You would need to add customerId to orders, for now we'll use all outstanding orders
+      true
+    );
+    
+    setIsPaymentDialogOpen(true);
   };
 
   const handleSaveCustomerCredit = (creditData: Partial<CustomerCredit>) => {
@@ -346,16 +401,17 @@ const Payments = () => {
               <Button variant="outline" size="icon">
                 <Filter className="w-4 h-4" />
               </Button>
-              <Button
-                onClick={() => {
-                  setSelectedPayment(null);
-                  setIsPaymentDialogOpen(true);
-                }}
-                className="flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                {isArabic ? "دفعة جديدة" : "New Payment"}
-              </Button>
+                <Button
+                  onClick={() => {
+                    setSelectedPayment(null);
+                    setIsViewMode(false);
+                    setIsPaymentDialogOpen(true);
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  {isArabic ? "دفعة جديدة" : "New Payment"}
+                </Button>
             </div>
           </div>
 
@@ -429,13 +485,18 @@ const Payments = () => {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => {
-                        setSelectedPayment(payment);
-                        setIsPaymentDialogOpen(true);
-                      }}
+                      onClick={() => handleViewPayment(payment)}
                     >
                       <Eye className="w-4 h-4 mr-1" />
                       {isArabic ? "عرض" : "View"}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleEditPayment(payment)}
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      {isArabic ? "تعديل" : "Edit"}
                     </Button>
                     <Button 
                       variant="outline" 
@@ -445,6 +506,17 @@ const Payments = () => {
                       <History className="w-4 h-4 mr-1" />
                       {isArabic ? "السجل" : "History"}
                     </Button>
+                    {canDeletePayment(payment) && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDeletePayment(payment)}
+                        className="text-red-600 hover:text-red-700 hover:border-red-300"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        {isArabic ? "حذف" : "Delete"}
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -502,6 +574,14 @@ const Payments = () => {
                     <Button 
                       variant="outline" 
                       size="sm"
+                      onClick={() => handleNewPaymentForCustomer(credit.customerId, credit.customerName)}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      {isArabic ? "دفعة جديدة" : "New Payment"}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
                       onClick={() => handleManageCredit(credit.customerId, credit.customerName)}
                     >
                       <CreditCard className="w-4 h-4 mr-1" />
@@ -526,12 +606,19 @@ const Payments = () => {
       {/* Dialogs */}
       <PaymentDialog
         open={isPaymentDialogOpen}
-        onOpenChange={setIsPaymentDialogOpen}
+        onOpenChange={(open) => {
+          setIsPaymentDialogOpen(open);
+          if (!open) {
+            setIsViewMode(false);
+            setSelectedPayment(null);
+          }
+        }}
         payment={selectedPayment}
         onSave={handleSavePayment}
         isArabic={isArabic}
-        outstandingOrders={outstandingOrders}
+        isViewMode={isViewMode}
         customerCredit={selectedPayment ? customerCredits.find(c => c.customerId === selectedPayment.customerId) : undefined}
+        outstandingOrders={outstandingOrders}
       />
 
       {selectedCustomer && (
@@ -543,11 +630,7 @@ const Payments = () => {
             customerName={selectedCustomer.name}
             payments={payments.filter(p => p.customerId === selectedCustomer.id)}
             isArabic={isArabic}
-            onViewPayment={(payment) => {
-              setSelectedPayment(payment);
-              setIsPaymentDialogOpen(true);
-              setIsHistoryDialogOpen(false);
-            }}
+            onViewPayment={handleViewPayment}
             onDownloadStatement={handleDownloadStatement}
           />
 
@@ -562,6 +645,34 @@ const Payments = () => {
           />
         </>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!paymentToDelete} onOpenChange={() => setPaymentToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isArabic ? "تأكيد الحذف" : "Confirm Deletion"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isArabic 
+                ? `هل أنت متأكد من حذف الدفعة ${paymentToDelete?.paymentNumber}؟ لا يمكن التراجع عن هذا الإجراء.`
+                : `Are you sure you want to delete payment ${paymentToDelete?.paymentNumber}? This action cannot be undone.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPaymentToDelete(null)}>
+              {isArabic ? "إلغاء" : "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeletePayment}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isArabic ? "حذف" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
