@@ -13,6 +13,10 @@ class Product {
     return product;
   }
 
+  static async findByIds(ids) {
+    return await db(this.tableName).whereIn('id', ids);
+  }
+
   static async findAll(filters = {}) {
     let query = db(this.tableName);
     
