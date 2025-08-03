@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, Download, Printer, Eye } from "lucide-react";
+import { Plus, Search, Filter, Download, Printer, Eye, RotateCcw } from "lucide-react";
 import { OrderDialog } from "@/components/SalesOrders/OrderDialog";
+import { ReturnDialog } from "@/components/SalesOrders/ReturnDialog";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -43,6 +44,7 @@ const SalesOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<'all' | SalesOrder['status']>('all');
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
+  const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
   const [orders, setOrders] = useState<SalesOrder[]>([
     {
@@ -429,6 +431,22 @@ const SalesOrders = () => {
                   <Download className="w-4 h-4 mr-1" />
                   {t('download')}
                 </Button>
+                
+                {/* Return Button - Only show for completed orders */}
+                {order.status === 'completed' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setSelectedOrder(order);
+                      setIsReturnDialogOpen(true);
+                    }}
+                    className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-1" />
+                    {isArabic ? "إرجاع" : "Return"}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -448,6 +466,12 @@ const SalesOrders = () => {
         onOpenChange={setIsOrderDialogOpen}
         order={selectedOrder}
         onSave={handleSaveOrder}
+      />
+      
+      <ReturnDialog
+        isOpen={isReturnDialogOpen}
+        onOpenChange={setIsReturnDialogOpen}
+        order={selectedOrder!}
       />
     </div>
   );

@@ -11,7 +11,8 @@ import {
   Receipt, 
   Warehouse, 
   Settings,
-  Home
+  Home,
+  RotateCcw
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -98,6 +99,13 @@ const navigationItems = [
     url: "/invoices", 
     icon: Receipt,
     iconColor: "icon-blue"
+  },
+  { 
+    title: "Returns", 
+    titleAr: "المرتجعات",
+    url: "/returns", 
+    icon: RotateCcw,
+    iconColor: "icon-red"
   },
   { 
     title: "Inventory", 
