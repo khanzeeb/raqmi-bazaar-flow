@@ -262,6 +262,57 @@ class SaleController {
       next(error);
     }
   }
+
+  static async getSaleReturns(req, res, next) {
+    try {
+      const { id } = req.params;
+      const ReturnService = require('../services/returnService');
+      const returns = await ReturnService.getSaleReturns(parseInt(id));
+      
+      res.json({
+        success: true,
+        data: returns
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getSaleStateBeforeReturn(req, res, next) {
+    try {
+      const { id, returnId } = req.params;
+      const ReturnService = require('../services/returnService');
+      const saleState = await ReturnService.getSaleStateBeforeReturn(
+        parseInt(id), 
+        returnId ? parseInt(returnId) : null
+      );
+      
+      res.json({
+        success: true,
+        data: saleState
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getSaleStateAfterReturn(req, res, next) {
+    try {
+      const { id, returnId } = req.params;
+      const ReturnService = require('../services/returnService');
+      const saleState = await ReturnService.getSaleStateAfterReturn(
+        parseInt(id), 
+        parseInt(returnId)
+      );
+      
+      res.json({
+        success: true,
+        data: saleState
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = SaleController;

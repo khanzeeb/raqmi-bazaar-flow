@@ -66,4 +66,9 @@ router.post('/:id/allocate-payment',
 router.post('/:id/cancel', auth, SaleController.cancelSale);
 router.post('/process-overdue-reminders', auth, SaleController.processOverdueReminders);
 
+// Return-related routes
+router.get('/:id/returns', auth, SaleController.getSaleReturns);
+router.get('/:id/state/before-return/:returnId?', auth, SaleController.getSaleStateBeforeReturn);
+router.get('/:id/state/after-return/:returnId', auth, SaleController.getSaleStateAfterReturn);
+
 module.exports = router;
