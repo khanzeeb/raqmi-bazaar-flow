@@ -471,7 +471,7 @@ const SalesOrders = () => {
       <ReturnDialog
         isOpen={isReturnDialogOpen}
         onOpenChange={setIsReturnDialogOpen}
-        order={selectedOrder!}
+        order={selectedOrder}
       />
     </div>
   );

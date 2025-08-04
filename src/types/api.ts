@@ -28,4 +28,7 @@ export interface QueryParams {
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   filters?: Record<string, any>;
+  start_date?: string;
+  end_date?: string;
+  [key: string]: any;
 }
