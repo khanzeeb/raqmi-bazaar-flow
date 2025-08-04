@@ -19,13 +19,6 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { 
   RotateCcw, 
   Search, 
   Filter, 
@@ -36,6 +29,7 @@ import {
   Plus
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ReturnDetailsDialog } from "@/components/Returns/ReturnDetailsDialog";
 
 // Mock data for returns
 const mockReturns = [
@@ -112,6 +106,7 @@ export default function Returns() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedReturn, setSelectedReturn] = useState(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
 
   const filteredReturns = mockReturns.filter(returnItem => {
     const matchesSearch = returnItem.return_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -239,108 +234,16 @@ export default function Returns() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => setSelectedReturn(returnItem)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
-                        <DialogHeader>
-                          <DialogTitle>
-                            {isArabic ? "تفاصيل المرتجع" : "Return Details"}
-                          </DialogTitle>
-                        </DialogHeader>
-                        {selectedReturn && (
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <label className="text-sm font-medium">
-                                  {isArabic ? "رقم المرتجع" : "Return Number"}
-                                </label>
-                                <p className="text-sm text-muted-foreground">
-                                  {selectedReturn.return_number}
-                                </p>
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium">
-                                  {isArabic ? "رقم الطلب" : "Sale Number"}
-                                </label>
-                                <p className="text-sm text-muted-foreground">
-                                  {selectedReturn.sale_number}
-                                </p>
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium">
-                                  {isArabic ? "العميل" : "Customer"}
-                                </label>
-                                <p className="text-sm text-muted-foreground">
-                                  {selectedReturn.customer_name}
-                                </p>
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium">
-                                  {isArabic ? "تاريخ المرتجع" : "Return Date"}
-                                </label>
-                                <p className="text-sm text-muted-foreground">
-                                  {selectedReturn.return_date}
-                                </p>
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium">
-                                  {isArabic ? "نوع المرتجع" : "Return Type"}
-                                </label>
-                                <Badge className={typeColors[selectedReturn.return_type]}>
-                                  {isArabic ? 
-                                    (selectedReturn.return_type === 'full' ? 'كامل' : 'جزئي') :
-                                    (selectedReturn.return_type === 'full' ? 'Full' : 'Partial')
-                                  }
-                                </Badge>
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium">
-                                  {isArabic ? "السبب" : "Reason"}
-                                </label>
-                                <p className="text-sm text-muted-foreground">
-                                  {reasonLabels[selectedReturn.reason]}
-                                </p>
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium">
-                                  {isArabic ? "المبلغ الكلي" : "Total Amount"}
-                                </label>
-                                <p className="text-sm text-muted-foreground font-medium">
-                                  ${selectedReturn.total_amount.toFixed(2)}
-                                </p>
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium">
-                                  {isArabic ? "مبلغ الاسترداد" : "Refund Amount"}
-                                </label>
-                                <p className="text-sm text-muted-foreground font-medium">
-                                  ${selectedReturn.refund_amount.toFixed(2)}
-                                </p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex gap-2 pt-4">
-                              <Button variant="outline" className="flex items-center gap-2">
-                                <Eye className="h-4 w-4" />
-                                {isArabic ? "عرض الطلب قبل المرتجع" : "View Order Before Return"}
-                              </Button>
-                              <Button variant="outline" className="flex items-center gap-2">
-                                <Eye className="h-4 w-4" />
-                                {isArabic ? "عرض الطلب بعد المرتجع" : "View Order After Return"}
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </DialogContent>
-                    </Dialog>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedReturn(returnItem);
+                        setIsDetailsDialogOpen(true);
+                      }}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -348,6 +251,12 @@ export default function Returns() {
           </Table>
         </CardContent>
       </Card>
+
+      <ReturnDetailsDialog
+        isOpen={isDetailsDialogOpen}
+        onOpenChange={setIsDetailsDialogOpen}
+        returnData={selectedReturn}
+      />
     </div>
   );
 }
