@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,7 @@ import { SalesOrder } from "@/pages/SalesOrders";
 interface ReturnDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  order: SalesOrder;
+  order: SalesOrder | null;
 }
 
 interface ReturnItem {
@@ -59,18 +59,23 @@ export function ReturnDialog({ isOpen, onOpenChange, order }: ReturnDialogProps)
   const [returnType, setReturnType] = useState<'full' | 'partial'>('partial');
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
-  const [returnItems, setReturnItems] = useState<ReturnItem[]>(
-    order.items.map(item => ({
-      saleItemId: item.id,
-      productId: item.id,
-      productName: item.name,
-      originalQuantity: item.quantity,
-      quantityReturned: 0,
-      unitPrice: item.price,
-      condition: 'good' as const,
-      notes: ''
-    }))
-  );
+  const [returnItems, setReturnItems] = useState<ReturnItem[]>([]);
+
+  // Initialize return items when order changes
+  React.useEffect(() => {
+    if (order?.items) {
+      setReturnItems(order.items.map(item => ({
+        saleItemId: item.id,
+        productId: item.id,
+        productName: item.name,
+        originalQuantity: item.quantity,
+        quantityReturned: 0,
+        unitPrice: item.price,
+        condition: 'good' as const,
+        notes: ''
+      })));
+    }
+  }, [order]);
 
   const handleItemReturnChange = (itemId: string, field: keyof ReturnItem, value: any) => {
     setReturnItems(prev => prev.map(item => 
@@ -120,7 +125,7 @@ export function ReturnDialog({ isOpen, onOpenChange, order }: ReturnDialogProps)
 
     // Here you would call the API to create the return
     const returnData = {
-      sale_id: order.id,
+      sale_id: order?.id,
       return_date: new Date().toISOString().split('T')[0],
       return_type: returnType,
       reason: reason,
@@ -151,7 +156,7 @@ export function ReturnDialog({ isOpen, onOpenChange, order }: ReturnDialogProps)
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RotateCcw className="h-5 w-5" />
-            {isArabic ? "إرجاع طلب" : "Return Order"} - {order.orderNumber}
+            {isArabic ? "إرجاع طلب" : "Return Order"} - {order?.orderNumber}
           </DialogTitle>
         </DialogHeader>
 
@@ -169,19 +174,19 @@ export function ReturnDialog({ isOpen, onOpenChange, order }: ReturnDialogProps)
                   <Label className="text-xs text-muted-foreground">
                     {isArabic ? "رقم الطلب" : "Order Number"}
                   </Label>
-                  <p className="font-medium">{order.orderNumber}</p>
+                  <p className="font-medium">{order?.orderNumber}</p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">
                     {isArabic ? "العميل" : "Customer"}
                   </Label>
-                  <p className="font-medium">{order.customer.name}</p>
+                  <p className="font-medium">{order?.customer.name}</p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">
                     {isArabic ? "إجمالي الطلب" : "Order Total"}
                   </Label>
-                  <p className="font-medium">${order.total.toFixed(2)}</p>
+                  <p className="font-medium">${order?.total.toFixed(2)}</p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">

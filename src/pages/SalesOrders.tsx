@@ -468,11 +468,13 @@ const SalesOrders = () => {
         onSave={handleSaveOrder}
       />
       
-      <ReturnDialog
-        isOpen={isReturnDialogOpen}
-        onOpenChange={setIsReturnDialogOpen}
-        order={selectedOrder}
-      />
+      {selectedOrder && (
+        <ReturnDialog
+          isOpen={isReturnDialogOpen}
+          onOpenChange={setIsReturnDialogOpen}
+          order={selectedOrder}
+        />
+      )}
     </div>
   );
 };
