@@ -22,6 +22,7 @@ const saleRoutes = require('./routes/saleRoutes');
 const returnRoutes = require('./routes/returnRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const quotationRoutes = require('./routes/quotationRoutes');
 
 const { errorHandler } = require('./middleware/errorHandler');
 const { notFound } = require('./middleware/notFound');
@@ -79,6 +80,7 @@ app.use('/api/sales', saleRoutes);
 app.use('/api/returns', returnRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/quotations', quotationRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
