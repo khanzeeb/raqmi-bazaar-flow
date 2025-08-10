@@ -4,8 +4,9 @@
   "description": "Backend API for Raqmi Inventory Management System",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "start": "node dist/server.js",
+    "dev": "ts-node src/server.ts",
+    "build": "tsc",
     "test": "jest",
     "migrate": "knex migrate:latest",
     "rollback": "knex migrate:rollback",

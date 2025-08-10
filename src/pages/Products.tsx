@@ -87,7 +87,7 @@ const convertToLegacyProduct = (product: Product): LegacyProduct => ({
   stock: product.stock,
   status: product.status as 'active' | 'inactive',
   image: product.image,
-  variants: product.variants?.map(v => v.value) || [],
+  variants: product.variants?.map(v => v.name) || [],
   barcode: product.barcode,
 });
 
@@ -99,14 +99,14 @@ const convertToApiProduct = (product: Partial<LegacyProduct>): Partial<CreatePro
   price: product.price || 0,
   cost: product.price ? product.price * 0.7 : 0, // Assume 30% margin
   stock: product.stock || 0,
-  minStock: 5, // Default values
-  maxStock: 100,
+  min_stock: 5, // Default values
+  max_stock: 100,
   image: product.image,
   barcode: product.barcode,
-  variants: product.variants?.map((value, index) => ({
-    name: 'Option',
-    value,
-    priceModifier: 0,
+  variants: product.variants?.map((variant, index) => ({
+    name: `Option ${index + 1}`,
+    price: product.price || 0,
+    cost: (product.price || 0) * 0.7,
     stock: product.stock || 0,
   })) || [],
 });
