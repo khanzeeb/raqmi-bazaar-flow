@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import MessageController from '../controllers/messageController';
+
 const router = express.Router();
-const MessageController = require('../controllers/messageController');
 
 // Get messages by language (query param: ?language=ar or ?language=en)
 router.get('/', MessageController.getMessages);
@@ -11,4 +12,4 @@ router.get('/all', MessageController.getAllMessages);
 // Get specific message by key
 router.get('/key/:key', MessageController.getMessageByKey);
 
-module.exports = router;
+export default router;

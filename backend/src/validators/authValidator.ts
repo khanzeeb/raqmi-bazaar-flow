@@ -1,6 +1,6 @@
-const { body } = require('express-validator');
+import { body } from 'express-validator';
 
-const registerValidator = [
+export const registerValidator = [
   body('name')
     .trim()
     .isLength({ min: 2, max: 50 })
@@ -27,7 +27,7 @@ const registerValidator = [
     .withMessage('Invalid role specified')
 ];
 
-const loginValidator = [
+export const loginValidator = [
   body('email')
     .isEmail()
     .normalizeEmail()
@@ -38,7 +38,7 @@ const loginValidator = [
     .withMessage('Password is required')
 ];
 
-const changePasswordValidator = [
+export const changePasswordValidator = [
   body('currentPassword')
     .notEmpty()
     .withMessage('Current password is required'),
@@ -50,7 +50,7 @@ const changePasswordValidator = [
     .withMessage('New password must contain at least one uppercase letter, one lowercase letter, one number, and one special character')
 ];
 
-const updateProfileValidator = [
+export const updateProfileValidator = [
   body('name')
     .trim()
     .isLength({ min: 2, max: 50 })
@@ -65,10 +65,3 @@ const updateProfileValidator = [
     .isLength({ max: 254 })
     .withMessage('Email is too long')
 ];
-
-module.exports = {
-  registerValidator,
-  loginValidator,
-  changePasswordValidator,
-  updateProfileValidator
-};

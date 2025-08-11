@@ -2,7 +2,7 @@
   "name": "raqmi-backend",
   "version": "1.0.0",
   "description": "Backend API for Raqmi Inventory Management System",
-  "main": "src/server.js",
+  "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
     "dev": "ts-node src/server.ts",

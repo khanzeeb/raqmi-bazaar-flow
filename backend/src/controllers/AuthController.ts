@@ -1,17 +1,41 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const { validationResult } = require('express-validator');
+import jwt from 'jsonwebtoken';
+import { Request, Response } from 'express';
+import { validationResult } from 'express-validator';
+import User from '../models/User';
+
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
+interface TokenPayload {
+  userId: string;
+  email: string;
+  role: string;
+}
+
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+}
 
 class AuthController {
-  static async register(req, res) {
+  static async register(req: Request, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const { name, email, password, role = 'user' } = req.body;
@@ -19,10 +43,11 @@ class AuthController {
       // Check if user already exists
       const existingUser = await User.findByEmail(email);
       if (existingUser) {
-        return res.status(409).json({
+        res.status(409).json({
           success: false,
           message: 'User already exists with this email'
         });
+        return;
       }
 
       // Create user
@@ -60,15 +85,16 @@ class AuthController {
     }
   }
 
-  static async login(req, res) {
+  static async login(req: Request, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const { email, password } = req.body;
@@ -76,27 +102,30 @@ class AuthController {
       // Find user
       const user = await User.findByEmail(email);
       if (!user) {
-        return res.status(401).json({
+        res.status(401).json({
           success: false,
           message: 'Invalid credentials'
         });
+        return;
       }
 
       // Check if user is active
       if (user.status !== 'active') {
-        return res.status(401).json({
+        res.status(401).json({
           success: false,
           message: 'Account is disabled'
         });
+        return;
       }
 
       // Verify password
       const isValidPassword = await User.verifyPassword(password, user.password);
       if (!isValidPassword) {
-        return res.status(401).json({
+        res.status(401).json({
           success: false,
           message: 'Invalid credentials'
         });
+        return;
       }
 
       // Generate tokens
@@ -128,26 +157,28 @@ class AuthController {
     }
   }
 
-  static async refreshToken(req, res) {
+  static async refreshToken(req: Request, res: Response): Promise<void> {
     try {
       const { refreshToken } = req.body;
 
       if (!refreshToken) {
-        return res.status(401).json({
+        res.status(401).json({
           success: false,
           message: 'Refresh token required'
         });
+        return;
       }
 
       // Verify refresh token
-      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET!) as TokenPayload;
       const user = await User.findById(decoded.userId);
 
       if (!user || user.status !== 'active') {
-        return res.status(401).json({
+        res.status(401).json({
           success: false,
           message: 'Invalid refresh token'
         });
+        return;
       }
 
       // Generate new tokens
@@ -166,7 +197,7 @@ class AuthController {
     }
   }
 
-  static async logout(req, res) {
+  static async logout(req: Request, res: Response): Promise<void> {
     try {
       // In a real application, you might want to blacklist the token
       res.json({
@@ -182,15 +213,16 @@ class AuthController {
     }
   }
 
-  static async getProfile(req, res) {
+  static async getProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const user = await User.findById(req.user.id);
+      const user = await User.findById(req.user!.id);
       
       if (!user) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'User not found'
         });
+        return;
       }
 
       res.json({
@@ -213,29 +245,31 @@ class AuthController {
     }
   }
 
-  static async updateProfile(req, res) {
+  static async updateProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const { name, email } = req.body;
       
       // Check if email is already taken by another user
       const existingUser = await User.findByEmail(email);
-      if (existingUser && existingUser.id !== req.user.id) {
-        return res.status(409).json({
+      if (existingUser && existingUser.id !== req.user!.id) {
+        res.status(409).json({
           success: false,
           message: 'Email already taken'
         });
+        return;
       }
 
-      const updatedUser = await User.update(req.user.id, { name, email });
+      const updatedUser = await User.update(req.user!.id, { name, email });
 
       res.json({
         success: true,
@@ -257,38 +291,41 @@ class AuthController {
     }
   }
 
-  static async changePassword(req, res) {
+  static async changePassword(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const { currentPassword, newPassword } = req.body;
       
-      const user = await User.findById(req.user.id);
+      const user = await User.findById(req.user!.id);
       if (!user) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'User not found'
         });
+        return;
       }
 
       // Verify current password
       const isValidPassword = await User.verifyPassword(currentPassword, user.password);
       if (!isValidPassword) {
-        return res.status(401).json({
+        res.status(401).json({
           success: false,
           message: 'Current password is incorrect'
         });
+        return;
       }
 
       // Update password
-      await User.update(req.user.id, { password: newPassword });
+      await User.update(req.user!.id, { password: newPassword });
 
       res.json({
         success: true,
@@ -303,18 +340,18 @@ class AuthController {
     }
   }
 
-  static generateTokens(user) {
-    const payload = {
+  static generateTokens(user: UserData): { accessToken: string; refreshToken: string } {
+    const payload: TokenPayload = {
       userId: user.id,
       email: user.email,
       role: user.role
     };
 
-    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET!, {
       expiresIn: process.env.JWT_EXPIRE || '15m'
     });
 
-    const refreshToken = jwt.sign(payload, process.env.JWT_SECRET, {
+    const refreshToken = jwt.sign(payload, process.env.JWT_SECRET!, {
       expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d'
     });
 
@@ -322,4 +359,4 @@ class AuthController {
   }
 }
 
-module.exports = AuthController;
+export default AuthController;

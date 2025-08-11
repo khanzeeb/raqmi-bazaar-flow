@@ -1,34 +1,39 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const compression = require('compression');
-const rateLimit = require('express-rate-limit');
-const { createServer } = require('http');
-const { Server } = require('socket.io');
-require('dotenv').config();
+import express, { Application, Request, Response } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import compression from 'compression';
+import rateLimit from 'express-rate-limit';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import dotenv from 'dotenv';
 
-const db = require('./config/database');
-const authRoutes = require('./routes/authRoutes');
-const productRoutes = require('./routes/productRoutes');
-const messageRoutes = require('./routes/messageRoutes');
-const languageMiddleware = require('./middleware/language');
-const translationRoutes = require('./routes/translationRoutes');
-const customerRoutes = require('./routes/customerRoutes');
-const invoiceRoutes = require('./routes/invoiceRoutes');
-const inventoryRoutes = require('./routes/inventoryRoutes');
-const paymentRoutes = require('./routes/paymentRoutes');
-const saleRoutes = require('./routes/saleRoutes');
-const returnRoutes = require('./routes/returnRoutes');
-const reportRoutes = require('./routes/reportRoutes');
-const uploadRoutes = require('./routes/uploadRoutes');
-const quotationRoutes = require('./routes/quotationRoutes');
+dotenv.config();
 
-const { errorHandler } = require('./middleware/errorHandler');
-const { notFound } = require('./middleware/notFound');
-const socketHandler = require('./sockets/socketHandler');
+import db from './config/database';
+import authRoutes from './routes/authRoutes';
+import productRoutes from './routes/productRoutes';
+import messageRoutes from './routes/messageRoutes';
+import languageMiddleware from './middleware/language';
+import translationRoutes from './routes/translationRoutes';
+import customerRoutes from './routes/customerRoutes';
+import invoiceRoutes from './routes/invoiceRoutes';
+import inventoryRoutes from './routes/inventoryRoutes';
+import paymentRoutes from './routes/paymentRoutes';
+import saleRoutes from './routes/saleRoutes';
+import returnRoutes from './routes/returnRoutes';
+import reportRoutes from './routes/reportRoutes';
+import uploadRoutes from './routes/uploadRoutes';
+import quotationRoutes from './routes/quotationRoutes';
+import purchaseRoutes from './routes/purchaseRoutes';
+import expenseRoutes from './routes/expenseRoutes';
+import supplierRoutes from './routes/supplierRoutes';
 
-const app = express();
+import { errorHandler } from './middleware/errorHandler';
+import { notFound } from './middleware/notFound';
+import socketHandler from './sockets/socketHandler';
+
+const app: Application = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
@@ -81,9 +86,12 @@ app.use('/api/returns', returnRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/quotations', quotationRoutes);
+app.use('/api/purchases', purchaseRoutes);
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/suppliers', supplierRoutes);
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 

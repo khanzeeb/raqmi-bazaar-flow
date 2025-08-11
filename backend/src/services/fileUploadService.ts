@@ -1,19 +1,55 @@
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const sharp = require('sharp');
-const { v4: uuidv4 } = require('uuid');
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import sharp from 'sharp';
+import { v4 as uuidv4 } from 'uuid';
+import { Request } from 'express';
+
+interface FileUploadOptions {
+  maxFileSize?: number;
+  maxFiles?: number;
+}
+
+interface ImageProcessingOptions {
+  width?: number;
+  height?: number;
+  quality?: number;
+  format?: string;
+}
+
+interface ThumbnailOptions {
+  width?: number;
+  height?: number;
+  quality?: number;
+}
+
+interface FileInfo {
+  size: number;
+  createdAt: Date;
+  modifiedAt: Date;
+  extension: string;
+  basename: string;
+}
+
+interface FileValidationResult {
+  valid: boolean;
+  errors: string[];
+}
 
 class FileUploadService {
+  private uploadDir: string;
+  private maxFileSize: number;
+  private allowedTypes: string[];
+
   constructor() {
     this.uploadDir = process.env.UPLOAD_PATH || 'uploads/';
-    this.maxFileSize = parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024; // 10MB
+    this.maxFileSize = parseInt(process.env.MAX_FILE_SIZE || '10485760'); // 10MB
     this.allowedTypes = (process.env.ALLOWED_FILE_TYPES || 'jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx').split(',');
     
     this.ensureUploadDirs();
   }
 
-  ensureUploadDirs() {
+  private ensureUploadDirs(): void {
     const dirs = ['images', 'documents', 'temp'];
     dirs.forEach(dir => {
       const dirPath = path.join(this.uploadDir, dir);
@@ -23,30 +59,30 @@ class FileUploadService {
     });
   }
 
-  getStorage(subfolder = '') {
+  private getStorage(subfolder: string = ''): multer.StorageEngine {
     return multer.diskStorage({
-      destination: (req, file, cb) => {
+      destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
         const uploadPath = path.join(this.uploadDir, subfolder);
         cb(null, uploadPath);
       },
-      filename: (req, file, cb) => {
+      filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
         const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
         cb(null, uniqueName);
       }
     });
   }
 
-  fileFilter(req, file, cb) {
+  private fileFilter(req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback): void {
     const ext = path.extname(file.originalname).toLowerCase().slice(1);
     
     if (this.allowedTypes.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error(`File type .${ext} is not allowed`), false);
+      cb(new Error(`File type .${ext} is not allowed`));
     }
   }
 
-  getUploader(subfolder = '', options = {}) {
+  public getUploader(subfolder: string = '', options: FileUploadOptions = {}): multer.Multer {
     return multer({
       storage: this.getStorage(subfolder),
       fileFilter: this.fileFilter.bind(this),
@@ -57,7 +93,7 @@ class FileUploadService {
     });
   }
 
-  async processImage(filePath, options = {}) {
+  public async processImage(filePath: string, options: ImageProcessingOptions = {}): Promise<string> {
     try {
       const {
         width = 800,
@@ -89,7 +125,7 @@ class FileUploadService {
     }
   }
 
-  async createThumbnail(filePath, options = {}) {
+  public async createThumbnail(filePath: string, options: ThumbnailOptions = {}): Promise<string> {
     try {
       const {
         width = 150,
@@ -117,7 +153,7 @@ class FileUploadService {
     }
   }
 
-  deleteFile(filePath) {
+  public deleteFile(filePath: string): boolean {
     try {
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
@@ -130,7 +166,7 @@ class FileUploadService {
     }
   }
 
-  getFileInfo(filePath) {
+  public getFileInfo(filePath: string): FileInfo | null {
     try {
       const stats = fs.statSync(filePath);
       return {
@@ -145,8 +181,8 @@ class FileUploadService {
     }
   }
 
-  validateFile(file) {
-    const errors = [];
+  public validateFile(file: Express.Multer.File): FileValidationResult {
+    const errors: string[] = [];
 
     if (!file) {
       errors.push('No file provided');
@@ -191,7 +227,7 @@ class FileUploadService {
     };
   }
 
-  generateSecureFileName(originalName) {
+  public generateSecureFileName(originalName: string): string {
     const ext = path.extname(originalName);
     const baseName = path.basename(originalName, ext);
     const sanitizedName = baseName.replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -199,4 +235,4 @@ class FileUploadService {
   }
 }
 
-module.exports = new FileUploadService();
+export default new FileUploadService();

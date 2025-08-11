@@ -1,17 +1,43 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+import jwt from 'jsonwebtoken';
+import { Server, Socket } from 'socket.io';
+import User from '../models/User';
+
+interface AuthenticatedSocket extends Socket {
+  userId?: string;
+  userRole?: string;
+  userName?: string;
+}
+
+interface ConnectedUser {
+  socketId: string;
+  userId: string;
+  userName: string;
+  userRole: string;
+  connectedAt: Date;
+}
+
+interface NotificationData {
+  targetUserId?: string;
+  targetRole?: string;
+  message: string;
+  type?: string;
+  data?: any;
+}
 
 class SocketHandler {
-  constructor(io) {
+  private io: Server;
+  private connectedUsers: Map<string, ConnectedUser>;
+
+  constructor(io: Server) {
     this.io = io;
     this.connectedUsers = new Map();
     this.setupMiddleware();
     this.setupEventHandlers();
   }
 
-  setupMiddleware() {
+  private setupMiddleware(): void {
     // Authentication middleware for Socket.IO
-    this.io.use(async (socket, next) => {
+    this.io.use(async (socket: AuthenticatedSocket, next) => {
       try {
         const token = socket.handshake.auth.token;
         
@@ -19,7 +45,7 @@ class SocketHandler {
           return next(new Error('Authentication error: No token provided'));
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
         const user = await User.findById(decoded.userId);
         
         if (!user || user.status !== 'active') {
@@ -38,16 +64,16 @@ class SocketHandler {
     });
   }
 
-  setupEventHandlers() {
-    this.io.on('connection', (socket) => {
+  private setupEventHandlers(): void {
+    this.io.on('connection', (socket: AuthenticatedSocket) => {
       console.log(`User ${socket.userName} connected (${socket.userId})`);
       
       // Store connected user
-      this.connectedUsers.set(socket.userId, {
+      this.connectedUsers.set(socket.userId!, {
         socketId: socket.id,
-        userId: socket.userId,
-        userName: socket.userName,
-        userRole: socket.userRole,
+        userId: socket.userId!,
+        userName: socket.userName!,
+        userRole: socket.userRole!,
         connectedAt: new Date()
       });
 
@@ -58,37 +84,37 @@ class SocketHandler {
       socket.join(`role_${socket.userRole}`);
 
       // Handle joining specific rooms
-      socket.on('join_room', (roomName) => {
+      socket.on('join_room', (roomName: string) => {
         socket.join(roomName);
         console.log(`User ${socket.userName} joined room: ${roomName}`);
       });
 
-      socket.on('leave_room', (roomName) => {
+      socket.on('leave_room', (roomName: string) => {
         socket.leave(roomName);
         console.log(`User ${socket.userName} left room: ${roomName}`);
       });
 
       // Real-time inventory updates
-      socket.on('inventory_update', (data) => {
+      socket.on('inventory_update', (data: any) => {
         if (socket.userRole === 'admin' || socket.userRole === 'manager') {
           this.broadcastInventoryUpdate(data);
         }
       });
 
       // Real-time order updates
-      socket.on('order_update', (data) => {
+      socket.on('order_update', (data: any) => {
         this.broadcastOrderUpdate(data);
       });
 
       // Real-time notifications
-      socket.on('send_notification', (data) => {
+      socket.on('send_notification', (data: NotificationData) => {
         this.sendNotification(data);
       });
 
       // Handle disconnection
       socket.on('disconnect', () => {
         console.log(`User ${socket.userName} disconnected`);
-        this.connectedUsers.delete(socket.userId);
+        this.connectedUsers.delete(socket.userId!);
       });
 
       // Send welcome message
@@ -100,7 +126,7 @@ class SocketHandler {
     });
   }
 
-  broadcastInventoryUpdate(data) {
+  private broadcastInventoryUpdate(data: any): void {
     // Broadcast to all managers and admins
     this.io.to('role_admin').to('role_manager').emit('inventory_updated', {
       type: 'inventory_update',
@@ -109,7 +135,7 @@ class SocketHandler {
     });
   }
 
-  broadcastOrderUpdate(data) {
+  private broadcastOrderUpdate(data: any): void {
     // Broadcast to all connected users
     this.io.emit('order_updated', {
       type: 'order_update',
@@ -118,7 +144,7 @@ class SocketHandler {
     });
   }
 
-  sendNotification(notificationData) {
+  private sendNotification(notificationData: NotificationData): void {
     const { targetUserId, targetRole, message, type, data } = notificationData;
 
     const notification = {
@@ -141,32 +167,32 @@ class SocketHandler {
   }
 
   // Method to send notifications from outside the socket context
-  sendNotificationFromAPI(notificationData) {
+  public sendNotificationFromAPI(notificationData: NotificationData): void {
     this.sendNotification(notificationData);
   }
 
   // Get connected users count
-  getConnectedUsersCount() {
+  public getConnectedUsersCount(): number {
     return this.connectedUsers.size;
   }
 
   // Get connected users list (admin only)
-  getConnectedUsers() {
+  public getConnectedUsers(): ConnectedUser[] {
     return Array.from(this.connectedUsers.values());
   }
 
   // Check if user is online
-  isUserOnline(userId) {
+  public isUserOnline(userId: string): boolean {
     return this.connectedUsers.has(userId);
   }
 
   // Send message to specific user
-  sendMessageToUser(userId, event, data) {
+  public sendMessageToUser(userId: string, event: string, data: any): void {
     this.io.to(`user_${userId}`).emit(event, data);
   }
 
   // Broadcast system maintenance message
-  broadcastMaintenanceMessage(message, scheduledTime) {
+  public broadcastMaintenanceMessage(message: string, scheduledTime: Date): void {
     this.io.emit('system_maintenance', {
       message,
       scheduledTime,
@@ -175,7 +201,7 @@ class SocketHandler {
   }
 
   // Force disconnect user (admin feature)
-  forceDisconnectUser(userId) {
+  public forceDisconnectUser(userId: string): void {
     const user = this.connectedUsers.get(userId);
     if (user) {
       const socket = this.io.sockets.sockets.get(user.socketId);
@@ -189,9 +215,9 @@ class SocketHandler {
   }
 }
 
-let socketHandler;
+let socketHandler: SocketHandler;
 
-module.exports = (io) => {
+export default (io: Server): SocketHandler => {
   if (!socketHandler) {
     socketHandler = new SocketHandler(io);
   }

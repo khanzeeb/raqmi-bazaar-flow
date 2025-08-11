@@ -1,8 +1,18 @@
-const errorHandler = (err, req, res, next) => {
+import { Request, Response, NextFunction } from 'express';
+
+interface CustomError extends Error {
+  statusCode?: number;
+  code?: string;
+  name: string;
+}
+
+export const errorHandler = (err: CustomError, req: Request, res: Response, next: NextFunction): void => {
   console.error('Error:', err);
 
-  let error = { ...err };
-  error.message = err.message;
+  let error: { message: string; statusCode: number } = { 
+    message: err.message, 
+    statusCode: 500 
+  };
 
   // Duplicate key error
   if (err.code === '23505') {
@@ -12,7 +22,7 @@ const errorHandler = (err, req, res, next) => {
 
   // Validation error
   if (err.name === 'ValidationError') {
-    const message = Object.values(err.errors).map(val => val.message);
+    const message = 'Validation error';
     error = { message, statusCode: 400 };
   }
 
@@ -44,11 +54,9 @@ const errorHandler = (err, req, res, next) => {
     error = { message, statusCode: 400 };
   }
 
-  res.status(error.statusCode || 500).json({
+  res.status(error.statusCode).json({
     success: false,
-    message: error.message || 'Server Error',
+    message: error.message,
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 };
-
-module.exports = { errorHandler };

@@ -1,6 +1,6 @@
-const { body } = require('express-validator');
+import { body } from 'express-validator';
 
-const createTranslationValidator = [
+export const createTranslationValidator = [
   body('key')
     .notEmpty()
     .withMessage('Translation key is required')
@@ -32,7 +32,7 @@ const createTranslationValidator = [
     .withMessage('Description cannot exceed 1000 characters')
 ];
 
-const updateTranslationValidator = [
+export const updateTranslationValidator = [
   body('key')
     .optional()
     .isLength({ min: 1, max: 255 })
@@ -61,7 +61,7 @@ const updateTranslationValidator = [
     .withMessage('Description cannot exceed 1000 characters')
 ];
 
-const bulkImportValidator = [
+export const bulkImportValidator = [
   body('translations')
     .isArray()
     .withMessage('Translations must be an array'),
@@ -80,9 +80,3 @@ const bulkImportValidator = [
     .notEmpty()
     .withMessage('Each translation must have Arabic text')
 ];
-
-module.exports = {
-  createTranslationValidator,
-  updateTranslationValidator,
-  bulkImportValidator
-};
