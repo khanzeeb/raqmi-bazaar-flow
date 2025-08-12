@@ -1,9 +1,42 @@
-const Customer = require('../models/Customer');
-const db = require('../config/database');
+import Customer from '../models/Customer';
+import db from '../config/database';
+
+interface CustomerData {
+  id?: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  address?: string;
+  tax_number?: string;
+  type: 'individual' | 'business';
+  status: 'active' | 'inactive' | 'blocked';
+  credit_limit?: number;
+  used_credit?: number;
+  available_credit?: number;
+  overdue_amount?: number;
+  total_outstanding?: number;
+  credit_status: 'good' | 'warning' | 'blocked';
+  payment_terms: 'immediate' | 'net_7' | 'net_15' | 'net_30' | 'net_45' | 'net_60' | 'net_90';
+  preferred_language: 'en' | 'ar';
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+interface CustomerFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  type?: string;
+  credit_status?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
 
 class CustomerService {
   
-  static async createCustomer(customerData) {
+  static async createCustomer(customerData: Partial<CustomerData>): Promise<CustomerData> {
     try {
       // Check if email already exists
       if (customerData.email) {
@@ -14,7 +47,7 @@ class CustomerService {
       }
       
       // Set default values
-      const defaultValues = {
+      const defaultValues: Partial<CustomerData> = {
         type: 'individual',
         status: 'active',
         credit_limit: 0,
@@ -39,7 +72,7 @@ class CustomerService {
     }
   }
   
-  static async updateCustomer(customerId, customerData) {
+  static async updateCustomer(customerId: string, customerData: Partial<CustomerData>): Promise<CustomerData> {
     try {
       const existingCustomer = await Customer.findById(customerId);
       if (!existingCustomer) {
@@ -73,7 +106,7 @@ class CustomerService {
     }
   }
   
-  static async getCustomerById(customerId) {
+  static async getCustomerById(customerId: string): Promise<CustomerData & { statistics: any }> {
     const customer = await Customer.findById(customerId);
     if (!customer) {
       throw new Error('Customer not found');
@@ -88,11 +121,11 @@ class CustomerService {
     };
   }
   
-  static async getCustomers(filters = {}) {
+  static async getCustomers(filters: CustomerFilters = {}): Promise<any> {
     return await Customer.findAll(filters);
   }
   
-  static async deleteCustomer(customerId) {
+  static async deleteCustomer(customerId: string): Promise<number> {
     const customer = await Customer.findById(customerId);
     if (!customer) {
       throw new Error('Customer not found');
@@ -112,7 +145,7 @@ class CustomerService {
     return await Customer.delete(customerId);
   }
   
-  static async updateCustomerCredit(customerId, amount, type, reason = '') {
+  static async updateCustomerCredit(customerId: string, amount: number, type: 'add' | 'subtract', reason = ''): Promise<CustomerData> {
     const trx = await db.transaction();
     
     try {
@@ -147,7 +180,7 @@ class CustomerService {
     }
   }
   
-  static async getCustomerCreditHistory(customerId, filters = {}) {
+  static async getCustomerCreditHistory(customerId: string, filters: any = {}): Promise<any> {
     const customer = await Customer.findById(customerId);
     if (!customer) {
       throw new Error('Customer not found');
@@ -179,7 +212,7 @@ class CustomerService {
     };
   }
   
-  static async getCustomerStats(customerId) {
+  static async getCustomerStats(customerId: string): Promise<any> {
     const customer = await Customer.findById(customerId);
     if (!customer) {
       throw new Error('Customer not found');
@@ -188,7 +221,7 @@ class CustomerService {
     return await Customer.getCustomerStats(customerId);
   }
   
-  static async blockCustomer(customerId, reason = '') {
+  static async blockCustomer(customerId: string, reason = ''): Promise<CustomerData> {
     const customer = await this.updateCustomer(customerId, {
       status: 'blocked',
       credit_status: 'blocked'
@@ -209,7 +242,7 @@ class CustomerService {
     return customer;
   }
   
-  static async unblockCustomer(customerId, reason = '') {
+  static async unblockCustomer(customerId: string, reason = ''): Promise<CustomerData> {
     const customer = await Customer.findById(customerId);
     if (!customer) {
       throw new Error('Customer not found');
@@ -241,7 +274,7 @@ class CustomerService {
     return updatedCustomer;
   }
   
-  static calculateCreditStatus(creditLimit, usedCredit, overdueAmount) {
+  static calculateCreditStatus(creditLimit: number, usedCredit: number, overdueAmount: number): 'good' | 'warning' | 'blocked' {
     if (overdueAmount > 0) {
       return 'blocked';
     }
@@ -258,24 +291,24 @@ class CustomerService {
     return 'good';
   }
   
-  static async getCustomersByStatus(status) {
+  static async getCustomersByStatus(status: string): Promise<any> {
     return await Customer.findAll({ status });
   }
   
-  static async getCustomersByCreditStatus(creditStatus) {
+  static async getCustomersByCreditStatus(creditStatus: string): Promise<any> {
     return await Customer.findAll({ credit_status: creditStatus });
   }
   
-  static async generateCustomerReport(filters = {}) {
+  static async generateCustomerReport(filters: any = {}): Promise<any> {
     const customers = await Customer.findAll({ ...filters, limit: 1000 });
     
     const summary = {
       total_customers: customers.total,
-      active_customers: customers.data.filter(c => c.status === 'active').length,
-      blocked_customers: customers.data.filter(c => c.status === 'blocked').length,
-      total_credit_limit: customers.data.reduce((sum, c) => sum + (c.credit_limit || 0), 0),
-      total_used_credit: customers.data.reduce((sum, c) => sum + (c.used_credit || 0), 0),
-      total_outstanding: customers.data.reduce((sum, c) => sum + (c.total_outstanding || 0), 0)
+      active_customers: customers.data.filter((c: any) => c.status === 'active').length,
+      blocked_customers: customers.data.filter((c: any) => c.status === 'blocked').length,
+      total_credit_limit: customers.data.reduce((sum: number, c: any) => sum + (c.credit_limit || 0), 0),
+      total_used_credit: customers.data.reduce((sum: number, c: any) => sum + (c.used_credit || 0), 0),
+      total_outstanding: customers.data.reduce((sum: number, c: any) => sum + (c.total_outstanding || 0), 0)
     };
     
     return {
@@ -284,7 +317,7 @@ class CustomerService {
     };
   }
   
-  static async processOverdueCustomers() {
+  static async processOverdueCustomers(): Promise<number> {
     // Find customers with overdue amounts and update their status
     const overdueCustomers = await db('customers')
       .where('overdue_amount', '>', 0)
@@ -300,4 +333,4 @@ class CustomerService {
   }
 }
 
-module.exports = CustomerService;
+export default CustomerService;

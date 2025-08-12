@@ -1,17 +1,19 @@
-const ExpenseService = require('../services/expenseService');
-const { validationResult } = require('express-validator');
+import { Request, Response, NextFunction } from 'express';
+import { validationResult } from 'express-validator';
+import ExpenseService from '../services/expenseService';
 
 class ExpenseController {
   
-  static async createExpense(req, res, next) {
+  static async createExpense(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const expense = await ExpenseService.createExpense(req.body);
@@ -26,15 +28,16 @@ class ExpenseController {
     }
   }
 
-  static async getExpenses(req, res, next) {
+  static async getExpenses(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const expenses = await ExpenseService.getExpenses(req.query);
@@ -48,15 +51,16 @@ class ExpenseController {
     }
   }
 
-  static async getExpense(req, res, next) {
+  static async getExpense(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const expense = await ExpenseService.getExpenseById(req.params.id);
@@ -70,15 +74,16 @@ class ExpenseController {
     }
   }
 
-  static async updateExpense(req, res, next) {
+  static async updateExpense(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const expense = await ExpenseService.updateExpense(req.params.id, req.body);
@@ -93,15 +98,16 @@ class ExpenseController {
     }
   }
 
-  static async deleteExpense(req, res, next) {
+  static async deleteExpense(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       await ExpenseService.deleteExpense(req.params.id);
@@ -115,7 +121,7 @@ class ExpenseController {
     }
   }
 
-  static async getExpenseStats(req, res, next) {
+  static async getExpenseStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const stats = await ExpenseService.getExpenseStats(req.query);
 
@@ -128,15 +134,16 @@ class ExpenseController {
     }
   }
 
-  static async updateExpenseStatus(req, res, next) {
+  static async updateExpenseStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const { status } = req.body;
@@ -152,7 +159,7 @@ class ExpenseController {
     }
   }
 
-  static async approveExpense(req, res, next) {
+  static async approveExpense(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const expense = await ExpenseService.approveExpense(req.params.id);
 
@@ -166,7 +173,7 @@ class ExpenseController {
     }
   }
 
-  static async attachReceipt(req, res, next) {
+  static async attachReceipt(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { receipt_url } = req.body;
       const expense = await ExpenseService.attachReceipt(req.params.id, receipt_url);
@@ -181,7 +188,7 @@ class ExpenseController {
     }
   }
 
-  static async getExpensesByCategory(req, res, next) {
+  static async getExpensesByCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const expenses = await ExpenseService.getExpensesByCategory(req.query);
 
@@ -194,7 +201,7 @@ class ExpenseController {
     }
   }
 
-  static async getExpenseReport(req, res, next) {
+  static async getExpenseReport(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const report = await ExpenseService.generateExpenseReport(req.query);
 
@@ -208,4 +215,4 @@ class ExpenseController {
   }
 }
 
-module.exports = ExpenseController;
+export default ExpenseController;

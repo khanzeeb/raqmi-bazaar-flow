@@ -1,12 +1,47 @@
-const Payment = require('../models/Payment');
-const PaymentAllocation = require('../models/PaymentAllocation');
-const PaymentMethod = require('../models/PaymentMethod');
-const Customer = require('../models/Customer');
-const db = require('../config/database');
+import Payment from '../models/Payment';
+import PaymentAllocation from '../models/PaymentAllocation';
+import PaymentMethod from '../models/PaymentMethod';
+import Customer from '../models/Customer';
+import db from '../config/database';
+
+interface PaymentData {
+  id?: number;
+  customer_id: number;
+  amount: number;
+  payment_method_code: string;
+  payment_date: string;
+  status?: 'pending' | 'completed' | 'failed' | 'cancelled';
+  reference?: string;
+  notes?: string;
+  allocated_amount?: number;
+  unallocated_amount?: number;
+  metadata?: any;
+}
+
+interface AllocationData {
+  order_id: number;
+  order_type?: 'invoice' | 'sales_order' | 'quotation';
+  order_number?: string;
+  allocated_amount: number;
+  order_total: number;
+  previously_paid?: number;
+  remaining_after_payment?: number;
+}
+
+interface PaymentFilters {
+  page?: number;
+  limit?: number;
+  customer_id?: number;
+  status?: string;
+  payment_method_code?: string;
+  date_from?: string;
+  date_to?: string;
+  search?: string;
+}
 
 class PaymentService {
   
-  static async createPayment(paymentData, allocations = []) {
+  static async createPayment(paymentData: PaymentData, allocations: AllocationData[] = []): Promise<any> {
     const trx = await db.transaction();
     
     try {
@@ -28,7 +63,7 @@ class PaymentService {
       
       // Calculate allocated amount
       const totalAllocated = allocations.reduce((sum, allocation) => {
-        return sum + parseFloat(allocation.allocated_amount || 0);
+        return sum + parseFloat(allocation.allocated_amount?.toString() || '0');
       }, 0);
       
       if (totalAllocated > paymentData.amount) {
@@ -69,7 +104,7 @@ class PaymentService {
     }
   }
   
-  static async updatePayment(paymentId, paymentData, allocations = null) {
+  static async updatePayment(paymentId: string, paymentData: Partial<PaymentData>, allocations: AllocationData[] | null = null): Promise<any> {
     const trx = await db.transaction();
     
     try {
@@ -97,7 +132,7 @@ class PaymentService {
       // Handle allocation updates
       if (allocations !== null) {
         const totalAllocated = allocations.reduce((sum, allocation) => {
-          return sum + parseFloat(allocation.allocated_amount || 0);
+          return sum + parseFloat(allocation.allocated_amount?.toString() || '0');
         }, 0);
         
         const amount = paymentData.amount || existingPayment.amount;
@@ -128,7 +163,7 @@ class PaymentService {
     }
   }
   
-  static async getPaymentById(paymentId) {
+  static async getPaymentById(paymentId: string): Promise<any> {
     const payment = await Payment.findById(paymentId);
     if (!payment) {
       throw new Error('Payment not found');
@@ -143,11 +178,11 @@ class PaymentService {
     };
   }
   
-  static async getPayments(filters = {}) {
+  static async getPayments(filters: PaymentFilters = {}): Promise<any> {
     return await Payment.findAll(filters);
   }
   
-  static async deletePayment(paymentId) {
+  static async deletePayment(paymentId: string): Promise<number> {
     const payment = await Payment.findById(paymentId);
     if (!payment) {
       throw new Error('Payment not found');
@@ -162,7 +197,7 @@ class PaymentService {
     return await Payment.delete(paymentId);
   }
   
-  static async approvePayment(paymentId, approvedBy) {
+  static async approvePayment(paymentId: string, approvedBy: string): Promise<any> {
     const payment = await Payment.findById(paymentId);
     if (!payment) {
       throw new Error('Payment not found');
@@ -185,11 +220,11 @@ class PaymentService {
     });
   }
   
-  static async getPaymentStats(filters = {}) {
+  static async getPaymentStats(filters: any = {}): Promise<any> {
     return await Payment.getPaymentStats(filters);
   }
   
-  static async updateCustomerCreditOnPayment(customerId, amount, type) {
+  static async updateCustomerCreditOnPayment(customerId: number, amount: number, type: 'add' | 'subtract'): Promise<any> {
     const customer = await Customer.findById(customerId);
     if (!customer) {
       throw new Error('Customer not found');
@@ -198,7 +233,7 @@ class PaymentService {
     return await Customer.updateCredit(customerId, amount, type);
   }
   
-  static async updateOrderPaymentStatus(allocations) {
+  static async updateOrderPaymentStatus(allocations: AllocationData[]): Promise<void> {
     // This would update the payment status in the respective order tables
     // Implementation depends on the order management system structure
     for (const allocation of allocations) {
@@ -208,12 +243,12 @@ class PaymentService {
     }
   }
   
-  static async getCustomerPaymentHistory(customerId, filters = {}) {
+  static async getCustomerPaymentHistory(customerId: number, filters: PaymentFilters = {}): Promise<any> {
     const paymentFilters = { ...filters, customer_id: customerId };
     return await Payment.findAll(paymentFilters);
   }
   
-  static async generatePaymentReport(filters = {}) {
+  static async generatePaymentReport(filters: any = {}): Promise<any> {
     const payments = await Payment.findAll({ ...filters, limit: 1000 });
     const stats = await Payment.getPaymentStats(filters);
     
@@ -230,14 +265,14 @@ class PaymentService {
     };
   }
   
-  static async processRecurringPayments() {
+  static async processRecurringPayments(): Promise<void> {
     // Implementation for processing recurring payments
     // This would be called by a scheduled job
     console.log('Processing recurring payments...');
     // Implementation depends on business requirements
   }
   
-  static async refundPayment(paymentId, refundData) {
+  static async refundPayment(paymentId: string, refundData: { amount: number; reason?: string }): Promise<any> {
     const trx = await db.transaction();
     
     try {
@@ -280,4 +315,4 @@ class PaymentService {
   }
 }
 
-module.exports = PaymentService;
+export default PaymentService;

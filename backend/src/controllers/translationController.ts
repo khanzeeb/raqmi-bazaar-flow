@@ -1,21 +1,27 @@
-const Translation = require('../models/Translation');
-const { validationResult } = require('express-validator');
+import { Request, Response } from 'express';
+import { validationResult } from 'express-validator';
+import Translation from '../models/Translation';
 
 class TranslationController {
   // Get all translations
-  static async getAllTranslations(req, res) {
+  static async getAllTranslations(req: Request, res: Response): Promise<void> {
     try {
-      const { category, search, language } = req.query;
+      const { category, search, language } = req.query as { 
+        category?: string; 
+        search?: string; 
+        language?: string;
+      };
       
       if (language) {
         const translations = await Translation.getByLanguage(language);
-        return res.json({
+        res.json({
           success: true,
           data: translations
         });
+        return;
       }
       
-      const filters = {};
+      const filters: any = {};
       if (category) filters.category = category;
       if (search) filters.search = search;
       
@@ -30,13 +36,13 @@ class TranslationController {
       res.status(500).json({
         success: false,
         message: 'Error fetching translations',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 
   // Get translations grouped by category
-  static async getGroupedTranslations(req, res) {
+  static async getGroupedTranslations(req: Request, res: Response): Promise<void> {
     try {
       const grouped = await Translation.getGroupedByCategory();
       
@@ -49,22 +55,23 @@ class TranslationController {
       res.status(500).json({
         success: false,
         message: 'Error fetching grouped translations',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 
   // Get translation by key
-  static async getTranslationByKey(req, res) {
+  static async getTranslationByKey(req: Request, res: Response): Promise<void> {
     try {
       const { key } = req.params;
       const translation = await Translation.findByKey(key);
       
       if (!translation) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'Translation not found'
         });
+        return;
       }
       
       res.json({
@@ -76,21 +83,22 @@ class TranslationController {
       res.status(500).json({
         success: false,
         message: 'Error fetching translation',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 
   // Create new translation
-  static async createTranslation(req, res) {
+  static async createTranslation(req: Request, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation failed',
           errors: errors.array()
         });
+        return;
       }
 
       const { key, en, ar, category = 'general', description } = req.body;
@@ -98,10 +106,11 @@ class TranslationController {
       // Check if key already exists
       const existing = await Translation.findByKey(key);
       if (existing) {
-        return res.status(409).json({
+        res.status(409).json({
           success: false,
           message: 'Translation key already exists'
         });
+        return;
       }
 
       const translation = await Translation.create({
@@ -122,21 +131,22 @@ class TranslationController {
       res.status(500).json({
         success: false,
         message: 'Error creating translation',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 
   // Update translation
-  static async updateTranslation(req, res) {
+  static async updateTranslation(req: Request, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation failed',
           errors: errors.array()
         });
+        return;
       }
 
       const { id } = req.params;
@@ -144,20 +154,22 @@ class TranslationController {
       
       const existing = await Translation.findById(id);
       if (!existing) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'Translation not found'
         });
+        return;
       }
 
       // Check if key conflicts with another translation
       if (key && key !== existing.key) {
         const keyExists = await Translation.findByKey(key);
         if (keyExists) {
-          return res.status(409).json({
+          res.status(409).json({
             success: false,
             message: 'Translation key already exists'
           });
+          return;
         }
       }
 
@@ -179,22 +191,23 @@ class TranslationController {
       res.status(500).json({
         success: false,
         message: 'Error updating translation',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 
   // Delete translation
-  static async deleteTranslation(req, res) {
+  static async deleteTranslation(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       
       const existing = await Translation.findById(id);
       if (!existing) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'Translation not found'
         });
+        return;
       }
 
       await Translation.delete(id);
@@ -208,21 +221,22 @@ class TranslationController {
       res.status(500).json({
         success: false,
         message: 'Error deleting translation',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 
   // Bulk import translations
-  static async bulkImport(req, res) {
+  static async bulkImport(req: Request, res: Response): Promise<void> {
     try {
       const { translations } = req.body;
       
       if (!Array.isArray(translations)) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Translations must be an array'
         });
+        return;
       }
 
       await Translation.bulkInsert(translations);
@@ -236,13 +250,13 @@ class TranslationController {
       res.status(500).json({
         success: false,
         message: 'Error importing translations',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 
   // Get categories
-  static async getCategories(req, res) {
+  static async getCategories(req: Request, res: Response): Promise<void> {
     try {
       const categories = await Translation.getCategories();
       
@@ -255,10 +269,10 @@ class TranslationController {
       res.status(500).json({
         success: false,
         message: 'Error fetching categories',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 }
 
-module.exports = TranslationController;
+export default TranslationController;

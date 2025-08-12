@@ -1,16 +1,22 @@
-const PaymentService = require('../services/paymentService');
-const { validationResult } = require('express-validator');
+import { Request, Response, NextFunction } from 'express';
+import { validationResult } from 'express-validator';
+import PaymentService from '../services/paymentService';
+
+interface AuthenticatedRequest extends Request {
+  language?: string;
+}
 
 class PaymentController {
-  static async createPayment(req, res, next) {
+  static async createPayment(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation failed',
           errors: errors.array()
         });
+        return;
       }
 
       const { allocations, ...paymentData } = req.body;
@@ -26,7 +32,7 @@ class PaymentController {
     }
   }
 
-  static async getPayments(req, res, next) {
+  static async getPayments(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const payments = await PaymentService.getPayments(req.query);
       
@@ -39,7 +45,7 @@ class PaymentController {
     }
   }
 
-  static async getPayment(req, res, next) {
+  static async getPayment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const payment = await PaymentService.getPaymentById(req.params.id);
       
@@ -52,15 +58,16 @@ class PaymentController {
     }
   }
 
-  static async updatePayment(req, res, next) {
+  static async updatePayment(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation failed',
           errors: errors.array()
         });
+        return;
       }
 
       const { allocations, ...paymentData } = req.body;
@@ -76,7 +83,7 @@ class PaymentController {
     }
   }
 
-  static async deletePayment(req, res, next) {
+  static async deletePayment(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       await PaymentService.deletePayment(req.params.id);
       
@@ -89,7 +96,7 @@ class PaymentController {
     }
   }
 
-  static async getPaymentStats(req, res, next) {
+  static async getPaymentStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const stats = await PaymentService.getPaymentStats(req.query);
       
@@ -103,4 +110,4 @@ class PaymentController {
   }
 }
 
-module.exports = PaymentController;
+export default PaymentController;

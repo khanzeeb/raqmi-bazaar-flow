@@ -1,17 +1,19 @@
-const PurchaseService = require('../services/purchaseService');
-const { validationResult } = require('express-validator');
+import { Request, Response, NextFunction } from 'express';
+import { validationResult } from 'express-validator';
+import PurchaseService from '../services/purchaseService';
 
 class PurchaseController {
   
-  static async createPurchase(req, res, next) {
+  static async createPurchase(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const { items, ...purchaseData } = req.body;
@@ -27,15 +29,16 @@ class PurchaseController {
     }
   }
 
-  static async getPurchases(req, res, next) {
+  static async getPurchases(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const purchases = await PurchaseService.getPurchases(req.query);
@@ -49,15 +52,16 @@ class PurchaseController {
     }
   }
 
-  static async getPurchase(req, res, next) {
+  static async getPurchase(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const purchase = await PurchaseService.getPurchaseById(req.params.id);
@@ -71,15 +75,16 @@ class PurchaseController {
     }
   }
 
-  static async updatePurchase(req, res, next) {
+  static async updatePurchase(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const { items, ...purchaseData } = req.body;
@@ -99,15 +104,16 @@ class PurchaseController {
     }
   }
 
-  static async deletePurchase(req, res, next) {
+  static async deletePurchase(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       await PurchaseService.deletePurchase(req.params.id);
@@ -121,7 +127,7 @@ class PurchaseController {
     }
   }
 
-  static async getPurchaseStats(req, res, next) {
+  static async getPurchaseStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const stats = await PurchaseService.getPurchaseStats(req.query);
 
@@ -134,15 +140,16 @@ class PurchaseController {
     }
   }
 
-  static async updatePurchaseStatus(req, res, next) {
+  static async updatePurchaseStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const { status } = req.body;
@@ -158,7 +165,7 @@ class PurchaseController {
     }
   }
 
-  static async markAsReceived(req, res, next) {
+  static async markAsReceived(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const purchase = await PurchaseService.markAsReceived(req.params.id, req.body);
 
@@ -172,15 +179,16 @@ class PurchaseController {
     }
   }
 
-  static async addPayment(req, res, next) {
+  static async addPayment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const purchase = await PurchaseService.addPayment(req.params.id, req.body);
@@ -195,7 +203,7 @@ class PurchaseController {
     }
   }
 
-  static async getPurchaseReport(req, res, next) {
+  static async getPurchaseReport(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const report = await PurchaseService.generatePurchaseReport(req.query);
 
@@ -209,4 +217,4 @@ class PurchaseController {
   }
 }
 
-module.exports = PurchaseController;
+export default PurchaseController;

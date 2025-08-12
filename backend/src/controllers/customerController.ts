@@ -1,16 +1,22 @@
-const CustomerService = require('../services/customerService');
-const { validationResult } = require('express-validator');
+import { Request, Response, NextFunction } from 'express';
+import { validationResult } from 'express-validator';
+import CustomerService from '../services/customerService';
+
+interface AuthenticatedRequest extends Request {
+  language?: string;
+}
 
 class CustomerController {
-  static async createCustomer(req, res, next) {
+  static async createCustomer(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation failed',
           errors: errors.array()
         });
+        return;
       }
 
       const customer = await CustomerService.createCustomer(req.body);
@@ -25,7 +31,7 @@ class CustomerController {
     }
   }
 
-  static async getCustomers(req, res, next) {
+  static async getCustomers(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const customers = await CustomerService.getCustomers(req.query);
       
@@ -38,7 +44,7 @@ class CustomerController {
     }
   }
 
-  static async getCustomer(req, res, next) {
+  static async getCustomer(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const customer = await CustomerService.getCustomerById(req.params.id);
       
@@ -51,15 +57,16 @@ class CustomerController {
     }
   }
 
-  static async updateCustomer(req, res, next) {
+  static async updateCustomer(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation failed',
           errors: errors.array()
         });
+        return;
       }
 
       const customer = await CustomerService.updateCustomer(req.params.id, req.body);
@@ -74,7 +81,7 @@ class CustomerController {
     }
   }
 
-  static async updateCredit(req, res, next) {
+  static async updateCredit(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { amount, type, reason } = req.body;
       const customer = await CustomerService.updateCustomerCredit(req.params.id, amount, type, reason);
@@ -89,7 +96,7 @@ class CustomerController {
     }
   }
 
-  static async getCreditHistory(req, res, next) {
+  static async getCreditHistory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const history = await CustomerService.getCustomerCreditHistory(req.params.id, req.query);
       
@@ -103,4 +110,4 @@ class CustomerController {
   }
 }
 
-module.exports = CustomerController;
+export default CustomerController;

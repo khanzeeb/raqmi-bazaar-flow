@@ -1,17 +1,19 @@
-const SupplierService = require('../services/supplierService');
-const { validationResult } = require('express-validator');
+import { Request, Response, NextFunction } from 'express';
+import { validationResult } from 'express-validator';
+import SupplierService from '../services/supplierService';
 
 class SupplierController {
   
-  static async createSupplier(req, res, next) {
+  static async createSupplier(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const supplier = await SupplierService.createSupplier(req.body);
@@ -26,15 +28,16 @@ class SupplierController {
     }
   }
 
-  static async getSuppliers(req, res, next) {
+  static async getSuppliers(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const suppliers = await SupplierService.getSuppliers(req.query);
@@ -48,15 +51,16 @@ class SupplierController {
     }
   }
 
-  static async getSupplier(req, res, next) {
+  static async getSupplier(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const supplier = await SupplierService.getSupplierById(req.params.id);
@@ -70,15 +74,16 @@ class SupplierController {
     }
   }
 
-  static async updateSupplier(req, res, next) {
+  static async updateSupplier(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       const supplier = await SupplierService.updateSupplier(req.params.id, req.body);
@@ -93,15 +98,16 @@ class SupplierController {
     }
   }
 
-  static async deleteSupplier(req, res, next) {
+  static async deleteSupplier(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation errors',
           errors: errors.array()
         });
+        return;
       }
 
       await SupplierService.deleteSupplier(req.params.id);
@@ -115,7 +121,7 @@ class SupplierController {
     }
   }
 
-  static async getSupplierStats(req, res, next) {
+  static async getSupplierStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const stats = await SupplierService.getSupplierStats();
 
@@ -128,7 +134,7 @@ class SupplierController {
     }
   }
 
-  static async getSupplierPurchases(req, res, next) {
+  static async getSupplierPurchases(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const purchases = await SupplierService.getSupplierPurchases(req.params.id, req.query);
 
@@ -142,4 +148,4 @@ class SupplierController {
   }
 }
 
-module.exports = SupplierController;
+export default SupplierController;

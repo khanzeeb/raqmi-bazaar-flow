@@ -1,16 +1,23 @@
-const SaleService = require('../services/saleService');
-const { validationResult } = require('express-validator');
+import { Request, Response, NextFunction } from 'express';
+import { validationResult } from 'express-validator';
+import SaleService from '../services/saleService';
+import ReturnService from '../services/returnService';
+
+interface AuthenticatedRequest extends Request {
+  language?: string;
+}
 
 class SaleController {
-  static async createSale(req, res, next) {
+  static async createSale(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation failed',
           errors: errors.array()
         });
+        return;
       }
 
       const { items, ...saleData } = req.body;
@@ -26,7 +33,7 @@ class SaleController {
     }
   }
 
-  static async getSales(req, res, next) {
+  static async getSales(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const sales = await SaleService.getSales(req.query);
       
@@ -39,7 +46,7 @@ class SaleController {
     }
   }
 
-  static async getSale(req, res, next) {
+  static async getSale(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const sale = await SaleService.getSaleById(req.params.id);
       
@@ -52,15 +59,16 @@ class SaleController {
     }
   }
 
-  static async updateSale(req, res, next) {
+  static async updateSale(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation failed',
           errors: errors.array()
         });
+        return;
       }
 
       const { items, ...saleData } = req.body;
@@ -76,7 +84,7 @@ class SaleController {
     }
   }
 
-  static async deleteSale(req, res, next) {
+  static async deleteSale(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       await SaleService.deleteSale(req.params.id);
       
@@ -89,7 +97,7 @@ class SaleController {
     }
   }
 
-  static async getSaleStats(req, res, next) {
+  static async getSaleStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const stats = await SaleService.getSaleStats(req.query);
       
@@ -102,15 +110,16 @@ class SaleController {
     }
   }
 
-  static async createSalePayment(req, res, next) {
+  static async createSalePayment(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation failed',
           errors: errors.array()
         });
+        return;
       }
 
       const payment = await SaleService.createSalePayment(req.params.id, req.body);
@@ -125,15 +134,16 @@ class SaleController {
     }
   }
 
-  static async createPartialPayment(req, res, next) {
+  static async createPartialPayment(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation failed',
           errors: errors.array()
         });
+        return;
       }
 
       const payment = await SaleService.createPartialPayment(req.params.id, req.body);
@@ -148,15 +158,16 @@ class SaleController {
     }
   }
 
-  static async createFullPayment(req, res, next) {
+  static async createFullPayment(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Validation failed',
           errors: errors.array()
         });
+        return;
       }
 
       const payment = await SaleService.createFullPayment(req.params.id, req.body);
@@ -171,15 +182,16 @@ class SaleController {
     }
   }
 
-  static async allocatePayment(req, res, next) {
+  static async allocatePayment(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { payment_id, allocation_amount } = req.body;
       
       if (!payment_id || !allocation_amount) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Payment ID and allocation amount are required'
         });
+        return;
       }
 
       const allocation = await SaleService.allocateExistingPayment(
@@ -198,7 +210,7 @@ class SaleController {
     }
   }
 
-  static async getOverdueSales(req, res, next) {
+  static async getOverdueSales(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const overdueSales = await SaleService.getOverdueSales();
       
@@ -211,15 +223,16 @@ class SaleController {
     }
   }
 
-  static async cancelSale(req, res, next) {
+  static async cancelSale(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { reason } = req.body;
       
       if (!reason) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Cancellation reason is required'
         });
+        return;
       }
 
       const sale = await SaleService.cancelSale(req.params.id, reason);
@@ -234,7 +247,7 @@ class SaleController {
     }
   }
 
-  static async getSaleReport(req, res, next) {
+  static async getSaleReport(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const report = await SaleService.generateSaleReport(req.query);
       
@@ -247,7 +260,7 @@ class SaleController {
     }
   }
 
-  static async processOverdueReminders(req, res, next) {
+  static async processOverdueReminders(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const processedCount = await SaleService.processOverdueReminders();
       
@@ -263,10 +276,9 @@ class SaleController {
     }
   }
 
-  static async getSaleReturns(req, res, next) {
+  static async getSaleReturns(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const ReturnService = require('../services/returnService');
       const returns = await ReturnService.getSaleReturns(parseInt(id));
       
       res.json({
@@ -278,10 +290,9 @@ class SaleController {
     }
   }
 
-  static async getSaleStateBeforeReturn(req, res, next) {
+  static async getSaleStateBeforeReturn(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id, returnId } = req.params;
-      const ReturnService = require('../services/returnService');
       const saleState = await ReturnService.getSaleStateBeforeReturn(
         parseInt(id), 
         returnId ? parseInt(returnId) : null
@@ -296,10 +307,9 @@ class SaleController {
     }
   }
 
-  static async getSaleStateAfterReturn(req, res, next) {
+  static async getSaleStateAfterReturn(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id, returnId } = req.params;
-      const ReturnService = require('../services/returnService');
       const saleState = await ReturnService.getSaleStateAfterReturn(
         parseInt(id), 
         parseInt(returnId)
@@ -315,4 +325,4 @@ class SaleController {
   }
 }
 
-module.exports = SaleController;
+export default SaleController;

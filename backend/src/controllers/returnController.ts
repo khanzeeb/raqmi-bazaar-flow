@@ -1,8 +1,15 @@
-const ReturnService = require('../services/returnService');
+import { Request, Response } from 'express';
+import ReturnService from '../services/returnService';
+
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+  };
+}
 
 class ReturnController {
   
-  static async createReturn(req, res) {
+  static async createReturn(req: Request, res: Response): Promise<void> {
     try {
       const { items, ...returnData } = req.body;
       const returnRecord = await ReturnService.createReturn(returnData, items);
@@ -15,12 +22,12 @@ class ReturnController {
     } catch (error) {
       res.status(400).json({
         success: false,
-        message: error.message
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
   
-  static async getReturn(req, res) {
+  static async getReturn(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       const returnRecord = await ReturnService.getReturnById(parseInt(id));
@@ -32,12 +39,12 @@ class ReturnController {
     } catch (error) {
       res.status(404).json({
         success: false,
-        message: error.message
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
   
-  static async getReturns(req, res) {
+  static async getReturns(req: Request, res: Response): Promise<void> {
     try {
       const filters = req.query;
       const returns = await ReturnService.getReturns(filters);
@@ -49,12 +56,12 @@ class ReturnController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
   
-  static async getSaleReturns(req, res) {
+  static async getSaleReturns(req: Request, res: Response): Promise<void> {
     try {
       const { saleId } = req.params;
       const returns = await ReturnService.getSaleReturns(parseInt(saleId));
@@ -66,12 +73,12 @@ class ReturnController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
   
-  static async updateReturn(req, res) {
+  static async updateReturn(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       const returnRecord = await ReturnService.updateReturn(parseInt(id), req.body);
@@ -84,12 +91,12 @@ class ReturnController {
     } catch (error) {
       res.status(400).json({
         success: false,
-        message: error.message
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
   
-  static async deleteReturn(req, res) {
+  static async deleteReturn(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       await ReturnService.deleteReturn(parseInt(id));
@@ -101,15 +108,15 @@ class ReturnController {
     } catch (error) {
       res.status(400).json({
         success: false,
-        message: error.message
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
   
-  static async processReturn(req, res) {
+  static async processReturn(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const processedBy = req.user.id; // From auth middleware
+      const processedBy = req.user?.id; // From auth middleware
       const returnRecord = await ReturnService.processReturn(parseInt(id), req.body, processedBy);
       
       res.json({
@@ -120,12 +127,12 @@ class ReturnController {
     } catch (error) {
       res.status(400).json({
         success: false,
-        message: error.message
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
   
-  static async getSaleStateBeforeReturn(req, res) {
+  static async getSaleStateBeforeReturn(req: Request, res: Response): Promise<void> {
     try {
       const { saleId, returnId } = req.params;
       const saleState = await ReturnService.getSaleStateBeforeReturn(
@@ -140,12 +147,12 @@ class ReturnController {
     } catch (error) {
       res.status(404).json({
         success: false,
-        message: error.message
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
   
-  static async getSaleStateAfterReturn(req, res) {
+  static async getSaleStateAfterReturn(req: Request, res: Response): Promise<void> {
     try {
       const { saleId, returnId } = req.params;
       const saleState = await ReturnService.getSaleStateAfterReturn(
@@ -160,12 +167,12 @@ class ReturnController {
     } catch (error) {
       res.status(404).json({
         success: false,
-        message: error.message
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
   
-  static async getReturnStats(req, res) {
+  static async getReturnStats(req: Request, res: Response): Promise<void> {
     try {
       const filters = req.query;
       const stats = await ReturnService.getReturnStats(filters);
@@ -177,12 +184,12 @@ class ReturnController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
   
-  static async getReturnReport(req, res) {
+  static async getReturnReport(req: Request, res: Response): Promise<void> {
     try {
       const filters = req.query;
       const report = await ReturnService.generateReturnReport(filters);
@@ -194,10 +201,10 @@ class ReturnController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 }
 
-module.exports = ReturnController;
+export default ReturnController;
