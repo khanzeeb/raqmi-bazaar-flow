@@ -1,11 +1,38 @@
-const db = require('../config/database');
+import { Knex } from 'knex';
+import db from '../config/database';
+
+interface PurchaseItemData {
+  id?: string;
+  purchase_id: string;
+  product_id: string;
+  product_name?: string;
+  product_sku?: string;
+  product_description?: string;
+  quantity: number;
+  unit_price: number;
+  discount_amount?: number;
+  tax_amount?: number;
+  line_total: number;
+  received_quantity?: number;
+  description?: string;
+  notes?: string;
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+interface PurchaseItemStats {
+  total_items: number;
+  total_quantity: number;
+  total_received: number;
+  total_amount: number;
+}
 
 class PurchaseItem {
-  static get tableName() {
+  static get tableName(): string {
     return 'purchase_items';
   }
 
-  static async findByPurchaseId(purchaseId) {
+  static async findByPurchaseId(purchaseId: string): Promise<PurchaseItemData[]> {
     return await db(this.tableName)
       .select(
         'purchase_items.*',
@@ -18,7 +45,7 @@ class PurchaseItem {
       .orderBy('purchase_items.created_at', 'asc');
   }
 
-  static async findById(id) {
+  static async findById(id: string): Promise<PurchaseItemData | undefined> {
     return await db(this.tableName)
       .select(
         'purchase_items.*',
@@ -30,7 +57,7 @@ class PurchaseItem {
       .first();
   }
 
-  static async create(itemData) {
+  static async create(itemData: Omit<PurchaseItemData, 'id' | 'created_at' | 'updated_at'>): Promise<PurchaseItemData> {
     const [item] = await db(this.tableName)
       .insert({
         ...itemData,
@@ -42,7 +69,7 @@ class PurchaseItem {
     return item;
   }
 
-  static async createBulk(purchaseId, items) {
+  static async createBulk(purchaseId: string, items: Omit<PurchaseItemData, 'id' | 'purchase_id' | 'created_at' | 'updated_at'>[]): Promise<PurchaseItemData[]> {
     const trx = await db.transaction();
     
     try {
@@ -62,14 +89,14 @@ class PurchaseItem {
       }
       
       await trx.commit();
-      return items;
+      return items as PurchaseItemData[];
     } catch (error) {
       await trx.rollback();
       throw error;
     }
   }
 
-  static async update(id, itemData) {
+  static async update(id: string, itemData: Partial<PurchaseItemData>): Promise<PurchaseItemData> {
     const [item] = await db(this.tableName)
       .where({ id })
       .update({
@@ -81,24 +108,24 @@ class PurchaseItem {
     return item;
   }
 
-  static async delete(id) {
+  static async delete(id: string): Promise<number> {
     return await db(this.tableName).where({ id }).del();
   }
 
-  static async deleteByPurchaseId(purchaseId) {
+  static async deleteByPurchaseId(purchaseId: string): Promise<number> {
     return await db(this.tableName).where({ purchase_id: purchaseId }).del();
   }
 
-  static calculateLineTotal(quantity, unitPrice, discountAmount = 0, taxAmount = 0) {
+  static calculateLineTotal(quantity: number, unitPrice: number, discountAmount: number = 0, taxAmount: number = 0): number {
     const subtotal = quantity * unitPrice;
     return subtotal - discountAmount + taxAmount;
   }
 
-  static async updateReceivedQuantity(id, receivedQuantity) {
+  static async updateReceivedQuantity(id: string, receivedQuantity: number): Promise<PurchaseItemData> {
     return await this.update(id, { received_quantity: receivedQuantity });
   }
 
-  static async getPurchaseItemStats(purchaseId) {
+  static async getPurchaseItemStats(purchaseId: string): Promise<PurchaseItemStats> {
     const stats = await db(this.tableName)
       .where('purchase_id', purchaseId)
       .select(
@@ -113,4 +140,4 @@ class PurchaseItem {
   }
 }
 
-module.exports = PurchaseItem;
+export default PurchaseItem;

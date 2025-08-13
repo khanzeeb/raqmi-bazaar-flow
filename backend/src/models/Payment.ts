@@ -1,11 +1,60 @@
-const db = require('../config/database');
+import { Knex } from 'knex';
+import db from '../config/database';
+
+interface PaymentData {
+  id?: string;
+  payment_number?: string;
+  customer_id: string;
+  amount: number;
+  payment_date: Date | string;
+  payment_method_code: string;
+  reference?: string;
+  notes?: string;
+  status?: 'pending' | 'completed' | 'failed' | 'cancelled';
+  allocated_amount?: number;
+  unallocated_amount?: number;
+  currency?: string;
+  exchange_rate?: number;
+  created_by?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  customer_name?: string;
+  payment_method_name?: string;
+}
+
+interface PaymentFilters {
+  customer_id?: string;
+  status?: string;
+  payment_method_code?: string;
+  date_from?: string;
+  date_to?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+interface PaymentStats {
+  total_payments: number;
+  completed_amount: number;
+  pending_count: number;
+  failed_count: number;
+  average_payment: number;
+  total_unallocated: number;
+}
+
+interface AllocationAmounts {
+  allocated_amount: number;
+  unallocated_amount: number;
+}
 
 class Payment {
-  static get tableName() {
+  static get tableName(): string {
     return 'payments';
   }
 
-  static async findById(id) {
+  static async findById(id: string): Promise<PaymentData | undefined> {
     return await db(this.tableName)
       .select(
         'payments.*',
@@ -18,7 +67,7 @@ class Payment {
       .first();
   }
 
-  static async findByPaymentNumber(paymentNumber) {
+  static async findByPaymentNumber(paymentNumber: string): Promise<PaymentData | undefined> {
     return await db(this.tableName)
       .select(
         'payments.*',
@@ -31,7 +80,7 @@ class Payment {
       .first();
   }
 
-  static async findAll(filters = {}) {
+  static async findAll(filters: PaymentFilters = {}) {
     let query = db(this.tableName)
       .select(
         'payments.*',
@@ -88,7 +137,7 @@ class Payment {
     };
   }
 
-  static async count(filters = {}) {
+  static async count(filters: PaymentFilters = {}): Promise<number> {
     let query = db(this.tableName)
       .leftJoin('customers', 'payments.customer_id', 'customers.id')
       .count('payments.id as count');
@@ -112,7 +161,7 @@ class Payment {
     return parseInt(result.count);
   }
 
-  static async create(paymentData) {
+  static async create(paymentData: Omit<PaymentData, 'id' | 'created_at' | 'updated_at'>): Promise<PaymentData> {
     const trx = await db.transaction();
     
     try {
@@ -140,7 +189,7 @@ class Payment {
     }
   }
 
-  static async update(id, paymentData) {
+  static async update(id: string, paymentData: Partial<PaymentData>): Promise<PaymentData> {
     const trx = await db.transaction();
     
     try {
@@ -166,7 +215,7 @@ class Payment {
     }
   }
 
-  static async delete(id) {
+  static async delete(id: string): Promise<number> {
     const trx = await db.transaction();
     
     try {
@@ -184,7 +233,7 @@ class Payment {
     }
   }
 
-  static async generatePaymentNumber() {
+  static async generatePaymentNumber(): Promise<string> {
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -205,7 +254,7 @@ class Payment {
     return `${prefix}-${String(sequence).padStart(4, '0')}`;
   }
 
-  static async getPaymentStats(filters = {}) {
+  static async getPaymentStats(filters: PaymentFilters = {}): Promise<PaymentStats> {
     const baseQuery = db(this.tableName);
     
     if (filters.date_from) {
@@ -230,7 +279,7 @@ class Payment {
     return stats;
   }
 
-  static async updateAllocationAmounts(paymentId) {
+  static async updateAllocationAmounts(paymentId: string): Promise<AllocationAmounts> {
     const trx = await db.transaction();
     
     try {
@@ -264,4 +313,4 @@ class Payment {
   }
 }
 
-module.exports = Payment;
+export default Payment;

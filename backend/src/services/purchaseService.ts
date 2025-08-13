@@ -1,12 +1,60 @@
-const Purchase = require('../models/Purchase');
-const PurchaseItem = require('../models/PurchaseItem');
-const Supplier = require('../models/Supplier');
-const Product = require('../models/Product');
-const db = require('../config/database');
+import Purchase from '../models/Purchase';
+import PurchaseItem from '../models/PurchaseItem';
+import Supplier from '../models/Supplier';
+import Product from '../models/Product';
+import db from '../config/database';
+
+interface PurchaseItemData {
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  discount_amount?: number;
+  tax_amount?: number;
+  description?: string;
+}
+
+interface PurchaseData {
+  supplier_id: string;
+  purchase_date: string;
+  expected_date?: string;
+  subtotal_amount: number;
+  tax_amount?: number;
+  discount_amount?: number;
+  shipping_amount?: number;
+  total_amount: number;
+  currency?: string;
+  status?: string;
+  notes?: string;
+}
+
+interface ReceivedData {
+  items?: Array<{
+    id: string;
+    received_quantity: number;
+  }>;
+}
+
+interface PaymentData {
+  amount: number;
+  payment_method?: string;
+  reference?: string;
+  notes?: string;
+}
+
+interface PurchaseFilters {
+  supplier_id?: string;
+  status?: string;
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
 
 class PurchaseService {
   
-  static async createPurchase(purchaseData, items = []) {
+  static async createPurchase(purchaseData: PurchaseData, items: PurchaseItemData[] = []) {
     const trx = await db.transaction();
     
     try {
@@ -65,7 +113,7 @@ class PurchaseService {
     }
   }
   
-  static async updatePurchase(purchaseId, purchaseData, items = null) {
+  static async updatePurchase(purchaseId: string, purchaseData: Partial<PurchaseData>, items: PurchaseItemData[] | null = null) {
     const trx = await db.transaction();
     
     try {
@@ -131,7 +179,7 @@ class PurchaseService {
     }
   }
   
-  static async getPurchaseById(purchaseId) {
+  static async getPurchaseById(purchaseId: string) {
     const purchase = await Purchase.findById(purchaseId);
     if (!purchase) {
       throw new Error('Purchase not found');
@@ -146,11 +194,11 @@ class PurchaseService {
     };
   }
   
-  static async getPurchases(filters = {}) {
+  static async getPurchases(filters: PurchaseFilters = {}) {
     return await Purchase.findAll(filters);
   }
   
-  static async deletePurchase(purchaseId) {
+  static async deletePurchase(purchaseId: string) {
     const purchase = await Purchase.findById(purchaseId);
     if (!purchase) {
       throw new Error('Purchase not found');
@@ -164,7 +212,7 @@ class PurchaseService {
     return await Purchase.delete(purchaseId);
   }
   
-  static async updatePurchaseStatus(purchaseId, status) {
+  static async updatePurchaseStatus(purchaseId: string, status: string) {
     const purchase = await Purchase.findById(purchaseId);
     if (!purchase) {
       throw new Error('Purchase not found');
@@ -185,7 +233,7 @@ class PurchaseService {
     return await Purchase.update(purchaseId, { status });
   }
   
-  static async markAsReceived(purchaseId, receivedData = {}) {
+  static async markAsReceived(purchaseId: string, receivedData: ReceivedData = {}) {
     const purchase = await this.getPurchaseById(purchaseId);
     
     if (purchase.status !== 'ordered') {
@@ -222,13 +270,13 @@ class PurchaseService {
     }
   }
   
-  static async addPayment(purchaseId, paymentData) {
+  static async addPayment(purchaseId: string, paymentData: PaymentData) {
     const purchase = await Purchase.findById(purchaseId);
     if (!purchase) {
       throw new Error('Purchase not found');
     }
     
-    const newPaidAmount = parseFloat(purchase.paid_amount) + parseFloat(paymentData.amount);
+    const newPaidAmount = parseFloat(purchase.paid_amount) + parseFloat(paymentData.amount.toString());
     const totalAmount = parseFloat(purchase.total_amount);
     
     if (newPaidAmount > totalAmount) {
@@ -249,16 +297,16 @@ class PurchaseService {
     });
   }
   
-  static async getPurchaseStats(filters = {}) {
+  static async getPurchaseStats(filters: PurchaseFilters = {}) {
     return await Purchase.getPurchaseStats(filters);
   }
   
-  static async getSupplierPurchases(supplierId, filters = {}) {
+  static async getSupplierPurchases(supplierId: string, filters: PurchaseFilters = {}) {
     const purchaseFilters = { ...filters, supplier_id: supplierId };
     return await Purchase.findAll(purchaseFilters);
   }
   
-  static async generatePurchaseReport(filters = {}) {
+  static async generatePurchaseReport(filters: PurchaseFilters = {}) {
     const purchases = await Purchase.findAll({ ...filters, limit: 1000 });
     const stats = await Purchase.getPurchaseStats(filters);
     
@@ -276,4 +324,4 @@ class PurchaseService {
   }
 }
 
-module.exports = PurchaseService;
+export default PurchaseService;

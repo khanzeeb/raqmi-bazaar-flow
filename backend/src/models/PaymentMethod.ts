@@ -1,19 +1,41 @@
-const db = require('../config/database');
+import { Knex } from 'knex';
+import db from '../config/database';
+
+interface PaymentMethodData {
+  id?: string;
+  name: string;
+  code: string;
+  description?: string;
+  is_active?: boolean;
+  requires_reference?: boolean;
+  requires_approval?: boolean;
+  validation_rules?: {
+    requires_image?: boolean;
+    check_number_required?: boolean;
+  };
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+interface PaymentMethodFilters {
+  is_active?: boolean;
+  search?: string;
+}
 
 class PaymentMethod {
-  static get tableName() {
+  static get tableName(): string {
     return 'payment_methods';
   }
 
-  static async findById(id) {
+  static async findById(id: string): Promise<PaymentMethodData | undefined> {
     return await db(this.tableName).where({ id }).first();
   }
 
-  static async findByCode(code) {
+  static async findByCode(code: string): Promise<PaymentMethodData | undefined> {
     return await db(this.tableName).where({ code }).first();
   }
 
-  static async findAll(filters = {}) {
+  static async findAll(filters: PaymentMethodFilters = {}): Promise<PaymentMethodData[]> {
     let query = db(this.tableName);
     
     if (filters.is_active !== undefined) {
@@ -30,7 +52,7 @@ class PaymentMethod {
     return await query.orderBy('name', 'asc');
   }
 
-  static async create(methodData) {
+  static async create(methodData: Omit<PaymentMethodData, 'id' | 'created_at' | 'updated_at'>): Promise<PaymentMethodData> {
     const [method] = await db(this.tableName)
       .insert({
         ...methodData,
@@ -42,7 +64,7 @@ class PaymentMethod {
     return method;
   }
 
-  static async update(id, methodData) {
+  static async update(id: string, methodData: Partial<PaymentMethodData>): Promise<PaymentMethodData> {
     const [method] = await db(this.tableName)
       .where({ id })
       .update({
@@ -54,17 +76,17 @@ class PaymentMethod {
     return method;
   }
 
-  static async delete(id) {
+  static async delete(id: string): Promise<number> {
     return await db(this.tableName).where({ id }).del();
   }
 
-  static async getActiveMethods() {
+  static async getActiveMethods(): Promise<PaymentMethodData[]> {
     return await db(this.tableName)
       .where({ is_active: true })
       .orderBy('name', 'asc');
   }
 
-  static async initializeDefaultMethods() {
+  static async initializeDefaultMethods(): Promise<void> {
     const defaultMethods = [
       {
         name: 'Cash',
@@ -113,4 +135,4 @@ class PaymentMethod {
   }
 }
 
-module.exports = PaymentMethod;
+export default PaymentMethod;

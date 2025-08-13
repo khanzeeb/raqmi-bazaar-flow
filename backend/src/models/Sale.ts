@@ -1,11 +1,67 @@
-const db = require('../config/database');
+import { Knex } from 'knex';
+import db from '../config/database';
+
+interface SaleData {
+  id?: string;
+  sale_number?: string;
+  customer_id: string;
+  sale_date: Date | string;
+  due_date?: Date | string;
+  subtotal_amount: number;
+  tax_amount?: number;
+  discount_amount?: number;
+  total_amount: number;
+  paid_amount?: number;
+  balance_amount?: number;
+  payment_status?: 'unpaid' | 'partially_paid' | 'paid' | 'overpaid';
+  status?: 'draft' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+  currency?: string;
+  exchange_rate?: number;
+  notes?: string;
+  terms_conditions?: string;
+  created_by?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  customer_name?: string;
+  customer_email?: string;
+}
+
+interface SaleFilters {
+  customer_id?: string;
+  status?: string;
+  payment_status?: string;
+  date_from?: string;
+  date_to?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+interface SaleStats {
+  total_sales: number;
+  total_revenue: number;
+  total_collected: number;
+  total_outstanding: number;
+  paid_count: number;
+  partially_paid_count: number;
+  unpaid_count: number;
+  average_sale_amount: number;
+}
+
+interface PaymentAmounts {
+  paid_amount: number;
+  balance_amount: number;
+  payment_status: string;
+}
 
 class Sale {
-  static get tableName() {
+  static get tableName(): string {
     return 'sales';
   }
 
-  static async findById(id) {
+  static async findById(id: string): Promise<SaleData | undefined> {
     return await db(this.tableName)
       .select(
         'sales.*',
@@ -17,7 +73,7 @@ class Sale {
       .first();
   }
 
-  static async findBySaleNumber(saleNumber) {
+  static async findBySaleNumber(saleNumber: string): Promise<SaleData | undefined> {
     return await db(this.tableName)
       .select(
         'sales.*',
@@ -29,7 +85,7 @@ class Sale {
       .first();
   }
 
-  static async findAll(filters = {}) {
+  static async findAll(filters: SaleFilters = {}) {
     let query = db(this.tableName)
       .select(
         'sales.*',
@@ -84,7 +140,7 @@ class Sale {
     };
   }
 
-  static async count(filters = {}) {
+  static async count(filters: SaleFilters = {}): Promise<number> {
     let query = db(this.tableName)
       .leftJoin('customers', 'sales.customer_id', 'customers.id')
       .count('sales.id as count');
@@ -108,7 +164,7 @@ class Sale {
     return parseInt(result.count);
   }
 
-  static async create(saleData) {
+  static async create(saleData: Omit<SaleData, 'id' | 'created_at' | 'updated_at'>): Promise<SaleData> {
     const trx = await db.transaction();
     
     try {
@@ -136,7 +192,7 @@ class Sale {
     }
   }
 
-  static async update(id, saleData) {
+  static async update(id: string, saleData: Partial<SaleData>): Promise<SaleData> {
     const trx = await db.transaction();
     
     try {
@@ -167,7 +223,7 @@ class Sale {
     }
   }
 
-  static async delete(id) {
+  static async delete(id: string): Promise<number> {
     const trx = await db.transaction();
     
     try {
@@ -190,7 +246,7 @@ class Sale {
     }
   }
 
-  static async generateSaleNumber() {
+  static async generateSaleNumber(): Promise<string> {
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -211,13 +267,13 @@ class Sale {
     return `${prefix}-${String(sequence).padStart(4, '0')}`;
   }
 
-  static calculatePaymentStatus(totalAmount, paidAmount) {
+  static calculatePaymentStatus(totalAmount: number, paidAmount: number): string {
     if (paidAmount <= 0) return 'unpaid';
     if (paidAmount >= totalAmount) return paidAmount > totalAmount ? 'overpaid' : 'paid';
     return 'partially_paid';
   }
 
-  static async updatePaymentAmounts(saleId) {
+  static async updatePaymentAmounts(saleId: string): Promise<PaymentAmounts> {
     const trx = await db.transaction();
     
     try {
@@ -252,7 +308,7 @@ class Sale {
     }
   }
 
-  static async getSaleStats(filters = {}) {
+  static async getSaleStats(filters: SaleFilters = {}): Promise<SaleStats> {
     const baseQuery = db(this.tableName);
     
     if (filters.date_from) {
@@ -279,7 +335,7 @@ class Sale {
     return stats;
   }
 
-  static async getOverdueSales() {
+  static async getOverdueSales(): Promise<SaleData[]> {
     return await db(this.tableName)
       .select(
         'sales.*',
@@ -293,4 +349,4 @@ class Sale {
   }
 }
 
-module.exports = Sale;
+export default Sale;

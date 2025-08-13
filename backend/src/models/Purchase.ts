@@ -1,11 +1,66 @@
-const db = require('../config/database');
+import { Knex } from 'knex';
+import db from '../config/database';
+
+interface PurchaseData {
+  id?: string;
+  purchase_number?: string;
+  supplier_id: string;
+  purchase_date: Date | string;
+  expected_date?: Date | string;
+  received_date?: Date | string;
+  subtotal_amount: number;
+  tax_amount?: number;
+  discount_amount?: number;
+  shipping_amount?: number;
+  total_amount: number;
+  paid_amount?: number;
+  currency?: string;
+  exchange_rate?: number;
+  status?: 'pending' | 'ordered' | 'received' | 'cancelled';
+  payment_status?: 'pending' | 'partial' | 'paid';
+  notes?: string;
+  terms_conditions?: string;
+  created_by?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  supplier_name?: string;
+  supplier_email?: string;
+  supplier_phone?: string;
+}
+
+interface PurchaseFilters {
+  supplier_id?: string;
+  status?: string;
+  payment_status?: string;
+  date_from?: string;
+  date_to?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+interface PurchaseStats {
+  total_purchases: number;
+  total_value: number;
+  total_paid: number;
+  pending_count: number;
+  ordered_count: number;
+  received_count: number;
+  cancelled_count: number;
+  payment_pending_count: number;
+  payment_partial_count: number;
+  payment_paid_count: number;
+  average_purchase_amount: number;
+}
 
 class Purchase {
-  static get tableName() {
+  static get tableName(): string {
     return 'purchases';
   }
 
-  static async findById(id) {
+  static async findById(id: string): Promise<PurchaseData | undefined> {
     return await db(this.tableName)
       .select(
         'purchases.*',
@@ -18,7 +73,7 @@ class Purchase {
       .first();
   }
 
-  static async findByPurchaseNumber(purchaseNumber) {
+  static async findByPurchaseNumber(purchaseNumber: string): Promise<PurchaseData | undefined> {
     return await db(this.tableName)
       .select(
         'purchases.*',
@@ -30,7 +85,7 @@ class Purchase {
       .first();
   }
 
-  static async findAll(filters = {}) {
+  static async findAll(filters: PurchaseFilters = {}) {
     let query = db(this.tableName)
       .select(
         'purchases.*',
@@ -85,7 +140,7 @@ class Purchase {
     };
   }
 
-  static async count(filters = {}) {
+  static async count(filters: PurchaseFilters = {}): Promise<number> {
     let query = db(this.tableName)
       .leftJoin('suppliers', 'purchases.supplier_id', 'suppliers.id')
       .count('purchases.id as count');
@@ -113,7 +168,7 @@ class Purchase {
     return parseInt(result.count);
   }
 
-  static async create(purchaseData) {
+  static async create(purchaseData: Omit<PurchaseData, 'id' | 'created_at' | 'updated_at'>): Promise<PurchaseData> {
     const trx = await db.transaction();
     
     try {
@@ -138,7 +193,7 @@ class Purchase {
     }
   }
 
-  static async update(id, purchaseData) {
+  static async update(id: string, purchaseData: Partial<PurchaseData>): Promise<PurchaseData> {
     const [purchase] = await db(this.tableName)
       .where({ id })
       .update({
@@ -150,7 +205,7 @@ class Purchase {
     return purchase;
   }
 
-  static async delete(id) {
+  static async delete(id: string): Promise<number> {
     const trx = await db.transaction();
     
     try {
@@ -168,7 +223,7 @@ class Purchase {
     }
   }
 
-  static async generatePurchaseNumber() {
+  static async generatePurchaseNumber(): Promise<string> {
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -189,7 +244,7 @@ class Purchase {
     return `${prefix}-${String(sequence).padStart(4, '0')}`;
   }
 
-  static async getPurchaseStats(filters = {}) {
+  static async getPurchaseStats(filters: PurchaseFilters = {}): Promise<PurchaseStats> {
     const baseQuery = db(this.tableName);
     
     if (filters.date_from) {
@@ -220,4 +275,4 @@ class Purchase {
   }
 }
 
-module.exports = Purchase;
+export default Purchase;

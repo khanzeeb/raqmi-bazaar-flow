@@ -1,23 +1,76 @@
-const db = require('../config/database');
+import { Knex } from 'knex';
+import db from '../config/database';
+
+interface ExpenseData {
+  id?: string;
+  expense_number?: string;
+  expense_date: Date | string;
+  title: string;
+  category: string;
+  amount: number;
+  currency?: string;
+  payment_method: string;
+  vendor?: string;
+  description?: string;
+  status?: 'pending' | 'approved' | 'paid' | 'cancelled';
+  receipt_attached?: boolean;
+  receipt_url?: string;
+  paid_date?: Date | string;
+  notes?: string;
+  created_by?: string;
+  approved_by?: string;
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+interface ExpenseFilters {
+  category?: string;
+  status?: string;
+  date_from?: string;
+  date_to?: string;
+  vendor?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+interface ExpenseStats {
+  total_expenses: number;
+  total_amount: number;
+  pending_count: number;
+  approved_count: number;
+  paid_count: number;
+  cancelled_count: number;
+  receipts_count: number;
+  average_expense_amount: number;
+}
+
+interface ExpenseByCategory {
+  category: string;
+  total_amount: number;
+  count: number;
+}
 
 class Expense {
-  static get tableName() {
+  static get tableName(): string {
     return 'expenses';
   }
 
-  static async findById(id) {
+  static async findById(id: string): Promise<ExpenseData | undefined> {
     return await db(this.tableName)
       .where('id', id)
       .first();
   }
 
-  static async findByExpenseNumber(expenseNumber) {
+  static async findByExpenseNumber(expenseNumber: string): Promise<ExpenseData | undefined> {
     return await db(this.tableName)
       .where('expense_number', expenseNumber)
       .first();
   }
 
-  static async findAll(filters = {}) {
+  static async findAll(filters: ExpenseFilters = {}) {
     let query = db(this.tableName).select('*');
     
     if (filters.category) {
@@ -68,7 +121,7 @@ class Expense {
     };
   }
 
-  static async count(filters = {}) {
+  static async count(filters: ExpenseFilters = {}): Promise<number> {
     let query = db(this.tableName).count('id as count');
     
     if (filters.category) {
@@ -104,7 +157,7 @@ class Expense {
     return parseInt(result.count);
   }
 
-  static async create(expenseData) {
+  static async create(expenseData: Omit<ExpenseData, 'id' | 'created_at' | 'updated_at'>): Promise<ExpenseData> {
     // Generate expense number if not provided
     if (!expenseData.expense_number) {
       expenseData.expense_number = await this.generateExpenseNumber();
@@ -121,7 +174,7 @@ class Expense {
     return expense;
   }
 
-  static async update(id, expenseData) {
+  static async update(id: string, expenseData: Partial<ExpenseData>): Promise<ExpenseData> {
     const [expense] = await db(this.tableName)
       .where({ id })
       .update({
@@ -133,11 +186,11 @@ class Expense {
     return expense;
   }
 
-  static async delete(id) {
+  static async delete(id: string): Promise<number> {
     return await db(this.tableName).where({ id }).del();
   }
 
-  static async generateExpenseNumber() {
+  static async generateExpenseNumber(): Promise<string> {
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -158,7 +211,7 @@ class Expense {
     return `${prefix}-${String(sequence).padStart(4, '0')}`;
   }
 
-  static async getExpenseStats(filters = {}) {
+  static async getExpenseStats(filters: ExpenseFilters = {}): Promise<ExpenseStats> {
     const baseQuery = db(this.tableName);
     
     if (filters.date_from) {
@@ -185,7 +238,7 @@ class Expense {
     return stats;
   }
 
-  static async getExpensesByCategory(filters = {}) {
+  static async getExpensesByCategory(filters: ExpenseFilters = {}): Promise<ExpenseByCategory[]> {
     const baseQuery = db(this.tableName);
     
     if (filters.date_from) {
@@ -205,4 +258,4 @@ class Expense {
   }
 }
 
-module.exports = Expense;
+export default Expense;

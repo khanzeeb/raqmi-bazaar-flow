@@ -1,11 +1,67 @@
-const db = require('../config/database');
+import { Knex } from 'knex';
+import db from '../config/database';
+
+interface InvoiceData {
+  id?: string;
+  invoice_number?: string;
+  customer_id: string;
+  total: number;
+  status?: 'draft' | 'sent' | 'paid' | 'cancelled';
+  due_date?: Date | string;
+  notes?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  customer_name?: string;
+  customer_email?: string;
+  items?: InvoiceItemData[];
+  payments?: PaymentData[];
+}
+
+interface InvoiceItemData {
+  id?: string;
+  invoice_id?: string;
+  product_id: string;
+  product_name?: string;
+  sku?: string;
+  quantity: number;
+  price: number;
+  line_total?: number;
+}
+
+interface PaymentData {
+  id?: string;
+  invoice_id?: string;
+  amount: number;
+  payment_date: Date | string;
+  created_at?: Date;
+}
+
+interface InvoiceFilters {
+  status?: string;
+  customer_id?: string;
+  search?: string;
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+interface InvoiceStats {
+  total_invoices: number;
+  total_revenue: number;
+  paid_amount: number;
+  pending_amount: number;
+  average_invoice: number;
+}
 
 class Invoice {
-  static get tableName() {
+  static get tableName(): string {
     return 'invoices';
   }
 
-  static async findById(id) {
+  static async findById(id: string): Promise<InvoiceData | undefined> {
     const invoice = await db(this.tableName)
       .leftJoin('customers', 'invoices.customer_id', 'customers.id')
       .select('invoices.*', 'customers.name as customer_name', 'customers.email as customer_email')
@@ -26,7 +82,7 @@ class Invoice {
     return invoice;
   }
 
-  static async findAll(filters = {}) {
+  static async findAll(filters: InvoiceFilters = {}) {
     let query = db(this.tableName)
       .leftJoin('customers', 'invoices.customer_id', 'customers.id')
       .select('invoices.*', 'customers.name as customer_name');
@@ -73,7 +129,7 @@ class Invoice {
     };
   }
 
-  static async count(filters = {}) {
+  static async count(filters: InvoiceFilters = {}): Promise<number> {
     let query = db(this.tableName).count('* as count');
     
     if (filters.status) {
@@ -88,7 +144,7 @@ class Invoice {
     return parseInt(result.count);
   }
 
-  static async create(invoiceData) {
+  static async create(invoiceData: Omit<InvoiceData, 'id' | 'created_at' | 'updated_at'>): Promise<InvoiceData> {
     const trx = await db.transaction();
     
     try {
@@ -140,7 +196,7 @@ class Invoice {
     }
   }
 
-  static async update(id, invoiceData) {
+  static async update(id: string, invoiceData: Partial<InvoiceData>): Promise<InvoiceData> {
     const [invoice] = await db(this.tableName)
       .where({ id })
       .update({
@@ -152,7 +208,7 @@ class Invoice {
     return invoice;
   }
 
-  static async delete(id) {
+  static async delete(id: string): Promise<boolean> {
     const trx = await db.transaction();
     
     try {
@@ -180,7 +236,7 @@ class Invoice {
     }
   }
 
-  static async generateInvoiceNumber() {
+  static async generateInvoiceNumber(): Promise<string> {
     const year = new Date().getFullYear();
     const month = String(new Date().getMonth() + 1).padStart(2, '0');
     const prefix = `INV-${year}${month}-`;
@@ -199,7 +255,7 @@ class Invoice {
     return `${prefix}${String(nextNumber).padStart(4, '0')}`;
   }
 
-  static async updateStatus(id, status) {
+  static async updateStatus(id: string, status: string): Promise<InvoiceData> {
     const [invoice] = await db(this.tableName)
       .where({ id })
       .update({
@@ -211,7 +267,7 @@ class Invoice {
     return invoice;
   }
 
-  static async getInvoiceStats(filters = {}) {
+  static async getInvoiceStats(filters: InvoiceFilters = {}): Promise<InvoiceStats> {
     let query = db(this.tableName);
     
     if (filters.date_from) {
@@ -236,4 +292,4 @@ class Invoice {
   }
 }
 
-module.exports = Invoice;
+export default Invoice;

@@ -1,19 +1,64 @@
-const db = require('../config/database');
+import { Knex } from 'knex';
+import db from '../config/database';
+
+interface CustomerData {
+  id?: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  credit_limit?: number;
+  status?: 'active' | 'inactive';
+  type?: 'individual' | 'business';
+  tax_number?: string;
+  notes?: string;
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+interface CustomerFilters {
+  search?: string;
+  status?: string;
+  type?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+interface CustomerStats {
+  total_orders: number;
+  total_spent: number;
+  average_order: number;
+  last_order_date: Date;
+}
+
+interface CreditHistoryEntry {
+  customer_id: string;
+  amount: number;
+  type: 'add' | 'subtract';
+  previous_credit: number;
+  new_credit: number;
+  created_at: Date;
+}
 
 class Customer {
-  static get tableName() {
+  static get tableName(): string {
     return 'customers';
   }
 
-  static async findById(id) {
+  static async findById(id: string): Promise<CustomerData | undefined> {
     return await db(this.tableName).where({ id }).first();
   }
 
-  static async findByEmail(email) {
+  static async findByEmail(email: string): Promise<CustomerData | undefined> {
     return await db(this.tableName).where({ email }).first();
   }
 
-  static async findAll(filters = {}) {
+  static async findAll(filters: CustomerFilters = {}) {
     let query = db(this.tableName);
     
     if (filters.search) {
@@ -52,7 +97,7 @@ class Customer {
     };
   }
 
-  static async count(filters = {}) {
+  static async count(filters: CustomerFilters = {}): Promise<number> {
     let query = db(this.tableName).count('* as count');
     
     if (filters.search) {
@@ -70,7 +115,7 @@ class Customer {
     return parseInt(result.count);
   }
 
-  static async create(customerData) {
+  static async create(customerData: Omit<CustomerData, 'id' | 'created_at' | 'updated_at'>): Promise<CustomerData> {
     const [customer] = await db(this.tableName)
       .insert({
         ...customerData,
@@ -82,7 +127,7 @@ class Customer {
     return customer;
   }
 
-  static async update(id, customerData) {
+  static async update(id: string, customerData: Partial<CustomerData>): Promise<CustomerData> {
     const [customer] = await db(this.tableName)
       .where({ id })
       .update({
@@ -94,15 +139,15 @@ class Customer {
     return customer;
   }
 
-  static async delete(id) {
+  static async delete(id: string): Promise<number> {
     return await db(this.tableName).where({ id }).del();
   }
 
-  static async updateCredit(id, amount, type = 'add') {
+  static async updateCredit(id: string, amount: number, type: 'add' | 'subtract' = 'add'): Promise<CustomerData> {
     const customer = await this.findById(id);
     if (!customer) throw new Error('Customer not found');
     
-    let newCredit;
+    let newCredit: number;
     if (type === 'add') {
       newCredit = (customer.credit_limit || 0) + amount;
     } else {
@@ -130,13 +175,13 @@ class Customer {
     return updatedCustomer;
   }
 
-  static async getCreditHistory(customerId) {
+  static async getCreditHistory(customerId: string): Promise<CreditHistoryEntry[]> {
     return await db('customer_credit_history')
       .where({ customer_id: customerId })
       .orderBy('created_at', 'desc');
   }
 
-  static async getCustomerStats(customerId) {
+  static async getCustomerStats(customerId: string): Promise<CustomerStats> {
     const stats = await db('invoices')
       .where({ customer_id: customerId })
       .select(
@@ -151,4 +196,4 @@ class Customer {
   }
 }
 
-module.exports = Customer;
+export default Customer;

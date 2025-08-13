@@ -1,27 +1,67 @@
-const db = require('../config/database');
+import { Knex } from 'knex';
+import db from '../config/database';
+import Payment from './Payment';
+
+interface PaymentAllocationData {
+  id?: string;
+  payment_id: string;
+  order_id: string;
+  order_type: 'invoice' | 'sale' | 'purchase';
+  order_number?: string;
+  allocated_amount: number;
+  allocated_at?: Date;
+  notes?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  payment_number?: string;
+  payment_date?: Date;
+  customer_name?: string;
+}
+
+interface AllocationFilters {
+  payment_id?: string;
+  order_id?: string;
+  order_type?: string;
+  customer_id?: string;
+  date_from?: string;
+  date_to?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+interface AllocationStats {
+  total_allocations: number;
+  total_allocated: number;
+  average_allocation: number;
+  payments_with_allocations: number;
+  orders_with_payments: number;
+}
 
 class PaymentAllocation {
-  static get tableName() {
+  static get tableName(): string {
     return 'payment_allocations';
   }
 
-  static async findById(id) {
+  static async findById(id: string): Promise<PaymentAllocationData | undefined> {
     return await db(this.tableName).where({ id }).first();
   }
 
-  static async findByPaymentId(paymentId) {
+  static async findByPaymentId(paymentId: string): Promise<PaymentAllocationData[]> {
     return await db(this.tableName)
       .where({ payment_id: paymentId })
       .orderBy('allocated_at', 'asc');
   }
 
-  static async findByOrderId(orderId, orderType = 'invoice') {
+  static async findByOrderId(orderId: string, orderType: string = 'invoice'): Promise<PaymentAllocationData[]> {
     return await db(this.tableName)
       .where({ order_id: orderId, order_type: orderType })
       .orderBy('allocated_at', 'asc');
   }
 
-  static async findAll(filters = {}) {
+  static async findAll(filters: AllocationFilters = {}) {
     let query = db(this.tableName)
       .select(
         'payment_allocations.*',
@@ -82,7 +122,7 @@ class PaymentAllocation {
     };
   }
 
-  static async count(filters = {}) {
+  static async count(filters: AllocationFilters = {}): Promise<number> {
     let query = db(this.tableName)
       .leftJoin('payments', 'payment_allocations.payment_id', 'payments.id')
       .count('payment_allocations.id as count');
@@ -103,7 +143,7 @@ class PaymentAllocation {
     return parseInt(result.count);
   }
 
-  static async create(allocationData) {
+  static async create(allocationData: Omit<PaymentAllocationData, 'id' | 'created_at' | 'updated_at'>): Promise<PaymentAllocationData> {
     const trx = await db.transaction();
     
     try {
@@ -117,7 +157,6 @@ class PaymentAllocation {
         .returning('*');
       
       // Update payment allocation amounts
-      const Payment = require('./Payment');
       await Payment.updateAllocationAmounts(allocation.payment_id);
       
       await trx.commit();
@@ -128,7 +167,7 @@ class PaymentAllocation {
     }
   }
 
-  static async update(id, allocationData) {
+  static async update(id: string, allocationData: Partial<PaymentAllocationData>): Promise<PaymentAllocationData> {
     const trx = await db.transaction();
     
     try {
@@ -141,7 +180,6 @@ class PaymentAllocation {
         .returning('*');
       
       // Update payment allocation amounts
-      const Payment = require('./Payment');
       await Payment.updateAllocationAmounts(allocation.payment_id);
       
       await trx.commit();
@@ -152,7 +190,7 @@ class PaymentAllocation {
     }
   }
 
-  static async delete(id) {
+  static async delete(id: string): Promise<number> {
     const trx = await db.transaction();
     
     try {
@@ -164,7 +202,6 @@ class PaymentAllocation {
       const result = await trx(this.tableName).where({ id }).del();
       
       // Update payment allocation amounts
-      const Payment = require('./Payment');
       await Payment.updateAllocationAmounts(allocation.payment_id);
       
       await trx.commit();
@@ -175,7 +212,7 @@ class PaymentAllocation {
     }
   }
 
-  static async createBulkAllocations(paymentId, allocations) {
+  static async createBulkAllocations(paymentId: string, allocations: Omit<PaymentAllocationData, 'id' | 'payment_id' | 'created_at' | 'updated_at'>[]): Promise<PaymentAllocationData[]> {
     const trx = await db.transaction();
     
     try {
@@ -196,7 +233,6 @@ class PaymentAllocation {
         .returning('*');
       
       // Update payment allocation amounts
-      const Payment = require('./Payment');
       await Payment.updateAllocationAmounts(paymentId);
       
       await trx.commit();
@@ -207,7 +243,7 @@ class PaymentAllocation {
     }
   }
 
-  static async getTotalAllocatedForOrder(orderId, orderType = 'invoice') {
+  static async getTotalAllocatedForOrder(orderId: string, orderType: string = 'invoice'): Promise<number> {
     const result = await db(this.tableName)
       .where({ order_id: orderId, order_type: orderType })
       .sum('allocated_amount as total')
@@ -216,7 +252,7 @@ class PaymentAllocation {
     return parseFloat(result.total) || 0;
   }
 
-  static async getAllocationStats(filters = {}) {
+  static async getAllocationStats(filters: AllocationFilters = {}): Promise<AllocationStats> {
     const baseQuery = db(this.tableName);
     
     if (filters.date_from) {
@@ -240,11 +276,11 @@ class PaymentAllocation {
     return stats;
   }
 
-  static async getUnpaidOrders(customerId, orderType = 'invoice') {
+  static async getUnpaidOrders(customerId: string, orderType: string = 'invoice'): Promise<any[]> {
     // This would need to join with the actual order tables (invoices, sales_orders, etc.)
     // For now, returning a placeholder structure
     return [];
   }
 }
 
-module.exports = PaymentAllocation;
+export default PaymentAllocation;
