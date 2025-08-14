@@ -1,6 +1,6 @@
-const { body, param, query } = require('express-validator');
+import { body, param, query, ValidationChain } from 'express-validator';
 
-const createPurchase = [
+const createPurchase: ValidationChain[] = [
   body('supplier_id')
     .notEmpty()
     .withMessage('Supplier ID is required')
@@ -73,7 +73,7 @@ const createPurchase = [
     .withMessage('Unit price must be a positive number')
 ];
 
-const updatePurchase = [
+const updatePurchase: ValidationChain[] = [
   param('id')
     .isUUID()
     .withMessage('Purchase ID must be a valid UUID'),
@@ -139,19 +139,19 @@ const updatePurchase = [
     .withMessage('Unit price must be a positive number')
 ];
 
-const getPurchase = [
+const getPurchase: ValidationChain[] = [
   param('id')
     .isUUID()
     .withMessage('Purchase ID must be a valid UUID')
 ];
 
-const deletePurchase = [
+const deletePurchase: ValidationChain[] = [
   param('id')
     .isUUID()
     .withMessage('Purchase ID must be a valid UUID')
 ];
 
-const getPurchases = [
+const getPurchases: ValidationChain[] = [
   query('page')
     .optional()
     .isInt({ min: 1 })
@@ -193,7 +193,7 @@ const getPurchases = [
     .withMessage('End date must be a valid date')
 ];
 
-const updatePurchaseStatus = [
+const updatePurchaseStatus: ValidationChain[] = [
   param('id')
     .isUUID()
     .withMessage('Purchase ID must be a valid UUID'),
@@ -205,7 +205,7 @@ const updatePurchaseStatus = [
     .withMessage('Invalid status')
 ];
 
-const addPayment = [
+const addPayment: ValidationChain[] = [
   param('id')
     .isUUID()
     .withMessage('Purchase ID must be a valid UUID'),
@@ -228,7 +228,7 @@ const addPayment = [
     .withMessage('Reference must not exceed 255 characters')
 ];
 
-module.exports = {
+export = {
   createPurchase,
   updatePurchase,
   getPurchase,

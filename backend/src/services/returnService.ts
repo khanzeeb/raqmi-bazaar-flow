@@ -1,14 +1,45 @@
-const Return = require('../models/Return');
-const ReturnItem = require('../models/ReturnItem');
-const Sale = require('../models/Sale');
-const SaleItem = require('../models/SaleItem');
-const Customer = require('../models/Customer');
-const PaymentService = require('./paymentService');
-const db = require('../config/database');
+import { Return } from '../models/Return';
+import { ReturnItem } from '../models/ReturnItem';
+import { Sale } from '../models/Sale';
+import { SaleItem } from '../models/SaleItem';
+import { Customer } from '../models/Customer';
+import { PaymentService } from './paymentService';
+import { db } from '../config/database';
 
-class ReturnService {
+interface ReturnData {
+  sale_id: number;
+  return_date: string;
+  return_type: 'full' | 'partial';
+  reason: string;
+  notes?: string;
+}
+
+interface ReturnItemData {
+  sale_item_id: number;
+  quantity_returned: number;
+  condition: string;
+  notes?: string;
+}
+
+interface ProcessData {
+  status: 'approved' | 'rejected';
+  refund_amount?: number;
+  notes?: string;
+}
+
+interface ReturnFilters {
+  customer_id?: number;
+  status?: string;
+  return_type?: string;
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+  limit?: number;
+}
+
+export class ReturnService {
   
-  static async createReturn(returnData, items = []) {
+  static async createReturn(returnData: ReturnData, items: ReturnItemData[] = []) {
     const trx = await db.transaction();
     
     try {
@@ -99,7 +130,7 @@ class ReturnService {
     }
   }
   
-  static async updateReturn(returnId, returnData) {
+  static async updateReturn(returnId: number, returnData: Partial<ReturnData>) {
     const existingReturn = await Return.findById(returnId);
     if (!existingReturn) {
       throw new Error('Return not found');
@@ -113,7 +144,7 @@ class ReturnService {
     return await Return.update(returnId, returnData);
   }
   
-  static async getReturnById(returnId) {
+  static async getReturnById(returnId: number) {
     const returnRecord = await Return.findById(returnId);
     if (!returnRecord) {
       throw new Error('Return not found');
@@ -128,15 +159,15 @@ class ReturnService {
     };
   }
   
-  static async getReturns(filters = {}) {
+  static async getReturns(filters: ReturnFilters = {}) {
     return await Return.findAll(filters);
   }
   
-  static async getSaleReturns(saleId) {
+  static async getSaleReturns(saleId: number) {
     return await Return.findBySaleId(saleId);
   }
   
-  static async deleteReturn(returnId) {
+  static async deleteReturn(returnId: number) {
     const returnRecord = await Return.findById(returnId);
     if (!returnRecord) {
       throw new Error('Return not found');
@@ -154,7 +185,7 @@ class ReturnService {
     return await Return.delete(returnId);
   }
   
-  static async processReturn(returnId, processData, processedBy) {
+  static async processReturn(returnId: number, processData: ProcessData, processedBy: number) {
     const trx = await db.transaction();
     
     try {
@@ -167,7 +198,7 @@ class ReturnService {
         throw new Error('Return is not in pending status');
       }
       
-      const updateData = {
+      const updateData: any = {
         status: processData.status,
         processed_by: processedBy,
         processed_at: new Date(),
@@ -201,7 +232,7 @@ class ReturnService {
     }
   }
   
-  static async createRefundPayment(returnRecord, refundAmount) {
+  static async createRefundPayment(returnRecord: any, refundAmount: number) {
     // Create a negative payment for refund
     const refundPayment = {
       customer_id: returnRecord.customer_id,
@@ -216,7 +247,7 @@ class ReturnService {
     return await PaymentService.createPayment(refundPayment, []);
   }
   
-  static async getSaleStateBeforeReturn(saleId, returnId = null) {
+  static async getSaleStateBeforeReturn(saleId: number, returnId: number | null = null) {
     const sale = await Sale.findById(saleId);
     if (!sale) {
       throw new Error('Sale not found');
@@ -225,7 +256,7 @@ class ReturnService {
     const saleItems = await SaleItem.findBySaleId(saleId);
     
     // Get returns up to the specified return (or all if returnId is null)
-    let returnsQuery = Return.findBySaleId(saleId);
+    let returnsQuery: any = Return.findBySaleId(saleId);
     if (returnId) {
       const targetReturn = await Return.findById(returnId);
       if (targetReturn) {
@@ -261,13 +292,13 @@ class ReturnService {
     };
   }
   
-  static async getSaleStateAfterReturn(saleId, returnId) {
+  static async getSaleStateAfterReturn(saleId: number, returnId: number) {
     const saleStateBefore = await this.getSaleStateBeforeReturn(saleId, returnId);
     const targetReturn = await this.getReturnById(returnId);
     
     // Apply the target return to calculate state after
-    const itemsStateAfter = saleStateBefore.items.map(saleItem => {
-      const returnItem = targetReturn.items.find(ri => ri.sale_item_id === saleItem.id);
+    const itemsStateAfter = saleStateBefore.items.map((saleItem: any) => {
+      const returnItem = targetReturn.items.find((ri: any) => ri.sale_item_id === saleItem.id);
       const additionalReturned = returnItem ? returnItem.quantity_returned : 0;
       
       return {
@@ -284,11 +315,11 @@ class ReturnService {
     };
   }
   
-  static async getReturnStats(filters = {}) {
+  static async getReturnStats(filters: ReturnFilters = {}) {
     return await Return.getReturnStats(filters);
   }
   
-  static async generateReturnReport(filters = {}) {
+  static async generateReturnReport(filters: ReturnFilters = {}) {
     const returns = await Return.findAll({ ...filters, limit: 1000 });
     const stats = await Return.getReturnStats(filters);
     
@@ -305,5 +336,3 @@ class ReturnService {
     };
   }
 }
-
-module.exports = ReturnService;

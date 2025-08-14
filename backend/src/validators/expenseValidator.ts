@@ -1,6 +1,6 @@
-const { body, param, query } = require('express-validator');
+import { body, param, query, ValidationChain } from 'express-validator';
 
-const createExpense = [
+const createExpense: ValidationChain[] = [
   body('expense_date')
     .notEmpty()
     .withMessage('Expense date is required')
@@ -70,7 +70,7 @@ const createExpense = [
     .withMessage('Notes must not exceed 1000 characters')
 ];
 
-const updateExpense = [
+const updateExpense: ValidationChain[] = [
   param('id')
     .isUUID()
     .withMessage('Expense ID must be a valid UUID'),
@@ -139,19 +139,19 @@ const updateExpense = [
     .withMessage('Notes must not exceed 1000 characters')
 ];
 
-const getExpense = [
+const getExpense: ValidationChain[] = [
   param('id')
     .isUUID()
     .withMessage('Expense ID must be a valid UUID')
 ];
 
-const deleteExpense = [
+const deleteExpense: ValidationChain[] = [
   param('id')
     .isUUID()
     .withMessage('Expense ID must be a valid UUID')
 ];
 
-const getExpenses = [
+const getExpenses: ValidationChain[] = [
   query('page')
     .optional()
     .isInt({ min: 1 })
@@ -211,7 +211,7 @@ const getExpenses = [
     .withMessage('End date must be a valid date')
 ];
 
-const updateExpenseStatus = [
+const updateExpenseStatus: ValidationChain[] = [
   param('id')
     .isUUID()
     .withMessage('Expense ID must be a valid UUID'),
@@ -223,7 +223,7 @@ const updateExpenseStatus = [
     .withMessage('Invalid status')
 ];
 
-module.exports = {
+export = {
   createExpense,
   updateExpense,
   getExpense,

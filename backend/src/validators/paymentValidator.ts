@@ -1,4 +1,5 @@
-const { body, param, query } = require('express-validator');
+import { body, param, query, ValidationChain } from 'express-validator';
+import { Request, Response, NextFunction } from 'express';
 
 const paymentValidators = {
   createPayment: [
@@ -61,7 +62,7 @@ const paymentValidators = {
       .if(body('allocations').exists())
       .isFloat({ min: 0.01 })
       .withMessage('Order total must be a positive number')
-  ],
+  ] as ValidationChain[],
 
   updatePayment: [
     param('id')
@@ -105,19 +106,19 @@ const paymentValidators = {
       .isString()
       .isLength({ max: 1000 })
       .withMessage('Notes must be a string with maximum 1000 characters')
-  ],
+  ] as ValidationChain[],
 
   getPayment: [
     param('id')
       .isInt({ min: 1 })
       .withMessage('Payment ID must be a positive integer')
-  ],
+  ] as ValidationChain[],
 
   deletePayment: [
     param('id')
       .isInt({ min: 1 })
       .withMessage('Payment ID must be a positive integer')
-  ],
+  ] as ValidationChain[],
 
   getPayments: [
     query('page')
@@ -160,7 +161,7 @@ const paymentValidators = {
       .isString()
       .isLength({ max: 255 })
       .withMessage('Search term must be a string with maximum 255 characters')
-  ],
+  ] as ValidationChain[],
 
   createPaymentMethod: [
     body('name')
@@ -199,7 +200,7 @@ const paymentValidators = {
       .optional()
       .isObject()
       .withMessage('Validation rules must be an object')
-  ],
+  ] as ValidationChain[],
 
   updatePaymentMethod: [
     param('id')
@@ -239,7 +240,7 @@ const paymentValidators = {
       .optional()
       .isBoolean()
       .withMessage('Requires approval must be a boolean')
-  ],
+  ] as ValidationChain[],
 
   createAllocation: [
     body('payment_id')
@@ -276,7 +277,7 @@ const paymentValidators = {
     body('remaining_after_payment')
       .isFloat({ min: 0 })
       .withMessage('Remaining after payment must be a non-negative number')
-  ],
+  ] as ValidationChain[],
 
   updateCredit: [
     param('customerId')
@@ -303,15 +304,15 @@ const paymentValidators = {
       .isString()
       .isLength({ min: 1, max: 500 })
       .withMessage('Reason is required when making adjustments')
-  ]
+  ] as ValidationChain[]
 };
 
 // Custom validation middleware
-const validatePaymentAmount = (req, res, next) => {
+const validatePaymentAmount = (req: Request, res: Response, next: NextFunction) => {
   const { amount, allocations } = req.body;
   
   if (allocations && allocations.length > 0) {
-    const totalAllocated = allocations.reduce((sum, allocation) => {
+    const totalAllocated = allocations.reduce((sum: number, allocation: any) => {
       return sum + parseFloat(allocation.allocated_amount || 0);
     }, 0);
     
@@ -330,12 +331,12 @@ const validatePaymentAmount = (req, res, next) => {
   next();
 };
 
-const validatePaymentMethodRequirements = async (req, res, next) => {
+const validatePaymentMethodRequirements = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { payment_method_code, reference } = req.body;
     
     if (payment_method_code) {
-      const PaymentMethod = require('../models/PaymentMethod');
+      const { PaymentMethod } = require('../models/PaymentMethod');
       const method = await PaymentMethod.findByCode(payment_method_code);
       
       if (!method) {
@@ -378,7 +379,7 @@ const validatePaymentMethodRequirements = async (req, res, next) => {
   }
 };
 
-module.exports = {
+export = {
   ...paymentValidators,
   validatePaymentAmount,
   validatePaymentMethodRequirements

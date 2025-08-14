@@ -1,13 +1,47 @@
-const Quotation = require('../models/Quotation');
-const QuotationItem = require('../models/QuotationItem');
-const Customer = require('../models/Customer');
-const Product = require('../models/Product');
-const SaleService = require('./saleService');
-const db = require('../config/database');
+import { Quotation } from '../models/Quotation';
+import { QuotationItem } from '../models/QuotationItem';
+import { Customer } from '../models/Customer';
+import { Product } from '../models/Product';
+import { SaleService } from './saleService';
+import { db } from '../config/database';
 
-class QuotationService {
+interface QuotationData {
+  customer_id: number;
+  quotation_date: string;
+  validity_date: string;
+  subtotal: number;
+  tax_amount?: number;
+  discount_amount?: number;
+  total_amount: number;
+  currency?: string;
+  notes?: string;
+  terms_conditions?: string;
+  status?: string;
+}
+
+interface QuotationItemData {
+  product_id: number;
+  quantity: number;
+  unit_price: number;
+  discount_amount?: number;
+  tax_amount?: number;
+  description?: string;
+}
+
+interface QuotationFilters {
+  customer_id?: number;
+  status?: string;
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export class QuotationService {
   
-  static async createQuotation(quotationData, items = []) {
+  static async createQuotation(quotationData: QuotationData, items: QuotationItemData[] = []) {
     const trx = await db.transaction();
     
     try {
@@ -41,9 +75,9 @@ class QuotationService {
         return {
           ...item,
           quotation_id: quotation.id,
-          product_name: product.name,
-          product_sku: product.sku,
-          description: item.description || product.description,
+          product_name: product!.name,
+          product_sku: product!.sku,
+          description: item.description || product!.description,
           line_total: QuotationItem.calculateLineTotal(
             item.quantity,
             item.unit_price,
@@ -66,7 +100,7 @@ class QuotationService {
     }
   }
   
-  static async updateQuotation(quotationId, quotationData, items = null) {
+  static async updateQuotation(quotationId: number, quotationData: Partial<QuotationData>, items: QuotationItemData[] | null = null) {
     const trx = await db.transaction();
     
     try {
@@ -103,9 +137,9 @@ class QuotationService {
           const product = products.find(p => p.id === item.product_id);
           return {
             ...item,
-            product_name: product.name,
-            product_sku: product.sku,
-            description: item.description || product.description,
+            product_name: product!.name,
+            product_sku: product!.sku,
+            description: item.description || product!.description,
             line_total: QuotationItem.calculateLineTotal(
               item.quantity,
               item.unit_price,
@@ -132,7 +166,7 @@ class QuotationService {
     }
   }
   
-  static async getQuotationById(quotationId) {
+  static async getQuotationById(quotationId: number) {
     const quotation = await Quotation.findById(quotationId);
     if (!quotation) {
       throw new Error('Quotation not found');
@@ -147,11 +181,11 @@ class QuotationService {
     };
   }
   
-  static async getQuotations(filters = {}) {
+  static async getQuotations(filters: QuotationFilters = {}) {
     return await Quotation.findAll(filters);
   }
   
-  static async deleteQuotation(quotationId) {
+  static async deleteQuotation(quotationId: number) {
     const quotation = await Quotation.findById(quotationId);
     if (!quotation) {
       throw new Error('Quotation not found');
@@ -165,14 +199,14 @@ class QuotationService {
     return await Quotation.delete(quotationId);
   }
   
-  static async updateQuotationStatus(quotationId, status) {
+  static async updateQuotationStatus(quotationId: number, status: string) {
     const quotation = await Quotation.findById(quotationId);
     if (!quotation) {
       throw new Error('Quotation not found');
     }
     
     // Validate status transitions
-    const validTransitions = {
+    const validTransitions: Record<string, string[]> = {
       'draft': ['sent', 'declined'],
       'sent': ['accepted', 'declined', 'expired'],
       'accepted': ['converted'],
@@ -188,7 +222,7 @@ class QuotationService {
     return await Quotation.update(quotationId, { status });
   }
   
-  static async sendQuotation(quotationId) {
+  static async sendQuotation(quotationId: number) {
     const quotation = await this.getQuotationById(quotationId);
     
     if (quotation.status !== 'draft') {
@@ -204,7 +238,7 @@ class QuotationService {
     return await this.getQuotationById(quotationId);
   }
   
-  static async acceptQuotation(quotationId) {
+  static async acceptQuotation(quotationId: number) {
     const quotation = await this.getQuotationById(quotationId);
     
     if (quotation.status !== 'sent') {
@@ -214,14 +248,14 @@ class QuotationService {
     return await this.updateQuotationStatus(quotationId, 'accepted');
   }
   
-  static async declineQuotation(quotationId, reason = null) {
+  static async declineQuotation(quotationId: number, reason: string | null = null) {
     const quotation = await this.getQuotationById(quotationId);
     
     if (!['draft', 'sent'].includes(quotation.status)) {
       throw new Error('Only draft or sent quotations can be declined');
     }
     
-    const updateData = { status: 'declined' };
+    const updateData: any = { status: 'declined' };
     if (reason) {
       updateData.notes = quotation.notes ? 
         `${quotation.notes}\n\nDeclined: ${reason}` : 
@@ -231,7 +265,7 @@ class QuotationService {
     return await Quotation.update(quotationId, updateData);
   }
   
-  static async convertToSale(quotationId) {
+  static async convertToSale(quotationId: number) {
     const quotation = await this.getQuotationById(quotationId);
     
     if (quotation.status !== 'accepted') {
@@ -256,7 +290,7 @@ class QuotationService {
       };
       
       // Prepare sale items from quotation items
-      const saleItems = quotation.items.map(item => ({
+      const saleItems = quotation.items.map((item: any) => ({
         product_id: item.product_id,
         quantity: item.quantity,
         unit_price: item.unit_price,
@@ -280,7 +314,7 @@ class QuotationService {
     }
   }
   
-  static async getQuotationStats(filters = {}) {
+  static async getQuotationStats(filters: QuotationFilters = {}) {
     return await Quotation.getQuotationStats(filters);
   }
   
@@ -288,7 +322,7 @@ class QuotationService {
     return await Quotation.getExpiredQuotations();
   }
   
-  static async getCustomerQuotations(customerId, filters = {}) {
+  static async getCustomerQuotations(customerId: number, filters: QuotationFilters = {}) {
     const quotationFilters = { ...filters, customer_id: customerId };
     return await Quotation.findAll(quotationFilters);
   }
@@ -304,7 +338,7 @@ class QuotationService {
     return expiredQuotations.length;
   }
   
-  static async generateQuotationReport(filters = {}) {
+  static async generateQuotationReport(filters: QuotationFilters = {}) {
     const quotations = await Quotation.findAll({ ...filters, limit: 1000 });
     const stats = await Quotation.getQuotationStats(filters);
     
@@ -321,5 +355,3 @@ class QuotationService {
     };
   }
 }
-
-module.exports = QuotationService;

@@ -1,4 +1,5 @@
-const { body, param, query } = require('express-validator');
+import { body, param, query, ValidationChain } from 'express-validator';
+import { Request, Response, NextFunction } from 'express';
 
 const customerValidators = {
   createCustomer: [
@@ -60,7 +61,7 @@ const customerValidators = {
       .optional()
       .isIn(['en', 'ar'])
       .withMessage('Preferred language must be either en or ar')
-  ],
+  ] as ValidationChain[],
 
   updateCustomer: [
     param('id')
@@ -126,19 +127,19 @@ const customerValidators = {
       .optional()
       .isIn(['en', 'ar'])
       .withMessage('Preferred language must be either en or ar')
-  ],
+  ] as ValidationChain[],
 
   getCustomer: [
     param('id')
       .isInt({ min: 1 })
       .withMessage('Customer ID must be a positive integer')
-  ],
+  ] as ValidationChain[],
 
   deleteCustomer: [
     param('id')
       .isInt({ min: 1 })
       .withMessage('Customer ID must be a positive integer')
-  ],
+  ] as ValidationChain[],
 
   getCustomers: [
     query('page')
@@ -181,7 +182,7 @@ const customerValidators = {
       .optional()
       .isIn(['asc', 'desc'])
       .withMessage('Sort order must be either asc or desc')
-  ],
+  ] as ValidationChain[],
 
   updateCredit: [
     param('id')
@@ -201,7 +202,7 @@ const customerValidators = {
       .isString()
       .isLength({ max: 500 })
       .withMessage('Reason must be a string with maximum 500 characters')
-  ],
+  ] as ValidationChain[],
 
   getCreditHistory: [
     param('id')
@@ -222,23 +223,23 @@ const customerValidators = {
       .optional()
       .isIn(['add', 'subtract', 'adjustment', 'payment', 'refund'])
       .withMessage('Type must be a valid credit history type')
-  ],
+  ] as ValidationChain[],
 
   getCustomerStats: [
     param('id')
       .isInt({ min: 1 })
       .withMessage('Customer ID must be a positive integer')
-  ]
+  ] as ValidationChain[]
 };
 
 // Custom validation middleware
-const validateEmailUniqueness = async (req, res, next) => {
+const validateEmailUniqueness = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email } = req.body;
     const customerId = req.params.id;
     
     if (email) {
-      const Customer = require('../models/Customer');
+      const { Customer } = require('../models/Customer');
       const existingCustomer = await Customer.findByEmail(email);
       
       if (existingCustomer && (!customerId || existingCustomer.id != customerId)) {
@@ -259,7 +260,7 @@ const validateEmailUniqueness = async (req, res, next) => {
   }
 };
 
-const validateCreditOperation = (req, res, next) => {
+const validateCreditOperation = (req: Request, res: Response, next: NextFunction) => {
   const { amount, type } = req.body;
   
   if (amount <= 0) {
@@ -276,7 +277,7 @@ const validateCreditOperation = (req, res, next) => {
   next();
 };
 
-module.exports = {
+export = {
   ...customerValidators,
   validateEmailUniqueness,
   validateCreditOperation

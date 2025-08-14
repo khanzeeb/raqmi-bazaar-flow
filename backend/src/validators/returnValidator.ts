@@ -1,6 +1,7 @@
-const { body, param, query, validationResult } = require('express-validator');
+import { body, param, query, validationResult, ValidationChain } from 'express-validator';
+import { Request, Response, NextFunction } from 'express';
 
-const handleValidationErrors = (req, res, next) => {
+const handleValidationErrors = (req: Request, res: Response, next: NextFunction) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
@@ -12,7 +13,7 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-const createReturn = [
+const createReturn: ValidationChain[] = [
   body('sale_id')
     .isInt({ min: 1 })
     .withMessage('Sale ID must be a positive integer'),
@@ -68,7 +69,7 @@ const createReturn = [
   handleValidationErrors
 ];
 
-const updateReturn = [
+const updateReturn: ValidationChain[] = [
   param('id')
     .isInt({ min: 1 })
     .withMessage('Return ID must be a positive integer'),
@@ -101,7 +102,7 @@ const updateReturn = [
   handleValidationErrors
 ];
 
-const getReturn = [
+const getReturn: ValidationChain[] = [
   param('id')
     .isInt({ min: 1 })
     .withMessage('Return ID must be a positive integer'),
@@ -109,7 +110,7 @@ const getReturn = [
   handleValidationErrors
 ];
 
-const getReturns = [
+const getReturns: ValidationChain[] = [
   query('page')
     .optional()
     .isInt({ min: 1 })
@@ -148,7 +149,7 @@ const getReturns = [
   handleValidationErrors
 ];
 
-const deleteReturn = [
+const deleteReturn: ValidationChain[] = [
   param('id')
     .isInt({ min: 1 })
     .withMessage('Return ID must be a positive integer'),
@@ -156,7 +157,7 @@ const deleteReturn = [
   handleValidationErrors
 ];
 
-const processReturn = [
+const processReturn: ValidationChain[] = [
   param('id')
     .isInt({ min: 1 })
     .withMessage('Return ID must be a positive integer'),
@@ -178,12 +179,12 @@ const processReturn = [
   handleValidationErrors
 ];
 
-const validateReturnItems = async (req, res, next) => {
+const validateReturnItems = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { items, sale_id } = req.body;
     
     // Get sale items for validation
-    const SaleItem = require('../models/SaleItem');
+    const { SaleItem } = require('../models/SaleItem');
     const saleItems = await SaleItem.findBySaleId(sale_id);
     
     if (!saleItems || saleItems.length === 0) {
@@ -195,7 +196,7 @@ const validateReturnItems = async (req, res, next) => {
     
     // Validate each return item
     for (const item of items) {
-      const saleItem = saleItems.find(si => si.id === item.sale_item_id);
+      const saleItem = saleItems.find((si: any) => si.id === item.sale_item_id);
       
       if (!saleItem) {
         return res.status(400).json({
@@ -205,7 +206,7 @@ const validateReturnItems = async (req, res, next) => {
       }
       
       // Check if quantity returned exceeds available quantity
-      const ReturnItem = require('../models/ReturnItem');
+      const { ReturnItem } = require('../models/ReturnItem');
       const returnStats = await ReturnItem.getSaleItemReturnStats(item.sale_item_id);
       const alreadyReturned = returnStats?.total_quantity_returned || 0;
       const availableQuantity = saleItem.quantity - alreadyReturned;
@@ -219,7 +220,7 @@ const validateReturnItems = async (req, res, next) => {
     }
     
     next();
-  } catch (error) {
+  } catch (error: any) {
     return res.status(500).json({
       success: false,
       message: 'Validation error',
@@ -228,7 +229,7 @@ const validateReturnItems = async (req, res, next) => {
   }
 };
 
-module.exports = {
+export = {
   createReturn,
   updateReturn,
   getReturn,

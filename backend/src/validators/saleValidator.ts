@@ -1,23 +1,24 @@
-const { body, param, query } = require('express-validator');
+import { body, param, query, ValidationChain } from 'express-validator';
+import { Request, Response, NextFunction } from 'express';
 
-const createQuotation = [
+const createSale: ValidationChain[] = [
   body('customer_id')
     .notEmpty()
     .withMessage('Customer ID is required')
     .isInt({ min: 1 })
     .withMessage('Customer ID must be a positive integer'),
   
-  body('quotation_date')
+  body('sale_date')
     .notEmpty()
-    .withMessage('Quotation date is required')
+    .withMessage('Sale date is required')
     .isISO8601()
-    .withMessage('Quotation date must be a valid date'),
+    .withMessage('Sale date must be a valid date'),
   
-  body('validity_date')
+  body('due_date')
     .notEmpty()
-    .withMessage('Validity date is required')
+    .withMessage('Due date is required')
     .isISO8601()
-    .withMessage('Validity date must be a valid date'),
+    .withMessage('Due date must be a valid date'),
   
   body('items')
     .isArray({ min: 1 })
@@ -89,25 +90,25 @@ const createQuotation = [
     .withMessage('Terms and conditions must not exceed 2000 characters')
 ];
 
-const updateQuotation = [
+const updateSale: ValidationChain[] = [
   param('id')
     .isInt({ min: 1 })
-    .withMessage('Quotation ID must be a positive integer'),
+    .withMessage('Sale ID must be a positive integer'),
   
   body('customer_id')
     .optional()
     .isInt({ min: 1 })
     .withMessage('Customer ID must be a positive integer'),
   
-  body('quotation_date')
+  body('sale_date')
     .optional()
     .isISO8601()
-    .withMessage('Quotation date must be a valid date'),
+    .withMessage('Sale date must be a valid date'),
   
-  body('validity_date')
+  body('due_date')
     .optional()
     .isISO8601()
-    .withMessage('Validity date must be a valid date'),
+    .withMessage('Due date must be a valid date'),
   
   body('items')
     .optional()
@@ -147,23 +148,23 @@ const updateQuotation = [
   
   body('status')
     .optional()
-    .isIn(['draft', 'sent', 'accepted', 'declined', 'expired', 'converted'])
+    .isIn(['draft', 'pending', 'partially_paid', 'paid', 'overdue', 'cancelled'])
     .withMessage('Invalid status value')
 ];
 
-const getQuotation = [
+const getSale: ValidationChain[] = [
   param('id')
     .isInt({ min: 1 })
-    .withMessage('Quotation ID must be a positive integer')
+    .withMessage('Sale ID must be a positive integer')
 ];
 
-const deleteQuotation = [
+const deleteSale: ValidationChain[] = [
   param('id')
     .isInt({ min: 1 })
-    .withMessage('Quotation ID must be a positive integer')
+    .withMessage('Sale ID must be a positive integer')
 ];
 
-const getQuotations = [
+const getSales: ValidationChain[] = [
   query('customer_id')
     .optional()
     .isInt({ min: 1 })
@@ -171,8 +172,13 @@ const getQuotations = [
   
   query('status')
     .optional()
-    .isIn(['draft', 'sent', 'accepted', 'declined', 'expired', 'converted'])
+    .isIn(['draft', 'pending', 'partially_paid', 'paid', 'overdue', 'cancelled'])
     .withMessage('Invalid status value'),
+  
+  query('payment_status')
+    .optional()
+    .isIn(['unpaid', 'partially_paid', 'paid', 'overpaid'])
+    .withMessage('Invalid payment status value'),
   
   query('date_from')
     .optional()
@@ -196,7 +202,7 @@ const getQuotations = [
   
   query('sortBy')
     .optional()
-    .isIn(['quotation_number', 'customer_name', 'quotation_date', 'validity_date', 'total_amount', 'status', 'created_at'])
+    .isIn(['sale_number', 'customer_name', 'sale_date', 'due_date', 'total_amount', 'status', 'created_at'])
     .withMessage('Invalid sort field'),
   
   query('sortOrder')
@@ -205,33 +211,55 @@ const getQuotations = [
     .withMessage('Sort order must be asc or desc')
 ];
 
-const updateQuotationStatus = [
+const createSalePayment: ValidationChain[] = [
   param('id')
     .isInt({ min: 1 })
-    .withMessage('Quotation ID must be a positive integer'),
+    .withMessage('Sale ID must be a positive integer'),
   
-  body('status')
+  body('amount')
     .notEmpty()
-    .withMessage('Status is required')
-    .isIn(['draft', 'sent', 'accepted', 'declined', 'expired', 'converted'])
-    .withMessage('Invalid status value')
+    .withMessage('Payment amount is required')
+    .isFloat({ min: 0.01 })
+    .withMessage('Payment amount must be greater than 0'),
+  
+  body('payment_method_code')
+    .notEmpty()
+    .withMessage('Payment method is required')
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Payment method code must be between 1 and 50 characters'),
+  
+  body('payment_date')
+    .notEmpty()
+    .withMessage('Payment date is required')
+    .isISO8601()
+    .withMessage('Payment date must be a valid date'),
+  
+  body('reference')
+    .optional()
+    .isLength({ max: 255 })
+    .withMessage('Reference must not exceed 255 characters'),
+  
+  body('notes')
+    .optional()
+    .isLength({ max: 1000 })
+    .withMessage('Notes must not exceed 1000 characters')
 ];
 
-// Custom validator to check if validity date is after quotation date
-const validateValidityDateAfterQuotationDate = (req, res, next) => {
-  const { quotation_date, validity_date } = req.body;
+// Custom validator to check if due date is after sale date
+const validateDueDateAfterSaleDate = (req: Request, res: Response, next: NextFunction) => {
+  const { sale_date, due_date } = req.body;
   
-  if (quotation_date && validity_date) {
-    const quotationDate = new Date(quotation_date);
-    const validityDateObj = new Date(validity_date);
+  if (sale_date && due_date) {
+    const saleDate = new Date(sale_date);
+    const dueDateObj = new Date(due_date);
     
-    if (validityDateObj < quotationDate) {
+    if (dueDateObj < saleDate) {
       return res.status(400).json({
         success: false,
-        message: 'Validity date must be on or after quotation date',
+        message: 'Due date must be on or after sale date',
         errors: [{ 
-          field: 'validity_date', 
-          message: 'Validity date must be on or after quotation date' 
+          field: 'due_date', 
+          message: 'Due date must be on or after sale date' 
         }]
       });
     }
@@ -240,8 +268,8 @@ const validateValidityDateAfterQuotationDate = (req, res, next) => {
   next();
 };
 
-// Custom validator to check if items total matches quotation total
-const validateItemsTotal = (req, res, next) => {
+// Custom validator to check if items total matches sale total
+const validateItemsTotal = (req: Request, res: Response, next: NextFunction) => {
   const { items, subtotal, tax_amount = 0, discount_amount = 0, total_amount } = req.body;
   
   if (items && items.length > 0) {
@@ -285,13 +313,13 @@ const validateItemsTotal = (req, res, next) => {
   next();
 };
 
-module.exports = {
-  createQuotation,
-  updateQuotation,
-  getQuotation,
-  deleteQuotation,
-  getQuotations,
-  updateQuotationStatus,
-  validateValidityDateAfterQuotationDate,
+export = {
+  createSale,
+  updateSale,
+  getSale,
+  deleteSale,
+  getSales,
+  createSalePayment,
+  validateDueDateAfterSaleDate,
   validateItemsTotal
 };

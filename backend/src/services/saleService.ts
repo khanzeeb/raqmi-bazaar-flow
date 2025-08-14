@@ -1,14 +1,57 @@
-const Sale = require('../models/Sale');
-const SaleItem = require('../models/SaleItem');
-const PaymentService = require('./paymentService');
-const PaymentAllocation = require('../models/PaymentAllocation');
-const Customer = require('../models/Customer');
-const Product = require('../models/Product');
-const db = require('../config/database');
+import { Sale } from '../models/Sale';
+import { SaleItem } from '../models/SaleItem';
+import { PaymentService } from './paymentService';
+import { PaymentAllocation } from '../models/PaymentAllocation';
+import { Customer } from '../models/Customer';
+import { Product } from '../models/Product';
+import { db } from '../config/database';
 
-class SaleService {
+interface SaleData {
+  customer_id: number;
+  sale_date: string;
+  due_date: string;
+  subtotal: number;
+  tax_amount?: number;
+  discount_amount?: number;
+  total_amount: number;
+  currency?: string;
+  notes?: string;
+  terms_conditions?: string;
+  status?: string;
+  payment_status?: string;
+}
+
+interface SaleItemData {
+  product_id: number;
+  quantity: number;
+  unit_price: number;
+  discount_amount?: number;
+  tax_amount?: number;
+}
+
+interface PaymentData {
+  amount: number;
+  payment_method_code: string;
+  payment_date: string;
+  reference?: string;
+  notes?: string;
+}
+
+interface SaleFilters {
+  customer_id?: number;
+  status?: string;
+  payment_status?: string;
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export class SaleService {
   
-  static async createSale(saleData, items = []) {
+  static async createSale(saleData: SaleData, items: SaleItemData[] = []) {
     const trx = await db.transaction();
     
     try {
@@ -43,8 +86,8 @@ class SaleService {
         return {
           ...item,
           sale_id: sale.id,
-          product_name: product.name,
-          product_sku: product.sku,
+          product_name: product!.name,
+          product_sku: product!.sku,
           line_total: SaleItem.calculateLineTotal(
             item.quantity,
             item.unit_price,
@@ -67,7 +110,7 @@ class SaleService {
     }
   }
   
-  static async updateSale(saleId, saleData, items = null) {
+  static async updateSale(saleId: number, saleData: Partial<SaleData>, items: SaleItemData[] | null = null) {
     const trx = await db.transaction();
     
     try {
@@ -104,8 +147,8 @@ class SaleService {
           const product = products.find(p => p.id === item.product_id);
           return {
             ...item,
-            product_name: product.name,
-            product_sku: product.sku,
+            product_name: product!.name,
+            product_sku: product!.sku,
             line_total: SaleItem.calculateLineTotal(
               item.quantity,
               item.unit_price,
@@ -132,7 +175,7 @@ class SaleService {
     }
   }
   
-  static async getSaleById(saleId) {
+  static async getSaleById(saleId: number) {
     const sale = await Sale.findById(saleId);
     if (!sale) {
       throw new Error('Sale not found');
@@ -151,11 +194,11 @@ class SaleService {
     };
   }
   
-  static async getSales(filters = {}) {
+  static async getSales(filters: SaleFilters = {}) {
     return await Sale.findAll(filters);
   }
   
-  static async deleteSale(saleId) {
+  static async deleteSale(saleId: number) {
     const sale = await Sale.findById(saleId);
     if (!sale) {
       throw new Error('Sale not found');
@@ -169,7 +212,7 @@ class SaleService {
     return await Sale.delete(saleId);
   }
   
-  static async createSalePayment(saleId, paymentData) {
+  static async createSalePayment(saleId: number, paymentData: PaymentData) {
     const trx = await db.transaction();
     
     try {
@@ -221,7 +264,7 @@ class SaleService {
     }
   }
   
-  static async createPartialPayment(saleId, paymentData) {
+  static async createPartialPayment(saleId: number, paymentData: PaymentData) {
     const sale = await Sale.findById(saleId);
     if (!sale) {
       throw new Error('Sale not found');
@@ -234,7 +277,7 @@ class SaleService {
     return await this.createSalePayment(saleId, paymentData);
   }
   
-  static async createFullPayment(saleId, paymentData) {
+  static async createFullPayment(saleId: number, paymentData: PaymentData) {
     const sale = await Sale.findById(saleId);
     if (!sale) {
       throw new Error('Sale not found');
@@ -246,7 +289,7 @@ class SaleService {
     return await this.createSalePayment(saleId, paymentData);
   }
   
-  static async allocateExistingPayment(saleId, paymentId, allocationAmount) {
+  static async allocateExistingPayment(saleId: number, paymentId: number, allocationAmount: number) {
     const trx = await db.transaction();
     
     try {
@@ -255,7 +298,7 @@ class SaleService {
         throw new Error('Sale not found');
       }
       
-      const Payment = require('../models/Payment');
+      const { Payment } = require('../models/Payment');
       const payment = await Payment.findById(paymentId);
       if (!payment) {
         throw new Error('Payment not found');
@@ -295,7 +338,7 @@ class SaleService {
     }
   }
   
-  static async getSaleStats(filters = {}) {
+  static async getSaleStats(filters: SaleFilters = {}) {
     return await Sale.getSaleStats(filters);
   }
   
@@ -303,12 +346,12 @@ class SaleService {
     return await Sale.getOverdueSales();
   }
   
-  static async getCustomerSales(customerId, filters = {}) {
+  static async getCustomerSales(customerId: number, filters: SaleFilters = {}) {
     const saleFilters = { ...filters, customer_id: customerId };
     return await Sale.findAll(saleFilters);
   }
   
-  static async markSaleAsOverdue(saleId) {
+  static async markSaleAsOverdue(saleId: number) {
     const sale = await Sale.findById(saleId);
     if (!sale) {
       throw new Error('Sale not found');
@@ -321,7 +364,7 @@ class SaleService {
     return await Sale.update(saleId, { status: 'overdue' });
   }
   
-  static async cancelSale(saleId, reason) {
+  static async cancelSale(saleId: number, reason: string) {
     const trx = await db.transaction();
     
     try {
@@ -350,7 +393,7 @@ class SaleService {
     }
   }
   
-  static async generateSaleReport(filters = {}) {
+  static async generateSaleReport(filters: SaleFilters = {}) {
     const sales = await Sale.findAll({ ...filters, limit: 1000 });
     const stats = await Sale.getSaleStats(filters);
     
@@ -384,5 +427,3 @@ class SaleService {
     return overdueSales.length;
   }
 }
-
-module.exports = SaleService;
