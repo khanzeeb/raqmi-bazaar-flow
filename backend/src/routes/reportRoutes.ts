@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import { auth } from '../middleware/auth';
+
 const router = express.Router();
-const { auth } = require('../middleware/auth');
 
 // Placeholder routes for reports
 router.get('/', auth, (req, res) => {
@@ -19,4 +20,4 @@ router.get('/financial', auth, (req, res) => {
   res.json({ message: 'Financial reports not implemented yet' });
 });
 
-module.exports = router;
+export default router;

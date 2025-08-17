@@ -1,8 +1,7 @@
-const express = require('express');
-const router = express.Router();
-const PaymentController = require('../controllers/paymentController');
-const { auth } = require('../middleware/auth');
-const { 
+import express from 'express';
+import { PaymentController } from '../controllers/paymentController';
+import { auth } from '../middleware/auth';
+import { 
   createPayment, 
   updatePayment, 
   getPayment, 
@@ -10,7 +9,9 @@ const {
   getPayments,
   validatePaymentAmount,
   validatePaymentMethodRequirements
-} = require('../validators/paymentValidator');
+} from '../validators/paymentValidator';
+
+const router = express.Router();
 
 // Payment routes
 router.post('/', 
@@ -35,4 +36,4 @@ router.put('/:id',
 
 router.delete('/:id', auth, deletePayment, PaymentController.deletePayment);
 
-module.exports = router;
+export default router;

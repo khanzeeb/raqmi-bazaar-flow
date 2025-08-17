@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import { auth } from '../middleware/auth';
+
 const router = express.Router();
-const { auth } = require('../middleware/auth');
 
 // Placeholder routes for inventory
 router.get('/', auth, (req, res) => {
@@ -23,4 +24,4 @@ router.delete('/:id', auth, (req, res) => {
   res.json({ message: 'Delete inventory not implemented yet' });
 });
 
-module.exports = router;
+export default router;

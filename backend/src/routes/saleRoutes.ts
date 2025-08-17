@@ -1,8 +1,7 @@
-const express = require('express');
-const router = express.Router();
-const SaleController = require('../controllers/saleController');
-const { auth } = require('../middleware/auth');
-const { 
+import express from 'express';
+import { SaleController } from '../controllers/saleController';
+import { auth } from '../middleware/auth';
+import { 
   createSale, 
   updateSale, 
   getSale, 
@@ -11,7 +10,9 @@ const {
   createSalePayment,
   validateDueDateAfterSaleDate,
   validateItemsTotal
-} = require('../validators/saleValidator');
+} from '../validators/saleValidator';
+
+const router = express.Router();
 
 // Sale CRUD routes
 router.post('/', 
@@ -71,4 +72,4 @@ router.get('/:id/returns', auth, SaleController.getSaleReturns);
 router.get('/:id/state/before-return/:returnId?', auth, SaleController.getSaleStateBeforeReturn);
 router.get('/:id/state/after-return/:returnId', auth, SaleController.getSaleStateAfterReturn);
 
-module.exports = router;
+export default router;

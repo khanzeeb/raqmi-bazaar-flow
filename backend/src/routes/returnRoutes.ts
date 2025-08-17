@@ -1,8 +1,7 @@
-const express = require('express');
-const router = express.Router();
-const ReturnController = require('../controllers/returnController');
-const { auth } = require('../middleware/auth');
-const { 
+import express from 'express';
+import { ReturnController } from '../controllers/returnController';
+import { auth } from '../middleware/auth';
+import { 
   createReturn, 
   updateReturn, 
   getReturn, 
@@ -10,7 +9,9 @@ const {
   getReturns,
   processReturn,
   validateReturnItems
-} = require('../validators/returnValidator');
+} from '../validators/returnValidator';
+
+const router = express.Router();
 
 // Return CRUD routes
 router.post('/', 
@@ -47,4 +48,4 @@ router.get('/sale/:saleId', auth, ReturnController.getSaleReturns);
 router.get('/sale/:saleId/state/before/:returnId?', auth, ReturnController.getSaleStateBeforeReturn);
 router.get('/sale/:saleId/state/after/:returnId', auth, ReturnController.getSaleStateAfterReturn);
 
-module.exports = router;
+export default router;

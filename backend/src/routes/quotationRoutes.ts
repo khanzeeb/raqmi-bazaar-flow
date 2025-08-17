@@ -1,8 +1,7 @@
-const express = require('express');
-const router = express.Router();
-const QuotationController = require('../controllers/quotationController');
-const { auth } = require('../middleware/auth');
-const { 
+import express from 'express';
+import { QuotationController } from '../controllers/quotationController';
+import { auth } from '../middleware/auth';
+import { 
   createQuotation, 
   updateQuotation, 
   getQuotation, 
@@ -11,7 +10,9 @@ const {
   updateQuotationStatus,
   validateValidityDateAfterQuotationDate,
   validateItemsTotal
-} = require('../validators/quotationValidator');
+} from '../validators/quotationValidator';
+
+const router = express.Router();
 
 // Quotation CRUD routes
 router.post('/', 
@@ -53,4 +54,4 @@ router.patch('/:id/status',
 // Batch operations
 router.post('/process-expired', auth, QuotationController.processExpiredQuotations);
 
-module.exports = router;
+export default router;

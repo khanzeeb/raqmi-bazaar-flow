@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import { auth } from '../middleware/auth';
+
 const router = express.Router();
-const { auth } = require('../middleware/auth');
 
 // Placeholder routes for file uploads
 router.post('/image', auth, (req, res) => {
@@ -15,4 +16,4 @@ router.delete('/:filename', auth, (req, res) => {
   res.json({ message: 'File deletion not implemented yet' });
 });
 
-module.exports = router;
+export default router;

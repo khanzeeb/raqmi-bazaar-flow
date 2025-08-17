@@ -1,9 +1,35 @@
-const Supplier = require('../models/Supplier');
-const PurchaseService = require('./purchaseService');
+import { Supplier } from '../models/Supplier';
+import { PurchaseService } from './purchaseService';
 
-class SupplierService {
+interface SupplierData {
+  name: string;
+  email?: string;
+  phone?: string;
+  contact_person?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+  tax_id?: string;
+  status?: 'active' | 'inactive';
+  credit_limit?: number;
+  notes?: string;
+}
+
+interface SupplierFilters {
+  page?: number;
+  limit?: number;
+  status?: 'active' | 'inactive';
+  country?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export class SupplierService {
   
-  static async createSupplier(supplierData) {
+  static async createSupplier(supplierData: SupplierData) {
     try {
       // Check if email already exists
       if (supplierData.email) {
@@ -21,7 +47,7 @@ class SupplierService {
     }
   }
   
-  static async updateSupplier(supplierId, supplierData) {
+  static async updateSupplier(supplierId: string, supplierData: Partial<SupplierData>) {
     try {
       const existingSupplier = await Supplier.findById(supplierId);
       if (!existingSupplier) {
@@ -44,7 +70,7 @@ class SupplierService {
     }
   }
   
-  static async getSupplierById(supplierId) {
+  static async getSupplierById(supplierId: string) {
     const supplier = await Supplier.findById(supplierId);
     if (!supplier) {
       throw new Error('Supplier not found');
@@ -53,11 +79,11 @@ class SupplierService {
     return supplier;
   }
   
-  static async getSuppliers(filters = {}) {
+  static async getSuppliers(filters: SupplierFilters = {}) {
     return await Supplier.findAll(filters);
   }
   
-  static async deleteSupplier(supplierId) {
+  static async deleteSupplier(supplierId: string) {
     const supplier = await Supplier.findById(supplierId);
     if (!supplier) {
       throw new Error('Supplier not found');
@@ -70,12 +96,10 @@ class SupplierService {
     return await Supplier.getSupplierStats();
   }
   
-  static async getSupplierPurchases(supplierId, filters = {}) {
+  static async getSupplierPurchases(supplierId: string, filters: any = {}) {
     // Verify supplier exists
     const supplier = await this.getSupplierById(supplierId);
     
     return await PurchaseService.getSupplierPurchases(supplierId, filters);
   }
 }
-
-module.exports = SupplierService;

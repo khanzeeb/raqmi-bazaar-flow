@@ -1,6 +1,6 @@
-const { body, param, query } = require('express-validator');
+import { body, param, query } from 'express-validator';
 
-const createSupplier = [
+export const createSupplier = [
   body('name')
     .notEmpty()
     .withMessage('Supplier name is required')
@@ -69,7 +69,7 @@ const createSupplier = [
     .withMessage('Notes must not exceed 1000 characters')
 ];
 
-const updateSupplier = [
+export const updateSupplier = [
   param('id')
     .isUUID()
     .withMessage('Supplier ID must be a valid UUID'),
@@ -141,19 +141,19 @@ const updateSupplier = [
     .withMessage('Notes must not exceed 1000 characters')
 ];
 
-const getSupplier = [
+export const getSupplier = [
   param('id')
     .isUUID()
     .withMessage('Supplier ID must be a valid UUID')
 ];
 
-const deleteSupplier = [
+export const deleteSupplier = [
   param('id')
     .isUUID()
     .withMessage('Supplier ID must be a valid UUID')
 ];
 
-const getSuppliers = [
+export const getSuppliers = [
   query('page')
     .optional()
     .isInt({ min: 1 })
@@ -184,11 +184,3 @@ const getSuppliers = [
     .isLength({ min: 2, max: 2 })
     .withMessage('Country must be a 2-character country code')
 ];
-
-module.exports = {
-  createSupplier,
-  updateSupplier,
-  getSupplier,
-  deleteSupplier,
-  getSuppliers
-};

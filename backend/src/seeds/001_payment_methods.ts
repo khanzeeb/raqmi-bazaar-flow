@@ -1,4 +1,6 @@
-exports.seed = async function(knex) {
+import { Knex } from 'knex';
+
+export async function seed(knex: Knex): Promise<void> {
   // Clear existing entries
   await knex('payment_methods').del();
   
@@ -53,4 +55,4 @@ exports.seed = async function(knex) {
       updated_at: knex.fn.now()
     }
   ]);
-};
+}
