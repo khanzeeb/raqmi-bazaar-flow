@@ -1,28 +1,33 @@
 import express from 'express';
-// Import your existing ProductController from the monolith
-// You'll need to copy it to this service
+import ProductController from '../controllers/ProductController';
+import {
+  createProductValidator,
+  updateProductValidator,
+  updateStockValidator,
+  productIdValidator
+} from '../validators/productValidator';
 
 const router = express.Router();
 
-// Product routes
-router.get('/', (req, res) => {
-  res.json({ message: 'Get products endpoint - Product Service' });
-});
+// Public routes
+router.get('/', ProductController.getProducts);
+router.get('/categories', ProductController.getCategories);
+router.get('/suppliers', ProductController.getSuppliers);
+router.get('/low-stock', ProductController.getLowStockProducts);
+router.get('/:id', productIdValidator, ProductController.getProduct);
 
-router.post('/', (req, res) => {
-  res.json({ message: 'Create product endpoint - Product Service' });
-});
+// Product Category routes
+router.get('/categories/list', ProductController.getProductCategories);
+router.post('/categories', ProductController.createProductCategory);
 
-router.get('/:id', (req, res) => {
-  res.json({ message: `Get product ${req.params.id} - Product Service` });
-});
+// Product Variant routes
+router.get('/:productId/variants', ProductController.getProductVariants);
+router.post('/:productId/variants', ProductController.createProductVariant);
 
-router.put('/:id', (req, res) => {
-  res.json({ message: `Update product ${req.params.id} - Product Service` });
-});
-
-router.delete('/:id', (req, res) => {
-  res.json({ message: `Delete product ${req.params.id} - Product Service` });
-});
+// CRUD routes
+router.post('/', createProductValidator, ProductController.createProduct);
+router.put('/:id', updateProductValidator, ProductController.updateProduct);
+router.delete('/:id', productIdValidator, ProductController.deleteProduct);
+router.patch('/:id/stock', updateStockValidator, ProductController.updateStock);
 
 export default router;
