@@ -1,5 +1,6 @@
 import { Knex } from 'knex';
-import db from '../config/database';
+import { BaseRepository } from '../common/BaseRepository';
+import { IProductVariantRepository } from '../interfaces/IRepository';
 
 export interface ProductVariantData {
   id?: string;
@@ -34,147 +35,80 @@ export interface ProductVariantFilters {
   limit?: number;
 }
 
-class ProductVariant {
-  static get tableName(): string {
-    return 'product_variants';
-  }
+class ProductVariantRepository extends BaseRepository<ProductVariantData, ProductVariantFilters> implements IProductVariantRepository {
+  protected tableName = 'product_variants';
 
-  static async findById(id: string): Promise<ProductVariantData | null> {
-    const variant = await db(this.tableName).where({ id }).first();
-    return variant || null;
-  }
-
-  static async findByProductId(productId: string): Promise<ProductVariantData[]> {
-    return await db(this.tableName)
+  async findByProductId(productId: string): Promise<ProductVariantData[]> {
+    return await this.db(this.tableName)
       .where({ product_id: productId })
       .orderBy('sort_order', 'asc')
       .orderBy('name', 'asc');
   }
 
-  static async findAll(filters: ProductVariantFilters = {}): Promise<{
-    data: ProductVariantData[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  }> {
-    let query = db(this.tableName);
+  protected buildFindAllQuery(filters: ProductVariantFilters): Knex.QueryBuilder {
+    let query = this.db(this.tableName);
     
-    if (filters.product_id) {
-      query = query.where('product_id', filters.product_id);
-    }
-    
-    if (filters.status) {
-      query = query.where('status', filters.status);
-    }
+    this.applyProductFilter(query, filters);
+    this.applyStatusFilter(query, filters);
     
     if (filters.search) {
-      query = query.where(function(this: Knex.QueryBuilder) {
-        this.where('name', 'ilike', `%${filters.search}%`)
-            .orWhere('sku', 'ilike', `%${filters.search}%`)
-            .orWhere('barcode', 'ilike', `%${filters.search}%`);
-      });
+      this.applySearchFilter(query, filters.search, ['name', 'sku', 'barcode']);
     }
     
-    const limit = filters.limit || 50;
-    const offset = ((filters.page || 1) - 1) * limit;
-    
-    const variants = await query
-      .orderBy('sort_order', 'asc')
-      .orderBy('name', 'asc')
-      .limit(limit)
-      .offset(offset);
-    
-    const total = await this.count(filters);
-    
-    return {
-      data: variants,
-      total,
-      page: filters.page || 1,
-      limit,
-      totalPages: Math.ceil(total / limit)
-    };
+    return query.orderBy('sort_order', 'asc').orderBy('name', 'asc');
   }
 
-  static async count(filters: ProductVariantFilters = {}): Promise<number> {
-    let query = db(this.tableName).count('* as count');
+  protected buildCountQuery(filters: ProductVariantFilters): Knex.QueryBuilder {
+    let query = this.db(this.tableName).count('* as count');
     
-    if (filters.product_id) {
-      query = query.where('product_id', filters.product_id);
-    }
-    
-    if (filters.status) {
-      query = query.where('status', filters.status);
-    }
+    this.applyProductFilter(query, filters);
+    this.applyStatusFilter(query, filters);
     
     if (filters.search) {
-      query = query.where(function(this: Knex.QueryBuilder) {
-        this.where('name', 'ilike', `%${filters.search}%`)
-            .orWhere('sku', 'ilike', `%${filters.search}%`);
-      });
+      this.applySearchFilter(query, filters.search, ['name', 'sku', 'barcode']);
     }
     
-    const result = await query.first();
-    return parseInt(result.count as string);
+    return query;
   }
 
-  static async create(variantData: ProductVariantData): Promise<ProductVariantData> {
-    const [variant] = await db(this.tableName)
-      .insert({
-        ...variantData,
-        created_at: new Date(),
-        updated_at: new Date()
-      })
-      .returning('*');
-    
-    return variant;
+  private applyProductFilter(query: Knex.QueryBuilder, filters: ProductVariantFilters): void {
+    if (filters.product_id) {
+      query.where('product_id', filters.product_id);
+    }
   }
 
-  static async createMultiple(variants: ProductVariantData[]): Promise<ProductVariantData[]> {
+  private applyStatusFilter(query: Knex.QueryBuilder, filters: ProductVariantFilters): void {
+    if (filters.status) {
+      query.where('status', filters.status);
+    }
+  }
+
+  async createMultiple(variants: Omit<ProductVariantData, 'id' | 'created_at' | 'updated_at'>[]): Promise<ProductVariantData[]> {
     const variantsWithTimestamps = variants.map(variant => ({
       ...variant,
       created_at: new Date(),
       updated_at: new Date()
     }));
     
-    return await db(this.tableName)
+    return await this.db(this.tableName)
       .insert(variantsWithTimestamps)
       .returning('*');
   }
 
-  static async update(id: string, variantData: Partial<ProductVariantData>): Promise<ProductVariantData | null> {
-    const [variant] = await db(this.tableName)
-      .where({ id })
-      .update({
-        ...variantData,
-        updated_at: new Date()
-      })
-      .returning('*');
-    
-    return variant || null;
-  }
-
-  static async delete(id: string): Promise<boolean> {
-    const result = await db(this.tableName).where({ id }).del();
-    return result > 0;
-  }
-
-  static async deleteByProductId(productId: string): Promise<boolean> {
-    const result = await db(this.tableName).where({ product_id: productId }).del();
+  async deleteByProductId(productId: string): Promise<boolean> {
+    const result = await this.db(this.tableName).where({ product_id: productId }).del();
     return result >= 0;
   }
 
-  static async updateStock(id: string, newStock: number, reason = ''): Promise<ProductVariantData | null> {
-    const [variant] = await db(this.tableName)
+  async updateStock(id: string, newStock: number, reason = ''): Promise<ProductVariantData | null> {
+    await this.db(this.tableName)
       .where({ id })
       .update({
         stock: newStock,
         updated_at: new Date()
-      })
-      .returning('*');
+      });
     
-    // Log stock movement
-    await db('stock_movements').insert({
+    await this.db('stock_movements').insert({
       product_variant_id: id,
       type: 'adjustment',
       quantity: newStock,
@@ -182,8 +116,8 @@ class ProductVariant {
       created_at: new Date()
     });
     
-    return variant || null;
+    return await this.findById(id);
   }
 }
 
-export default ProductVariant;
+export default new ProductVariantRepository();

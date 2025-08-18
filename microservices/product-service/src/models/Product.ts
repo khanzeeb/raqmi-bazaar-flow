@@ -1,5 +1,6 @@
 import { Knex } from 'knex';
-import db from '../config/database';
+import { BaseRepository } from '../common/BaseRepository';
+import { IProductRepository } from '../interfaces/IRepository';
 import ProductVariant, { ProductVariantData } from './ProductVariant';
 import ProductCategory, { ProductCategoryData } from './ProductCategory';
 
@@ -51,13 +52,11 @@ export interface ProductFilters {
   supplier?: string;
 }
 
-class Product {
-  static get tableName(): string {
-    return 'products';
-  }
+class ProductRepository extends BaseRepository<ProductData, ProductFilters> implements IProductRepository {
+  protected tableName = 'products';
 
-  static async findById(id: string): Promise<ProductData | null> {
-    const product = await db(this.tableName)
+  async findById(id: string): Promise<ProductData | null> {
+    const product = await this.db(this.tableName)
       .leftJoin('product_categories', 'products.category_id', 'product_categories.id')
       .select(
         'products.*',
@@ -68,10 +67,8 @@ class Product {
       .first();
     
     if (product) {
-      // Get variants
       product.variants = await ProductVariant.findByProductId(id);
       
-      // Format category info
       if (product.category_name) {
         product.category_info = {
           id: product.category_id,
@@ -80,7 +77,6 @@ class Product {
         };
       }
       
-      // Clean up joined fields
       delete product.category_name;
       delete product.category_slug;
     }
@@ -88,18 +84,12 @@ class Product {
     return product || null;
   }
 
-  static async findByIds(ids: string[]): Promise<ProductData[]> {
-    return await db(this.tableName).whereIn('id', ids);
+  async findByIds(ids: string[]): Promise<ProductData[]> {
+    return await this.db(this.tableName).whereIn('id', ids);
   }
 
-  static async findAll(filters: ProductFilters = {}): Promise<{
-    data: ProductData[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  }> {
-    let query = db(this.tableName)
+  protected buildFindAllQuery(filters: ProductFilters): Knex.QueryBuilder {
+    let query = this.db(this.tableName)
       .leftJoin('product_categories', 'products.category_id', 'product_categories.id')
       .select(
         'products.*',
@@ -107,115 +97,93 @@ class Product {
         'product_categories.slug as category_slug'
       );
     
-    // Handle both old category (string) and new category_id filters
-    if (filters.category_id) {
-      query = query.where('products.category_id', filters.category_id);
-    } else if (filters.category) {
-      // Legacy support - search by category name
-      query = query.where('product_categories.name', filters.category);
-    }
-    
-    if (filters.status) {
-      query = query.where('products.status', filters.status);
-    }
+    this.applyCategoryFilter(query, filters);
+    this.applyStatusFilter(query, filters);
+    this.applyStockStatusFilter(query, filters);
+    this.applyPriceRangeFilter(query, filters);
+    this.applySupplierFilter(query, filters);
     
     if (filters.search) {
-      query = query.where(function(this: Knex.QueryBuilder) {
-        this.where('products.name', 'ilike', `%${filters.search}%`)
-            .orWhere('products.sku', 'ilike', `%${filters.search}%`)
-            .orWhere('products.description', 'ilike', `%${filters.search}%`)
-            .orWhere('product_categories.name', 'ilike', `%${filters.search}%`);
-      });
+      this.applySearchFilter(query, filters.search, [
+        'products.name',
+        'products.sku',
+        'products.description',
+        'product_categories.name'
+      ]);
     }
     
-    if (filters.stockStatus) {
-      switch (filters.stockStatus) {
-        case 'out-of-stock':
-          query = query.where('products.stock', '<=', 0);
-          break;
-        case 'low-stock':
-          query = query.whereRaw('products.stock <= products.min_stock AND products.stock > 0');
-          break;
-        case 'in-stock':
-          query = query.whereRaw('products.stock > products.min_stock');
-          break;
-      }
-    }
+    this.applySorting(query, `products.${filters.sortBy || 'created_at'}`, filters.sortOrder);
     
-    if (filters.priceRange) {
-      query = query.whereBetween('products.price', [filters.priceRange.min, filters.priceRange.max]);
-    }
-    
-    if (filters.supplier) {
-      query = query.where('products.supplier', filters.supplier);
-    }
-    
-    const limit = filters.limit || 10;
-    const offset = ((filters.page || 1) - 1) * limit;
-    
-    const products = await query
-      .orderBy(`products.${filters.sortBy || 'created_at'}`, filters.sortOrder || 'desc')
-      .limit(limit)
-      .offset(offset);
-    
-    // Format category info for each product
-    const formattedProducts = products.map(product => {
-      if (product.category_name) {
-        product.category_info = {
-          id: product.category_id,
-          name: product.category_name,
-          slug: product.category_slug
-        };
-      }
-      
-      // Clean up joined fields
-      delete product.category_name;
-      delete product.category_slug;
-      
-      return product;
-    });
-    
-    const total = await this.count(filters);
-    
-    return {
-      data: formattedProducts,
-      total,
-      page: filters.page || 1,
-      limit,
-      totalPages: Math.ceil(total / limit)
-    };
+    return query;
   }
 
-  static async count(filters: ProductFilters = {}): Promise<number> {
-    let query = db(this.tableName)
+  protected buildCountQuery(filters: ProductFilters): Knex.QueryBuilder {
+    let query = this.db(this.tableName)
       .leftJoin('product_categories', 'products.category_id', 'product_categories.id')
       .count('products.id as count');
     
-    if (filters.category_id) {
-      query = query.where('products.category_id', filters.category_id);
-    } else if (filters.category) {
-      query = query.where('product_categories.name', filters.category);
-    }
-    
-    if (filters.status) {
-      query = query.where('products.status', filters.status);
-    }
+    this.applyCategoryFilter(query, filters);
+    this.applyStatusFilter(query, filters);
+    this.applyStockStatusFilter(query, filters);
+    this.applyPriceRangeFilter(query, filters);
+    this.applySupplierFilter(query, filters);
     
     if (filters.search) {
-      query = query.where(function(this: Knex.QueryBuilder) {
-        this.where('products.name', 'ilike', `%${filters.search}%`)
-            .orWhere('products.sku', 'ilike', `%${filters.search}%`)
-            .orWhere('products.description', 'ilike', `%${filters.search}%`)
-            .orWhere('product_categories.name', 'ilike', `%${filters.search}%`);
-      });
+      this.applySearchFilter(query, filters.search, [
+        'products.name',
+        'products.sku',
+        'products.description',
+        'product_categories.name'
+      ]);
     }
     
-    const result = await query.first();
-    return parseInt(result.count as string);
+    return query;
   }
 
-  static async create(productData: ProductData): Promise<ProductData> {
-    const trx = await db.transaction();
+  private applyCategoryFilter(query: Knex.QueryBuilder, filters: ProductFilters): void {
+    if (filters.category_id) {
+      query.where('products.category_id', filters.category_id);
+    } else if (filters.category) {
+      query.where('product_categories.name', filters.category);
+    }
+  }
+
+  private applyStatusFilter(query: Knex.QueryBuilder, filters: ProductFilters): void {
+    if (filters.status) {
+      query.where('products.status', filters.status);
+    }
+  }
+
+  private applyStockStatusFilter(query: Knex.QueryBuilder, filters: ProductFilters): void {
+    if (filters.stockStatus) {
+      switch (filters.stockStatus) {
+        case 'out-of-stock':
+          query.where('products.stock', '<=', 0);
+          break;
+        case 'low-stock':
+          query.whereRaw('products.stock <= products.min_stock AND products.stock > 0');
+          break;
+        case 'in-stock':
+          query.whereRaw('products.stock > products.min_stock');
+          break;
+      }
+    }
+  }
+
+  private applyPriceRangeFilter(query: Knex.QueryBuilder, filters: ProductFilters): void {
+    if (filters.priceRange) {
+      query.whereBetween('products.price', [filters.priceRange.min, filters.priceRange.max]);
+    }
+  }
+
+  private applySupplierFilter(query: Knex.QueryBuilder, filters: ProductFilters): void {
+    if (filters.supplier) {
+      query.where('products.supplier', filters.supplier);
+    }
+  }
+
+  async create(productData: Omit<ProductData, 'id' | 'created_at' | 'updated_at'>): Promise<ProductData> {
+    const trx = await this.db.transaction();
     
     try {
       const [product] = await trx(this.tableName)
@@ -245,17 +213,16 @@ class Product {
     }
   }
 
-  static async update(id: string, productData: Partial<ProductData>): Promise<ProductData | null> {
-    const trx = await db.transaction();
+  async update(id: string, productData: Partial<ProductData>): Promise<ProductData | null> {
+    const trx = await this.db.transaction();
     
     try {
-      const [product] = await trx(this.tableName)
+      await trx(this.tableName)
         .where({ id })
         .update({
           ...productData,
           updated_at: new Date()
-        })
-        .returning('*');
+        });
       
       if (productData.variants !== undefined) {
         await trx('product_variants').where({ product_id: id }).del();
@@ -280,8 +247,8 @@ class Product {
     }
   }
 
-  static async delete(id: string): Promise<boolean> {
-    const trx = await db.transaction();
+  async delete(id: string): Promise<boolean> {
+    const trx = await this.db.transaction();
     
     try {
       await trx('product_variants').where({ product_id: id }).del();
@@ -294,17 +261,15 @@ class Product {
     }
   }
 
-  static async updateStock(id: string, newStock: number, reason = ''): Promise<ProductData | null> {
-    const [product] = await db(this.tableName)
+  async updateStock(id: string, newStock: number, reason = ''): Promise<ProductData | null> {
+    await this.db(this.tableName)
       .where({ id })
       .update({
         stock: newStock,
         updated_at: new Date()
-      })
-      .returning('*');
+      });
     
-    // Log stock movement
-    await db('stock_movements').insert({
+    await this.db('stock_movements').insert({
       product_id: id,
       type: 'adjustment',
       quantity: newStock,
@@ -312,11 +277,11 @@ class Product {
       created_at: new Date()
     });
     
-    return product || null;
+    return await this.findById(id);
   }
 
-  static async getCategories(): Promise<string[]> {
-    const result = await db(this.tableName)
+  async getCategories(): Promise<string[]> {
+    const result = await this.db(this.tableName)
       .distinct('category')
       .whereNotNull('category')
       .orderBy('category');
@@ -324,8 +289,8 @@ class Product {
     return result.map(row => row.category);
   }
 
-  static async getSuppliers(): Promise<string[]> {
-    const result = await db(this.tableName)
+  async getSuppliers(): Promise<string[]> {
+    const result = await this.db(this.tableName)
       .distinct('supplier')
       .whereNotNull('supplier')
       .orderBy('supplier');
@@ -334,4 +299,4 @@ class Product {
   }
 }
 
-export default Product;
+export default new ProductRepository();
