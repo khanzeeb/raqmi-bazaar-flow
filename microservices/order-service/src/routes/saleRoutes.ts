@@ -1,26 +1,33 @@
 import express from 'express';
+import { SaleController } from '../controllers/SaleController';
+import { SaleValidator } from '../validators/saleValidator';
 
 const router = express.Router();
+const saleController = new SaleController();
 
-// Sales routes
-router.get('/', (req, res) => {
-  res.json({ message: 'Get sales endpoint - Order Service' });
-});
+// Sale CRUD routes
+router.post('/', 
+  SaleValidator.createSale,
+  SaleValidator.validateDueDateAfterSaleDate,
+  SaleValidator.validateItemsTotal,
+  saleController.createSale
+);
 
-router.post('/', (req, res) => {
-  res.json({ message: 'Create sale endpoint - Order Service' });
-});
+router.get('/', SaleValidator.getSales, saleController.getSales);
+router.get('/stats', saleController.getSaleStats);
+router.get('/overdue', saleController.getOverdueSales);
+router.get('/:id', SaleValidator.getSale, saleController.getSale);
 
-router.get('/:id', (req, res) => {
-  res.json({ message: `Get sale ${req.params.id} - Order Service` });
-});
+router.put('/:id', 
+  SaleValidator.updateSale,
+  SaleValidator.validateDueDateAfterSaleDate,
+  SaleValidator.validateItemsTotal,
+  saleController.updateSale
+);
 
-router.put('/:id', (req, res) => {
-  res.json({ message: `Update sale ${req.params.id} - Order Service` });
-});
+router.delete('/:id', SaleValidator.deleteSale, saleController.deleteSale);
 
-router.delete('/:id', (req, res) => {
-  res.json({ message: `Delete sale ${req.params.id} - Order Service` });
-});
+// Sale management routes
+router.post('/:id/cancel', saleController.cancelSale);
 
 export default router;
