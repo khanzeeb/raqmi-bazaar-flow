@@ -1,26 +1,18 @@
 import express from 'express';
+import CustomerController from '../controllers/CustomerController';
+import { customerValidators } from '../validators/customerValidator';
 
 const router = express.Router();
 
-// Customer routes
-router.get('/', (req, res) => {
-  res.json({ message: 'Get customers endpoint - Customer Service' });
-});
-
-router.post('/', (req, res) => {
-  res.json({ message: 'Create customer endpoint - Customer Service' });
-});
-
-router.get('/:id', (req, res) => {
-  res.json({ message: `Get customer ${req.params.id} - Customer Service` });
-});
-
-router.put('/:id', (req, res) => {
-  res.json({ message: `Update customer ${req.params.id} - Customer Service` });
-});
-
-router.delete('/:id', (req, res) => {
-  res.json({ message: `Delete customer ${req.params.id} - Customer Service` });
-});
+router.post('/', customerValidators.create, CustomerController.createCustomer);
+router.get('/', CustomerController.getCustomers);
+router.get('/:id', CustomerController.getCustomer);
+router.put('/:id', customerValidators.update, CustomerController.updateCustomer);
+router.delete('/:id', CustomerController.deleteCustomer);
+router.post('/:id/credit', customerValidators.updateCredit, CustomerController.updateCredit);
+router.get('/:id/credit-history', CustomerController.getCreditHistory);
+router.get('/:id/stats', CustomerController.getCustomerStats);
+router.post('/:id/block', customerValidators.block, CustomerController.blockCustomer);
+router.post('/:id/unblock', customerValidators.unblock, CustomerController.unblockCustomer);
 
 export default router;

@@ -1,26 +1,15 @@
 import express from 'express';
+import SupplierController from '../controllers/SupplierController';
+import { supplierValidators } from '../validators/supplierValidator';
 
 const router = express.Router();
 
-// Supplier routes
-router.get('/', (req, res) => {
-  res.json({ message: 'Get suppliers endpoint - Customer Service' });
-});
-
-router.post('/', (req, res) => {
-  res.json({ message: 'Create supplier endpoint - Customer Service' });
-});
-
-router.get('/:id', (req, res) => {
-  res.json({ message: `Get supplier ${req.params.id} - Customer Service` });
-});
-
-router.put('/:id', (req, res) => {
-  res.json({ message: `Update supplier ${req.params.id} - Customer Service` });
-});
-
-router.delete('/:id', (req, res) => {
-  res.json({ message: `Delete supplier ${req.params.id} - Customer Service` });
-});
+router.post('/', supplierValidators.create, SupplierController.createSupplier);
+router.get('/', SupplierController.getSuppliers);
+router.get('/stats', SupplierController.getSupplierStats);
+router.get('/:id', SupplierController.getSupplier);
+router.put('/:id', supplierValidators.update, SupplierController.updateSupplier);
+router.delete('/:id', SupplierController.deleteSupplier);
+router.get('/:id/purchases', SupplierController.getSupplierPurchases);
 
 export default router;
