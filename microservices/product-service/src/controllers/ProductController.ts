@@ -153,6 +153,52 @@ class ProductController extends BaseController {
     );
   }
 
+  async updateProductCategory(req: Request, res: Response): Promise<void> {
+    await this.executeOperation(
+      req,
+      res,
+      async () => await ProductCategoryService.update(req.params.id, req.body),
+      'Product category updated successfully',
+      'Failed to update product category'
+    );
+  }
+
+  async deleteProductCategory(req: Request, res: Response): Promise<void> {
+    await this.executeOperation(
+      req,
+      res,
+      async () => {
+        const success = await ProductCategoryService.delete(req.params.id);
+        return success ? { deleted: true } : null;
+      },
+      'Product category deleted successfully',
+      'Failed to delete product category'
+    );
+  }
+
+  async updateProductVariant(req: Request, res: Response): Promise<void> {
+    await this.executeOperation(
+      req,
+      res,
+      async () => await ProductVariantService.update(req.params.id, req.body),
+      'Product variant updated successfully',
+      'Failed to update product variant'
+    );
+  }
+
+  async deleteProductVariant(req: Request, res: Response): Promise<void> {
+    await this.executeOperation(
+      req,
+      res,
+      async () => {
+        const success = await ProductVariantService.delete(req.params.id);
+        return success ? { deleted: true } : null;
+      },
+      'Product variant deleted successfully',
+      'Failed to delete product variant'
+    );
+  }
+
   private extractProductFilters(req: Request) {
     return {
       page: parseInt(req.query.page as string) || 1,
