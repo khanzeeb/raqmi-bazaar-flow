@@ -1,11 +1,13 @@
 import express from 'express';
-import ProductController from '../controllers/ProductController';
+import productRoutes from './productRoutes';
+import productCategoryRoutes from './productCategoryRoutes';
+import productVariantRoutes from './productVariantRoutes';
 
 const router = express.Router();
 
-// Inventory routes
-router.get('/', ProductController.getProducts);
-router.get('/low-stock', ProductController.getLowStockProducts);
-router.patch('/:id/stock', ProductController.updateStock);
+// Mount routes
+router.use('/products', productRoutes);
+router.use('/categories', productCategoryRoutes);
+router.use('/products', productVariantRoutes);
 
 export default router;

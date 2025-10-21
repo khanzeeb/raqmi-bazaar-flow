@@ -17,6 +17,12 @@ export interface IProductService extends IService<any, any, any, any> {
   getLowStockProducts(limit?: number): Promise<any[]>;
   getCategories(): Promise<string[]>;
   getSuppliers(): Promise<string[]>;
+  getStats(): Promise<{
+    totalProducts: number;
+    inStock: number;
+    lowStock: number;
+    outOfStock: number;
+  }>;
 }
 
 export interface IProductCategoryService extends IService<any, any, any, any> {

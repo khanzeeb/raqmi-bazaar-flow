@@ -85,6 +85,27 @@ class ProductService extends BaseService<ProductData, CreateProductDTO, UpdatePr
   async getSuppliers(): Promise<string[]> {
     return await ProductRepository.getSuppliers();
   }
+
+  async getStats(): Promise<{
+    totalProducts: number;
+    inStock: number;
+    lowStock: number;
+    outOfStock: number;
+  }> {
+    const [total, inStock, lowStock, outOfStock] = await Promise.all([
+      ProductRepository.count({}),
+      ProductRepository.count({ stockStatus: 'in-stock' }),
+      ProductRepository.count({ stockStatus: 'low-stock' }),
+      ProductRepository.count({ stockStatus: 'out-of-stock' })
+    ]);
+
+    return {
+      totalProducts: total,
+      inStock,
+      lowStock,
+      outOfStock
+    };
+  }
 }
 
 export default new ProductService();
