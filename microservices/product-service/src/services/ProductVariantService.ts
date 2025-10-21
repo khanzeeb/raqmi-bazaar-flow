@@ -1,6 +1,6 @@
 import { BaseService } from '../common/BaseService';
 import { IProductVariantService } from '../interfaces/IService';
-import ProductVariantRepository from '../models/ProductVariant';
+import ProductVariantRepository from '../repositories/ProductVariantRepository';
 import { ProductVariantData, ProductVariantFilters } from '../models/ProductVariant';
 
 export interface CreateProductVariantDTO {

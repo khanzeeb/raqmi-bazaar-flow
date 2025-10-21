@@ -1,6 +1,6 @@
 import { BaseService } from '../common/BaseService';
 import { IProductCategoryService } from '../interfaces/IService';
-import ProductCategoryRepository from '../models/ProductCategory';
+import ProductCategoryRepository from '../repositories/ProductCategoryRepository';
 import { ProductCategoryData, ProductCategoryFilters } from '../models/ProductCategory';
 
 export interface CreateProductCategoryDTO {

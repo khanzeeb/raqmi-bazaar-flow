@@ -1,6 +1,6 @@
 import { BaseService } from '../common/BaseService';
 import { IProductService } from '../interfaces/IService';
-import ProductRepository from '../models/Product';
+import ProductRepository from '../repositories/ProductRepository';
 import { ProductData, ProductFilters } from '../models/Product';
 
 export interface CreateProductDTO {
