@@ -9,11 +9,11 @@ Load Balancer (Nginx)
          ↓
     API Gateway
          ↓
-    ┌────────────────────────────────────┐
-    ↓                ↓                  ↓
-Product Service  Order Service  Customer Service
-    ↓                ↓                  ↓
- Product DB      Order DB        Customer DB
+    ┌─────────────────────────────────────────────────────┐
+    ↓                ↓                  ↓                  ↓
+Product Service  Order Service  Customer Service  Quotation Service
+    ↓                ↓                  ↓                  ↓
+ Product DB      Order DB        Customer DB        Quotation DB
 ```
 
 ## Services
@@ -29,7 +29,7 @@ Product Service  Order Service  Customer Service
 - Database: `product_db`
 
 ### 3. Order Service (Port 3002)
-- Manages sales, quotations, returns
+- Manages sales, returns
 - Handles payments and invoices
 - Database: `order_db`
 
@@ -37,6 +37,12 @@ Product Service  Order Service  Customer Service
 - Manages customers and suppliers
 - Handles customer credit operations
 - Database: `customer_db`
+
+### 5. Quotation Service (Port 3004)
+- Manages quotations and quotes
+- Handles quotation lifecycle (draft, sent, accepted, declined, expired, converted)
+- Quotation statistics and reporting
+- Database: `quotation_db`
 
 ## Running the Services
 
@@ -50,6 +56,7 @@ cd api-gateway && npm run dev
 cd product-service && npm run dev
 cd order-service && npm run dev
 cd customer-service && npm run dev
+cd quotation-service && npm run dev
 ```
 
 ### Production Mode
@@ -66,6 +73,7 @@ Each service requires its own environment variables:
 - `PRODUCT_SERVICE_URL`
 - `ORDER_SERVICE_URL`
 - `CUSTOMER_SERVICE_URL`
+- `QUOTATION_SERVICE_URL`
 
 ### Product Service
 - `PRODUCT_DB_HOST`
@@ -90,6 +98,13 @@ Each service requires its own environment variables:
 - `CUSTOMER_DB_PASSWORD`
 - `CUSTOMER_DB_NAME`
 
+### Quotation Service
+- `QUOTATION_DB_HOST`
+- `QUOTATION_DB_PORT`
+- `QUOTATION_DB_USER`
+- `QUOTATION_DB_PASSWORD`
+- `QUOTATION_DB_NAME`
+
 ## Database Migration
 
 Each service has its own database and migration scripts:
@@ -103,6 +118,9 @@ cd order-service && npm run migrate
 
 # Customer Service
 cd customer-service && npm run migrate
+
+# Quotation Service
+cd quotation-service && npm run migrate
 ```
 
 ## API Endpoints
@@ -117,10 +135,21 @@ All requests go through the API Gateway at `http://localhost` (or port 80).
 ### Order Service
 - `GET /api/sales`
 - `POST /api/sales`
-- `GET /api/quotations`
 - `GET /api/returns`
 - `GET /api/payments`
 - `GET /api/invoices`
+
+### Quotation Service
+- `GET /api/quotations`
+- `POST /api/quotations`
+- `GET /api/quotations/:id`
+- `PUT /api/quotations/:id`
+- `DELETE /api/quotations/:id`
+- `GET /api/quotations/stats`
+- `POST /api/quotations/:id/send`
+- `POST /api/quotations/:id/accept`
+- `POST /api/quotations/:id/decline`
+- `POST /api/quotations/:id/convert-to-sale`
 
 ### Customer Service
 - `GET /api/customers`

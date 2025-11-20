@@ -22,10 +22,12 @@ services:
       - PRODUCT_SERVICE_URL=http://product-service:3001
       - ORDER_SERVICE_URL=http://order-service:3002
       - CUSTOMER_SERVICE_URL=http://customer-service:3003
+      - QUOTATION_SERVICE_URL=http://quotation-service:3004
     depends_on:
       - product-service
       - order-service
       - customer-service
+      - quotation-service
     networks:
       - microservices-network
 
@@ -79,6 +81,22 @@ services:
     networks:
       - microservices-network
 
+  # Quotation Service
+  quotation-service:
+    build: ./quotation-service
+    ports:
+      - "3004:3004"
+    environment:
+      - QUOTATION_DB_HOST=quotation-db
+      - QUOTATION_DB_PORT=5432
+      - QUOTATION_DB_USER=postgres
+      - QUOTATION_DB_PASSWORD=password
+      - QUOTATION_DB_NAME=quotation_db
+    depends_on:
+      - quotation-db
+    networks:
+      - microservices-network
+
   # Databases
   product-db:
     image: postgres:15
@@ -113,10 +131,22 @@ services:
     networks:
       - microservices-network
 
+  quotation-db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=quotation_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - quotation-db-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+
 volumes:
   product-db-data:
   order-db-data:
   customer-db-data:
+  quotation-db-data:
 
 networks:
   microservices-network:

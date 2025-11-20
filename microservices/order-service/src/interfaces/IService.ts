@@ -26,20 +26,6 @@ export interface ISaleService extends IService<any, any, any, any> {
   processOverdueReminders(): Promise<number>;
 }
 
-export interface IQuotationService extends IService<any, any, any, any> {
-  createQuotation(quotationData: any, items: any[]): Promise<any>;
-  updateQuotation(id: string, quotationData: any, items?: any[]): Promise<any | null>;
-  sendQuotation(id: string): Promise<any | null>;
-  acceptQuotation(id: string): Promise<any | null>;
-  declineQuotation(id: string, reason?: string): Promise<any | null>;
-  convertToSale(id: string): Promise<any | null>;
-  updateQuotationStatus(id: string, status: string): Promise<any | null>;
-  getExpiredQuotations(): Promise<any[]>;
-  getQuotationStats(filters?: any): Promise<any>;
-  generateQuotationReport(filters?: any): Promise<any>;
-  processExpiredQuotations(): Promise<number>;
-}
-
 export interface IReturnService extends IService<any, any, any, any> {
   getSaleReturns(saleId: string): Promise<any[]>;
   getSaleStateBeforeReturn(saleId: string, returnId?: string): Promise<any>;

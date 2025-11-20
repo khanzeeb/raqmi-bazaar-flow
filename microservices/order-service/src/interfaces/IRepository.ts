@@ -21,13 +21,6 @@ export interface ISaleRepository extends IRepository<any, any> {
   generateSaleNumber(): Promise<string>;
 }
 
-export interface IQuotationRepository extends IRepository<any, any> {
-  findByQuotationNumber(quotationNumber: string): Promise<any | null>;
-  getQuotationStats(filters?: any): Promise<any>;
-  getExpiredQuotations(): Promise<any[]>;
-  generateQuotationNumber(): Promise<string>;
-}
-
 export interface IReturnRepository extends IRepository<any, any> {
   findBySaleId(saleId: string): Promise<any[]>;
   getSaleStateBeforeReturn(saleId: string, returnId?: string): Promise<any>;
