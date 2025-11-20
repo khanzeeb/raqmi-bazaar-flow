@@ -1,6 +1,20 @@
-import { ValidationChain, body, param, query } from 'express-validator';
+import { ValidationChain, body, param, query, validationResult } from 'express-validator';
+import { Request, Response, NextFunction } from 'express';
 
 export abstract class BaseValidator {
+  // Validation error handler
+  static handleValidationErrors(req: Request, res: Response, next: NextFunction): void {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+      return;
+    }
+    next();
+  }
   // Common validation rules
   static readonly commonIdParam: ValidationChain = param('id')
     .isInt({ min: 1 })
