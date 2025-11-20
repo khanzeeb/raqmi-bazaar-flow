@@ -5,17 +5,14 @@ import morgan from 'morgan';
 import compression from 'compression';
 import dotenv from 'dotenv';
 
-import saleRoutes from './routes/saleRoutes';
-import returnRoutes from './routes/returnRoutes';
-import paymentRoutes from './routes/paymentRoutes';
-import invoiceRoutes from './routes/invoiceRoutes';
+import quotationRoutes from './routes/quotationRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3004;
 
 // Middleware
 app.use(helmet());
@@ -26,15 +23,12 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api/sales', saleRoutes);
-app.use('/api/returns', returnRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/invoices', invoiceRoutes);
+app.use('/api/quotations', quotationRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 
-    service: 'order-service',
+    service: 'quotation-service',
     status: 'OK', 
     timestamp: new Date().toISOString() 
   });
@@ -45,5 +39,5 @@ app.use(notFound);
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`Order Service running on port ${PORT}`);
+  console.log(`Quotation Service running on port ${PORT}`);
 });
