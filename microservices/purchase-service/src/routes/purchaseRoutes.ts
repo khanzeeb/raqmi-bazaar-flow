@@ -9,12 +9,22 @@ import {
 
 const router = express.Router();
 
-router.get('/', PurchaseController.getPurchases);
-router.post('/', createPurchaseValidator, PurchaseController.createPurchase);
+// Stats route must come before :id to avoid matching "stats" as an id
 router.get('/stats/summary', PurchaseController.getPurchaseStats);
-router.get('/:id', PurchaseController.getPurchase);
-router.put('/:id', updatePurchaseValidator, PurchaseController.updatePurchase);
-router.delete('/:id', PurchaseController.deletePurchase);
+
+// CRUD operations
+router
+  .route('/')
+  .get(PurchaseController.getPurchases)
+  .post(createPurchaseValidator, PurchaseController.createPurchase);
+
+router
+  .route('/:id')
+  .get(PurchaseController.getPurchase)
+  .put(updatePurchaseValidator, PurchaseController.updatePurchase)
+  .delete(PurchaseController.deletePurchase);
+
+// Purchase actions
 router.patch('/:id/status', updatePurchaseStatusValidator, PurchaseController.updatePurchaseStatus);
 router.post('/:id/receive', PurchaseController.receivePurchase);
 router.post('/:id/payment', addPaymentValidator, PurchaseController.addPayment);

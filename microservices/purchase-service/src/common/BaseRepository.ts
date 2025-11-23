@@ -1,7 +1,8 @@
 import { Knex } from 'knex';
 import db from '../config/database';
+import { IRepository } from '../interfaces/IRepository';
 
-export abstract class BaseRepository<T> {
+export abstract class BaseRepository<T> implements IRepository<T> {
   protected db: Knex;
   protected tableName: string;
 
@@ -44,5 +45,18 @@ export abstract class BaseRepository<T> {
 
   protected applyFilters(query: Knex.QueryBuilder, filters: any): Knex.QueryBuilder {
     return query;
+  }
+
+  // Transaction support for complex operations
+  protected async transaction<R>(callback: (trx: Knex.Transaction) => Promise<R>): Promise<R> {
+    const trx = await this.db.transaction();
+    try {
+      const result = await callback(trx);
+      await trx.commit();
+      return result;
+    } catch (error) {
+      await trx.rollback();
+      throw error;
+    }
   }
 }

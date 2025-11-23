@@ -1,5 +1,6 @@
 import { BaseRepository } from '../common/BaseRepository';
 import { PurchaseData, PurchaseFilter } from '../models/Purchase';
+import { PurchaseItemData } from '../models/PurchaseItem';
 import { Knex } from 'knex';
 
 export class PurchaseRepository extends BaseRepository<PurchaseData> {
@@ -19,6 +20,94 @@ export class PurchaseRepository extends BaseRepository<PurchaseData> {
     const lastNumber = parseInt(lastPurchase.purchase_number.split('-')[1]);
     const newNumber = lastNumber + 1;
     return `PO-${newNumber.toString().padStart(4, '0')}`;
+  }
+
+  async createWithItems(purchaseData: Partial<PurchaseData>, items: Partial<PurchaseItemData>[]): Promise<PurchaseData> {
+    return this.transaction(async (trx) => {
+      const [purchase] = await trx('purchases').insert(purchaseData).returning('*');
+      
+      if (items.length > 0) {
+        const itemsWithPurchaseId = items.map(item => ({
+          ...item,
+          purchase_id: purchase.id,
+        }));
+        await trx('purchase_items').insert(itemsWithPurchaseId);
+      }
+      
+      return purchase;
+    });
+  }
+
+  async updateWithItems(id: string, purchaseData: Partial<PurchaseData>, items?: Partial<PurchaseItemData>[]): Promise<PurchaseData> {
+    return this.transaction(async (trx) => {
+      const [purchase] = await trx('purchases').where({ id }).update(purchaseData).returning('*');
+      
+      if (items) {
+        await trx('purchase_items').where({ purchase_id: id }).del();
+        
+        if (items.length > 0) {
+          const itemsWithPurchaseId = items.map(item => ({
+            ...item,
+            purchase_id: id,
+          }));
+          await trx('purchase_items').insert(itemsWithPurchaseId);
+        }
+      }
+      
+      return purchase;
+    });
+  }
+
+  async deleteWithItems(id: string): Promise<boolean> {
+    return this.transaction(async (trx) => {
+      await trx('purchase_items').where({ purchase_id: id }).del();
+      const deleted = await trx('purchases').where({ id }).del();
+      return deleted > 0;
+    });
+  }
+
+  async updateReceivedItems(id: string, receivedItems?: Array<{ item_id: string; received_quantity: number }>): Promise<PurchaseData> {
+    return this.transaction(async (trx) => {
+      if (receivedItems && receivedItems.length > 0) {
+        for (const item of receivedItems) {
+          await trx('purchase_items')
+            .where({ id: item.item_id })
+            .update({ received_quantity: item.received_quantity });
+        }
+      } else {
+        const items = await trx('purchase_items').where({ purchase_id: id });
+        for (const item of items) {
+          await trx('purchase_items')
+            .where({ id: item.id })
+            .update({ received_quantity: item.quantity });
+        }
+      }
+
+      const [purchase] = await trx('purchases')
+        .where({ id })
+        .update({
+          status: 'received',
+          received_date: new Date(),
+        })
+        .returning('*');
+
+      return purchase;
+    });
+  }
+
+  async updatePayment(id: string, additionalAmount: number): Promise<PurchaseData> {
+    const purchase = await this.findById(id);
+    if (!purchase) throw new Error('Purchase not found');
+
+    const newPaidAmount = Number(purchase.paid_amount) + Number(additionalAmount);
+    const paymentStatus = 
+      newPaidAmount >= Number(purchase.total_amount) ? 'paid' : 
+      newPaidAmount > 0 ? 'partial' : 'pending';
+
+    return this.update(id, {
+      paid_amount: newPaidAmount,
+      payment_status: paymentStatus,
+    }) as Promise<PurchaseData>;
   }
 
   protected applyFilters(query: Knex.QueryBuilder, filters: PurchaseFilter): Knex.QueryBuilder {
