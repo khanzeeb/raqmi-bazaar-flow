@@ -9,11 +9,11 @@ Load Balancer (Nginx)
          ↓
     API Gateway
          ↓
-    ┌─────────────────────────────────────────────────────┐
-    ↓                ↓                  ↓                  ↓
-Product Service  Order Service  Customer Service  Quotation Service
-    ↓                ↓                  ↓                  ↓
- Product DB      Order DB        Customer DB        Quotation DB
+    ┌──────────────────────────────────────────────────────────────────────┐
+    ↓                ↓                  ↓                  ↓                ↓
+Product Service  Order Service  Customer Service  Quotation Service  Purchase Service
+    ↓                ↓                  ↓                  ↓                ↓
+ Product DB      Order DB        Customer DB        Quotation DB      Purchase DB
 ```
 
 ## Services
@@ -44,6 +44,13 @@ Product Service  Order Service  Customer Service  Quotation Service
 - Quotation statistics and reporting
 - Database: `quotation_db`
 
+### 6. Purchase Service (Port 3005)
+- Manages purchase orders
+- Handles supplier transactions
+- Purchase receiving workflow
+- Payment tracking
+- Database: `purchase_db`
+
 ## Running the Services
 
 ### Development Mode
@@ -57,6 +64,7 @@ cd product-service && npm run dev
 cd order-service && npm run dev
 cd customer-service && npm run dev
 cd quotation-service && npm run dev
+cd purchase-service && npm run dev
 ```
 
 ### Production Mode
@@ -74,6 +82,7 @@ Each service requires its own environment variables:
 - `ORDER_SERVICE_URL`
 - `CUSTOMER_SERVICE_URL`
 - `QUOTATION_SERVICE_URL`
+- `PURCHASE_SERVICE_URL`
 
 ### Product Service
 - `PRODUCT_DB_HOST`
@@ -105,6 +114,13 @@ Each service requires its own environment variables:
 - `QUOTATION_DB_PASSWORD`
 - `QUOTATION_DB_NAME`
 
+### Purchase Service
+- `PURCHASE_DB_HOST`
+- `PURCHASE_DB_PORT`
+- `PURCHASE_DB_USER`
+- `PURCHASE_DB_PASSWORD`
+- `PURCHASE_DB_NAME`
+
 ## Database Migration
 
 Each service has its own database and migration scripts:
@@ -121,6 +137,9 @@ cd customer-service && npm run migrate
 
 # Quotation Service
 cd quotation-service && npm run migrate
+
+# Purchase Service
+cd purchase-service && npm run migrate
 ```
 
 ## API Endpoints
@@ -151,6 +170,17 @@ All requests go through the API Gateway at `http://localhost` (or port 80).
 - `POST /api/quotations/:id/decline`
 - `POST /api/quotations/:id/convert-to-sale`
 
+### Purchase Service
+- `GET /api/purchases`
+- `POST /api/purchases`
+- `GET /api/purchases/:id`
+- `PUT /api/purchases/:id`
+- `DELETE /api/purchases/:id`
+- `PATCH /api/purchases/:id/status`
+- `POST /api/purchases/:id/receive`
+- `POST /api/purchases/:id/payment`
+- `GET /api/purchases/stats/summary`
+
 ### Customer Service
 - `GET /api/customers`
 - `POST /api/customers`
@@ -167,3 +197,5 @@ Each service exposes a `/health` endpoint for monitoring:
 - Product Service: `http://localhost:3001/health`
 - Order Service: `http://localhost:3002/health`
 - Customer Service: `http://localhost:3003/health`
+- Quotation Service: `http://localhost:3004/health`
+- Purchase Service: `http://localhost:3005/health`
