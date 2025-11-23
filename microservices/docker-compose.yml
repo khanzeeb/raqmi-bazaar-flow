@@ -23,11 +23,13 @@ services:
       - ORDER_SERVICE_URL=http://order-service:3002
       - CUSTOMER_SERVICE_URL=http://customer-service:3003
       - QUOTATION_SERVICE_URL=http://quotation-service:3004
+      - PURCHASE_SERVICE_URL=http://purchase-service:3005
     depends_on:
       - product-service
       - order-service
       - customer-service
       - quotation-service
+      - purchase-service
     networks:
       - microservices-network
 
@@ -97,6 +99,22 @@ services:
     networks:
       - microservices-network
 
+  # Purchase Service
+  purchase-service:
+    build: ./purchase-service
+    ports:
+      - "3005:3005"
+    environment:
+      - PURCHASE_DB_HOST=purchase-db
+      - PURCHASE_DB_PORT=5432
+      - PURCHASE_DB_USER=postgres
+      - PURCHASE_DB_PASSWORD=password
+      - PURCHASE_DB_NAME=purchase_db
+    depends_on:
+      - purchase-db
+    networks:
+      - microservices-network
+
   # Databases
   product-db:
     image: postgres:15
@@ -142,11 +160,23 @@ services:
     networks:
       - microservices-network
 
+  purchase-db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=purchase_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - purchase-db-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+
 volumes:
   product-db-data:
   order-db-data:
   customer-db-data:
   quotation-db-data:
+  purchase-db-data:
 
 networks:
   microservices-network:
