@@ -24,12 +24,14 @@ services:
       - CUSTOMER_SERVICE_URL=http://customer-service:3003
       - QUOTATION_SERVICE_URL=http://quotation-service:3004
       - PURCHASE_SERVICE_URL=http://purchase-service:3005
+      - EXPENSE_SERVICE_URL=http://expense-service:3006
     depends_on:
       - product-service
       - order-service
       - customer-service
       - quotation-service
       - purchase-service
+      - expense-service
     networks:
       - microservices-network
 
@@ -115,6 +117,22 @@ services:
     networks:
       - microservices-network
 
+  # Expense Service
+  expense-service:
+    build: ./expense-service
+    ports:
+      - "3006:3006"
+    environment:
+      - EXPENSE_DB_HOST=expense-db
+      - EXPENSE_DB_PORT=5432
+      - EXPENSE_DB_USER=postgres
+      - EXPENSE_DB_PASSWORD=password
+      - EXPENSE_DB_NAME=expense_db
+    depends_on:
+      - expense-db
+    networks:
+      - microservices-network
+
   # Databases
   product-db:
     image: postgres:15
@@ -171,12 +189,24 @@ services:
     networks:
       - microservices-network
 
+  expense-db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=expense_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - expense-db-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+
 volumes:
   product-db-data:
   order-db-data:
   customer-db-data:
   quotation-db-data:
   purchase-db-data:
+  expense-db-data:
 
 networks:
   microservices-network:
