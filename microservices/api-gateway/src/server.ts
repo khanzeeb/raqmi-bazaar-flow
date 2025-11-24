@@ -31,6 +31,7 @@ const ORDER_SERVICE_URL = process.env.ORDER_SERVICE_URL || 'http://localhost:300
 const CUSTOMER_SERVICE_URL = process.env.CUSTOMER_SERVICE_URL || 'http://localhost:3003';
 const QUOTATION_SERVICE_URL = process.env.QUOTATION_SERVICE_URL || 'http://localhost:3004';
 const PURCHASE_SERVICE_URL = process.env.PURCHASE_SERVICE_URL || 'http://localhost:3005';
+const EXPENSE_SERVICE_URL = process.env.EXPENSE_SERVICE_URL || 'http://localhost:3006';
 
 // Proxy configurations
 const createProxy = (target: string, pathRewrite?: Record<string, string>) => {
@@ -58,6 +59,8 @@ app.use('/api/quotations', createProxy(QUOTATION_SERVICE_URL, { '^/api/quotation
 
 app.use('/api/purchases', createProxy(PURCHASE_SERVICE_URL, { '^/api/purchases': '/api/purchases' }));
 
+app.use('/api/expenses', createProxy(EXPENSE_SERVICE_URL, { '^/api/expenses': '/api/expenses' }));
+
 app.use('/api/customers', createProxy(CUSTOMER_SERVICE_URL, { '^/api/customers': '/api/customers' }));
 app.use('/api/suppliers', createProxy(CUSTOMER_SERVICE_URL, { '^/api/suppliers': '/api/suppliers' }));
 
@@ -80,4 +83,5 @@ app.listen(PORT, () => {
   console.log(`- Customer Service: ${CUSTOMER_SERVICE_URL}`);
   console.log(`- Quotation Service: ${QUOTATION_SERVICE_URL}`);
   console.log(`- Purchase Service: ${PURCHASE_SERVICE_URL}`);
+  console.log(`- Expense Service: ${EXPENSE_SERVICE_URL}`);
 });

@@ -9,11 +9,11 @@ Load Balancer (Nginx)
          ↓
     API Gateway
          ↓
-    ┌──────────────────────────────────────────────────────────────────────┐
-    ↓                ↓                  ↓                  ↓                ↓
-Product Service  Order Service  Customer Service  Quotation Service  Purchase Service
-    ↓                ↓                  ↓                  ↓                ↓
- Product DB      Order DB        Customer DB        Quotation DB      Purchase DB
+    ┌────────────────────────────────────────────────────────────────────────────────────┐
+    ↓                ↓                  ↓                  ↓                ↓              ↓
+Product Service  Order Service  Customer Service  Quotation Service  Purchase Service  Expense Service
+    ↓                ↓                  ↓                  ↓                ↓              ↓
+ Product DB      Order DB        Customer DB        Quotation DB      Purchase DB    Expense DB
 ```
 
 ## Services
@@ -51,6 +51,14 @@ Product Service  Order Service  Customer Service  Quotation Service  Purchase Se
 - Payment tracking
 - Database: `purchase_db`
 
+### 7. Expense Service (Port 3006)
+- Manages expenses and payments
+- Expense categories and tracking
+- Approval workflow (pending → approved → paid)
+- Receipt attachment
+- Statistics and reporting by category
+- Database: `expense_db`
+
 ## Running the Services
 
 ### Development Mode
@@ -65,6 +73,7 @@ cd order-service && npm run dev
 cd customer-service && npm run dev
 cd quotation-service && npm run dev
 cd purchase-service && npm run dev
+cd expense-service && npm run dev
 ```
 
 ### Production Mode
@@ -83,6 +92,7 @@ Each service requires its own environment variables:
 - `CUSTOMER_SERVICE_URL`
 - `QUOTATION_SERVICE_URL`
 - `PURCHASE_SERVICE_URL`
+- `EXPENSE_SERVICE_URL`
 
 ### Product Service
 - `PRODUCT_DB_HOST`
@@ -121,6 +131,13 @@ Each service requires its own environment variables:
 - `PURCHASE_DB_PASSWORD`
 - `PURCHASE_DB_NAME`
 
+### Expense Service
+- `EXPENSE_DB_HOST`
+- `EXPENSE_DB_PORT`
+- `EXPENSE_DB_USER`
+- `EXPENSE_DB_PASSWORD`
+- `EXPENSE_DB_NAME`
+
 ## Database Migration
 
 Each service has its own database and migration scripts:
@@ -140,6 +157,9 @@ cd quotation-service && npm run migrate
 
 # Purchase Service
 cd purchase-service && npm run migrate
+
+# Expense Service
+cd expense-service && npm run migrate:latest
 ```
 
 ## API Endpoints
@@ -181,6 +201,18 @@ All requests go through the API Gateway at `http://localhost` (or port 80).
 - `POST /api/purchases/:id/payment`
 - `GET /api/purchases/stats/summary`
 
+### Expense Service
+- `GET /api/expenses`
+- `POST /api/expenses`
+- `GET /api/expenses/:id`
+- `PUT /api/expenses/:id`
+- `DELETE /api/expenses/:id`
+- `PATCH /api/expenses/:id/status`
+- `POST /api/expenses/:id/approve`
+- `POST /api/expenses/:id/receipt`
+- `GET /api/expenses/stats/summary`
+- `GET /api/expenses/stats/by-category`
+
 ### Customer Service
 - `GET /api/customers`
 - `POST /api/customers`
@@ -199,3 +231,4 @@ Each service exposes a `/health` endpoint for monitoring:
 - Customer Service: `http://localhost:3003/health`
 - Quotation Service: `http://localhost:3004/health`
 - Purchase Service: `http://localhost:3005/health`
+- Expense Service: `http://localhost:3006/health`
