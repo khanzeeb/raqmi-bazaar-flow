@@ -25,6 +25,7 @@ services:
       - QUOTATION_SERVICE_URL=http://quotation-service:3004
       - PURCHASE_SERVICE_URL=http://purchase-service:3005
       - EXPENSE_SERVICE_URL=http://expense-service:3006
+      - INVOICE_SERVICE_URL=http://invoice-service:3007
     depends_on:
       - product-service
       - order-service
@@ -32,6 +33,7 @@ services:
       - quotation-service
       - purchase-service
       - expense-service
+      - invoice-service
     networks:
       - microservices-network
 
@@ -133,6 +135,22 @@ services:
     networks:
       - microservices-network
 
+  # Invoice Service
+  invoice-service:
+    build: ./invoice-service
+    ports:
+      - "3007:3007"
+    environment:
+      - INVOICE_DB_HOST=invoice-db
+      - INVOICE_DB_PORT=5432
+      - INVOICE_DB_USER=postgres
+      - INVOICE_DB_PASSWORD=password
+      - INVOICE_DB_NAME=invoice_db
+    depends_on:
+      - invoice-db
+    networks:
+      - microservices-network
+
   # Databases
   product-db:
     image: postgres:15
@@ -200,6 +218,17 @@ services:
     networks:
       - microservices-network
 
+  invoice-db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=invoice_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - invoice-db-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+
 volumes:
   product-db-data:
   order-db-data:
@@ -207,6 +236,7 @@ volumes:
   quotation-db-data:
   purchase-db-data:
   expense-db-data:
+  invoice-db-data:
 
 networks:
   microservices-network:
