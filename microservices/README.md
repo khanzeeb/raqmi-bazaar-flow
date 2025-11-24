@@ -9,11 +9,11 @@ Load Balancer (Nginx)
          ↓
     API Gateway
          ↓
-    ┌────────────────────────────────────────────────────────────────────────────────────┐
-    ↓                ↓                  ↓                  ↓                ↓              ↓
-Product Service  Order Service  Customer Service  Quotation Service  Purchase Service  Expense Service
-    ↓                ↓                  ↓                  ↓                ↓              ↓
- Product DB      Order DB        Customer DB        Quotation DB      Purchase DB    Expense DB
+    ┌────────────────────────────────────────────────────────────────────────────────────────────────────┐
+    ↓                ↓                  ↓                  ↓                ↓              ↓                ↓
+Product Service  Order Service  Customer Service  Quotation Service  Purchase Service  Expense Service  Invoice Service
+    ↓                ↓                  ↓                  ↓                ↓              ↓                ↓
+ Product DB      Order DB        Customer DB        Quotation DB      Purchase DB    Expense DB      Invoice DB
 ```
 
 ## Services
@@ -59,6 +59,16 @@ Product Service  Order Service  Customer Service  Quotation Service  Purchase Se
 - Statistics and reporting by category
 - Database: `expense_db`
 
+### 8. Invoice Service (Port 3007)
+- Manages invoices and billing
+- Invoice status workflow (draft, sent, paid, overdue, cancelled)
+- Payment tracking and allocation
+- PDF generation capabilities
+- Email sending functionality
+- Invoice statistics and reporting
+- Due date management and overdue detection
+- Database: `invoice_db`
+
 ## Running the Services
 
 ### Development Mode
@@ -74,6 +84,7 @@ cd customer-service && npm run dev
 cd quotation-service && npm run dev
 cd purchase-service && npm run dev
 cd expense-service && npm run dev
+cd invoice-service && npm run dev
 ```
 
 ### Production Mode
@@ -93,6 +104,7 @@ Each service requires its own environment variables:
 - `QUOTATION_SERVICE_URL`
 - `PURCHASE_SERVICE_URL`
 - `EXPENSE_SERVICE_URL`
+- `INVOICE_SERVICE_URL`
 
 ### Product Service
 - `PRODUCT_DB_HOST`
@@ -138,6 +150,13 @@ Each service requires its own environment variables:
 - `EXPENSE_DB_PASSWORD`
 - `EXPENSE_DB_NAME`
 
+### Invoice Service
+- `INVOICE_DB_HOST`
+- `INVOICE_DB_PORT`
+- `INVOICE_DB_USER`
+- `INVOICE_DB_PASSWORD`
+- `INVOICE_DB_NAME`
+
 ## Database Migration
 
 Each service has its own database and migration scripts:
@@ -160,6 +179,9 @@ cd purchase-service && npm run migrate
 
 # Expense Service
 cd expense-service && npm run migrate:latest
+
+# Invoice Service
+cd invoice-service && npm run migrate:latest
 ```
 
 ## API Endpoints
@@ -176,7 +198,6 @@ All requests go through the API Gateway at `http://localhost` (or port 80).
 - `POST /api/sales`
 - `GET /api/returns`
 - `GET /api/payments`
-- `GET /api/invoices`
 
 ### Quotation Service
 - `GET /api/quotations`
@@ -212,6 +233,22 @@ All requests go through the API Gateway at `http://localhost` (or port 80).
 - `POST /api/expenses/:id/receipt`
 - `GET /api/expenses/stats/summary`
 - `GET /api/expenses/stats/by-category`
+
+### Invoice Service
+- `GET /api/invoices`
+- `POST /api/invoices`
+- `GET /api/invoices/:id`
+- `PUT /api/invoices/:id`
+- `DELETE /api/invoices/:id`
+- `PATCH /api/invoices/:id/status`
+- `POST /api/invoices/:id/send`
+- `POST /api/invoices/:id/mark-paid`
+- `POST /api/invoices/:id/payment`
+- `GET /api/invoices/:id/pdf`
+- `POST /api/invoices/:id/email`
+- `GET /api/invoices/stats/summary`
+- `GET /api/invoices/stats/by-status`
+- `POST /api/invoices/check-overdue`
 
 ### Customer Service
 - `GET /api/customers`
