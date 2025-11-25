@@ -151,6 +151,81 @@ services:
     networks:
       - microservices-network
 
+  report-service:
+    build: ./report-service
+    ports:
+      - "3008:3008"
+    environment:
+      - DB_HOST=report-db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=report_db
+    depends_on:
+      - report-db
+    networks:
+      - microservices-network
+
+  pricing-service:
+    build: ./pricing-service
+    ports:
+      - "3009:3009"
+    environment:
+      - DB_HOST=pricing-db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=pricing_db
+    depends_on:
+      - pricing-db
+    networks:
+      - microservices-network
+
+  return-service:
+    build: ./return-service
+    ports:
+      - "3010:3010"
+    environment:
+      - DB_HOST=return-db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=return_db
+    depends_on:
+      - return-db
+    networks:
+      - microservices-network
+
+  inventory-service:
+    build: ./inventory-service
+    ports:
+      - "3011:3011"
+    environment:
+      - DB_HOST=inventory-db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=inventory_db
+    depends_on:
+      - inventory-db
+    networks:
+      - microservices-network
+
+  settings-service:
+    build: ./settings-service
+    ports:
+      - "3012:3012"
+    environment:
+      - DB_HOST=settings-db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=settings_db
+    depends_on:
+      - settings-db
+    networks:
+      - microservices-network
+
   # Databases
   product-db:
     image: postgres:15
@@ -229,6 +304,61 @@ services:
     networks:
       - microservices-network
 
+  report-db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=report_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - report-db-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+
+  pricing-db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=pricing_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - pricing-db-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+
+  return-db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=return_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - return-db-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+
+  inventory-db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=inventory_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - inventory-db-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+
+  settings-db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=settings_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - settings-db-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+
 volumes:
   product-db-data:
   order-db-data:
@@ -237,6 +367,11 @@ volumes:
   purchase-db-data:
   expense-db-data:
   invoice-db-data:
+  report-db-data:
+  pricing-db-data:
+  return-db-data:
+  inventory-db-data:
+  settings-db-data:
 
 networks:
   microservices-network:
