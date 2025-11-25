@@ -33,6 +33,11 @@ const QUOTATION_SERVICE_URL = process.env.QUOTATION_SERVICE_URL || 'http://local
 const PURCHASE_SERVICE_URL = process.env.PURCHASE_SERVICE_URL || 'http://localhost:3005';
 const EXPENSE_SERVICE_URL = process.env.EXPENSE_SERVICE_URL || 'http://localhost:3006';
 const INVOICE_SERVICE_URL = process.env.INVOICE_SERVICE_URL || 'http://localhost:3007';
+const REPORT_SERVICE_URL = process.env.REPORT_SERVICE_URL || 'http://localhost:3008';
+const PRICING_SERVICE_URL = process.env.PRICING_SERVICE_URL || 'http://localhost:3009';
+const RETURN_SERVICE_URL = process.env.RETURN_SERVICE_URL || 'http://localhost:3010';
+const INVENTORY_SERVICE_URL = process.env.INVENTORY_SERVICE_URL || 'http://localhost:3011';
+const SETTINGS_SERVICE_URL = process.env.SETTINGS_SERVICE_URL || 'http://localhost:3012';
 
 // Proxy configurations
 const createProxy = (target: string, pathRewrite?: Record<string, string>) => {
@@ -62,6 +67,12 @@ app.use('/api/purchases', createProxy(PURCHASE_SERVICE_URL, { '^/api/purchases':
 app.use('/api/expenses', createProxy(EXPENSE_SERVICE_URL, { '^/api/expenses': '/api/expenses' }));
 
 app.use('/api/invoices', createProxy(INVOICE_SERVICE_URL, { '^/api/invoices': '/api/invoices' }));
+
+app.use('/api/reports', createProxy(REPORT_SERVICE_URL, { '^/api/reports': '/api/reports' }));
+app.use('/api/pricing', createProxy(PRICING_SERVICE_URL, { '^/api/pricing': '/api/pricing' }));
+app.use('/api/returns', createProxy(RETURN_SERVICE_URL, { '^/api/returns': '/api/returns' }));
+app.use('/api/inventory', createProxy(INVENTORY_SERVICE_URL, { '^/api/inventory': '/api/inventory' }));
+app.use('/api/settings', createProxy(SETTINGS_SERVICE_URL, { '^/api/settings': '/api/settings' }));
 
 app.use('/api/customers', createProxy(CUSTOMER_SERVICE_URL, { '^/api/customers': '/api/customers' }));
 app.use('/api/suppliers', createProxy(CUSTOMER_SERVICE_URL, { '^/api/suppliers': '/api/suppliers' }));
