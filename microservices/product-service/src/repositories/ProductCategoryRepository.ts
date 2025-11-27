@@ -1,127 +1,101 @@
-import { Knex } from 'knex';
-import { BaseRepository } from '../common/BaseRepository';
-import { IProductCategoryRepository } from '../interfaces/IRepository';
-import { ProductCategoryData, ProductCategoryFilters } from '../models/ProductCategory';
-import ProductCategoryMapper from '../mappers/ProductCategoryMapper';
+import { Prisma, CategoryStatus } from '@prisma/client';
+import prisma from '../config/prisma';
 
-class ProductCategoryRepository extends BaseRepository<ProductCategoryData, ProductCategoryFilters> implements IProductCategoryRepository {
-  protected tableName = 'product_categories';
+export interface CategoryFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  parent_id?: string;
+  status?: CategoryStatus;
+}
 
-  async findById(id: string): Promise<ProductCategoryData | null> {
-    const category = await this.db(this.tableName).where({ id }).first();
-    if (!category) return null;
-    
-    const children = await this.db(this.tableName)
-      .where({ parent_id: id })
-      .orderBy('sort_order', 'asc');
-    
-    const categoryData = ProductCategoryMapper.toProductCategoryData(category);
-    categoryData.children = ProductCategoryMapper.toProductCategoryDataList(children);
-    
-    return categoryData;
-  }
-
-  protected buildFindAllQuery(filters: ProductCategoryFilters): Knex.QueryBuilder {
-    let query = this.db(this.tableName);
-    
-    this.applyParentFilter(query, filters);
-    this.applyStatusFilter(query, filters);
-    
-    if (filters.search) {
-      this.applySearchFilter(query, filters.search, ['name', 'description']);
-    }
-    
-    return query.orderBy('sort_order', 'asc').orderBy('name', 'asc');
-  }
-
-  protected buildCountQuery(filters: ProductCategoryFilters): Knex.QueryBuilder {
-    let query = this.db(this.tableName).count('* as count');
-    
-    this.applyParentFilter(query, filters);
-    this.applyStatusFilter(query, filters);
-    
-    if (filters.search) {
-      this.applySearchFilter(query, filters.search, ['name', 'description']);
-    }
-    
-    return query;
-  }
-
-  private applyParentFilter(query: Knex.QueryBuilder, filters: ProductCategoryFilters): void {
-    if (filters.parent_id !== undefined) {
-      if (filters.parent_id === null || filters.parent_id === '') {
-        query.whereNull('parent_id');
-      } else {
-        query.where('parent_id', filters.parent_id);
+class ProductCategoryRepository {
+  async findById(id: string) {
+    const category = await prisma.productCategory.findUnique({
+      where: { id },
+      include: {
+        children: {
+          orderBy: [{ sort_order: 'asc' }, { name: 'asc' }]
+        }
       }
-    }
-  }
-
-  private applyStatusFilter(query: Knex.QueryBuilder, filters: ProductCategoryFilters): void {
-    if (filters.status) {
-      query.where('status', filters.status);
-    }
-  }
-
-  async create(data: Omit<ProductCategoryData, 'id' | 'created_at' | 'updated_at'>): Promise<ProductCategoryData> {
-    const dbData = ProductCategoryMapper.toDatabase(data);
-    const [category] = await this.db(this.tableName)
-      .insert({
-        ...dbData,
-        created_at: new Date(),
-        updated_at: new Date()
-      })
-      .returning('*');
-    
-    return ProductCategoryMapper.toProductCategoryData(category);
-  }
-
-  async update(id: string, data: Partial<ProductCategoryData>): Promise<ProductCategoryData | null> {
-    const dbData = ProductCategoryMapper.toDatabase(data);
-    const [category] = await this.db(this.tableName)
-      .where({ id })
-      .update({
-        ...dbData,
-        updated_at: new Date()
-      })
-      .returning('*');
-    
-    return category ? ProductCategoryMapper.toProductCategoryData(category) : null;
-  }
-
-  async delete(id: string): Promise<boolean> {
-    const trx = await this.db.transaction();
-    
-    try {
-      await trx(this.tableName)
-        .where({ parent_id: id })
-        .update({ parent_id: null });
-      
-      await trx(this.tableName).where({ id }).del();
-      
-      await trx.commit();
-      return true;
-    } catch (error) {
-      await trx.rollback();
-      throw error;
-    }
-  }
-
-  async getTree(): Promise<ProductCategoryData[]> {
-    const categories = await this.db(this.tableName)
-      .where({ status: 'active' })
-      .orderBy('sort_order', 'asc')
-      .orderBy('name', 'asc');
-    
-    const categoryMap = new Map();
-    const tree: ProductCategoryData[] = [];
-    
-    categories.forEach(category => {
-      const categoryData = ProductCategoryMapper.toProductCategoryData(category);
-      categoryData.children = [];
-      categoryMap.set(category.id, categoryData);
     });
-    
+
+    return category;
+  }
+
+  async findAll(filters: CategoryFilters) {
+    const page = filters.page || 1;
+    const limit = filters.limit || 50;
+    const skip = (page - 1) * limit;
+
+    const where = this.buildWhereClause(filters);
+
+    const [data, total] = await Promise.all([
+      prisma.productCategory.findMany({
+        where,
+        orderBy: [{ sort_order: 'asc' }, { name: 'asc' }],
+        skip,
+        take: limit
+      }),
+      prisma.productCategory.count({ where })
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
+  }
+
+  async count(filters: CategoryFilters) {
+    const where = this.buildWhereClause(filters);
+    return prisma.productCategory.count({ where });
+  }
+
+  async create(data: Prisma.ProductCategoryCreateInput) {
+    return prisma.productCategory.create({ data });
+  }
+
+  async update(id: string, data: Prisma.ProductCategoryUpdateInput) {
+    return prisma.productCategory.update({
+      where: { id },
+      data
+    });
+  }
+
+  async delete(id: string) {
+    return prisma.$transaction(async (tx) => {
+      // Update children to remove parent reference
+      await tx.productCategory.updateMany({
+        where: { parent_id: id },
+        data: { parent_id: null }
+      });
+
+      // Delete the category
+      await tx.productCategory.delete({
+        where: { id }
+      });
+
+      return true;
+    });
+  }
+
+  async getTree() {
+    const categories = await prisma.productCategory.findMany({
+      where: { status: 'active' },
+      orderBy: [{ sort_order: 'asc' }, { name: 'asc' }]
+    });
+
+    // Build tree structure
+    const categoryMap = new Map();
+    const tree: any[] = [];
+
+    categories.forEach(category => {
+      categoryMap.set(category.id, { ...category, children: [] });
+    });
+
     categories.forEach(category => {
       const categoryWithChildren = categoryMap.get(category.id);
       if (category.parent_id && categoryMap.has(category.parent_id)) {
@@ -130,8 +104,33 @@ class ProductCategoryRepository extends BaseRepository<ProductCategoryData, Prod
         tree.push(categoryWithChildren);
       }
     });
-    
+
     return tree;
+  }
+
+  private buildWhereClause(filters: CategoryFilters): Prisma.ProductCategoryWhereInput {
+    const where: Prisma.ProductCategoryWhereInput = {};
+
+    if (filters.search) {
+      where.OR = [
+        { name: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: filters.search, mode: 'insensitive' } }
+      ];
+    }
+
+    if (filters.parent_id !== undefined) {
+      if (filters.parent_id === '' || filters.parent_id === null) {
+        where.parent_id = null;
+      } else {
+        where.parent_id = filters.parent_id;
+      }
+    }
+
+    if (filters.status) {
+      where.status = filters.status;
+    }
+
+    return where;
   }
 }
 

@@ -1,18 +1,52 @@
-import express from 'express';
+import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import ProductVariantController from '../controllers/ProductVariantController';
 import {
-  createProductVariantValidator,
-  updateProductVariantValidator,
-  productVariantIdValidator
-} from '../validators/productVariantValidator';
-import { productIdValidator } from '../validators/productValidator';
+  CreateVariantSchema,
+  UpdateVariantSchema,
+  ProductIdParamSchema,
+  IdParamSchema
+} from '../schemas/variantSchemas';
 
-const router = express.Router();
+export default async function productVariantRoutes(fastify: FastifyInstance, opts: FastifyPluginOptions) {
+  // Get variants for a product
+  fastify.get('/:productId/variants', {
+    schema: {
+      params: ProductIdParamSchema
+    },
+    handler: ProductVariantController.getVariants
+  });
 
-router.get('/:productId/variants', productIdValidator, ProductVariantController.getVariants);
-router.get('/variants/:id', productVariantIdValidator, ProductVariantController.getVariant);
-router.post('/:productId/variants', [productIdValidator, ...createProductVariantValidator], ProductVariantController.createVariant);
-router.put('/variants/:id', updateProductVariantValidator, ProductVariantController.updateVariant);
-router.delete('/variants/:id', productVariantIdValidator, ProductVariantController.deleteVariant);
+  // Get single variant
+  fastify.get('/variants/:id', {
+    schema: {
+      params: IdParamSchema
+    },
+    handler: ProductVariantController.getVariant
+  });
 
-export default router;
+  // Create variant
+  fastify.post('/:productId/variants', {
+    schema: {
+      params: ProductIdParamSchema,
+      body: CreateVariantSchema
+    },
+    handler: ProductVariantController.createVariant
+  });
+
+  // Update variant
+  fastify.put('/variants/:id', {
+    schema: {
+      params: IdParamSchema,
+      body: UpdateVariantSchema
+    },
+    handler: ProductVariantController.updateVariant
+  });
+
+  // Delete variant
+  fastify.delete('/variants/:id', {
+    schema: {
+      params: IdParamSchema
+    },
+    handler: ProductVariantController.deleteVariant
+  });
+}

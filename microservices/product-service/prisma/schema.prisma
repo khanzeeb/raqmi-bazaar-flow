@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id                String           @id @default(uuid()) @db.Uuid
+  name              String           @db.VarChar(255)
+  sku               String           @unique @db.VarChar(100)
+  category          String?          @db.VarChar(100)
+  category_id       String?          @db.Uuid
+  price             Decimal          @db.Decimal(10, 2)
+  cost              Decimal          @db.Decimal(10, 2)
+  stock             Int              @default(0)
+  min_stock         Int              @default(0)
+  max_stock         Int              @default(1000)
+  image             String?          @db.VarChar(500)
+  images            Json?
+  description       String?          @db.Text
+  short_description String?          @db.VarChar(255)
+  status            ProductStatus    @default(active)
+  supplier          String?          @db.VarChar(255)
+  barcode           String?          @db.VarChar(50)
+  weight            Decimal?         @db.Decimal(8, 2)
+  dimensions        Json?
+  tags              Json?
+  created_at        DateTime         @default(now())
+  updated_at        DateTime         @updatedAt
+
+  category_rel      ProductCategory? @relation(fields: [category_id], references: [id])
+  variants          ProductVariant[]
+  stock_movements   StockMovement[]
+
+  @@map("products")
+}
+
+model ProductCategory {
+  id          String            @id @default(uuid()) @db.Uuid
+  name        String            @db.VarChar(255)
+  slug        String            @unique @db.VarChar(255)
+  description String?           @db.Text
+  image       String?           @db.VarChar(500)
+  parent_id   String?           @db.Uuid
+  sort_order  Int               @default(0)
+  status      CategoryStatus    @default(active)
+  meta_data   Json?
+  created_at  DateTime          @default(now())
+  updated_at  DateTime          @updatedAt
+
+  parent      ProductCategory?  @relation("CategoryHierarchy", fields: [parent_id], references: [id])
+  children    ProductCategory[] @relation("CategoryHierarchy")
+  products    Product[]
+
+  @@map("product_categories")
+}
+
+model ProductVariant {
+  id              String           @id @default(uuid()) @db.Uuid
+  product_id      String           @db.Uuid
+  name            String           @db.VarChar(255)
+  sku             String?          @db.VarChar(100)
+  barcode         String?          @db.VarChar(50)
+  price           Decimal          @db.Decimal(10, 2)
+  cost            Decimal          @db.Decimal(10, 2)
+  stock           Int              @default(0)
+  min_stock       Int              @default(0)
+  weight          Decimal?         @db.Decimal(8, 2)
+  dimensions      Json?
+  attributes      Json?
+  image           String?          @db.VarChar(500)
+  images          Json?
+  status          VariantStatus    @default(active)
+  sort_order      Int              @default(0)
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @updatedAt
+
+  product         Product          @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  stock_movements StockMovement[]
+
+  @@map("product_variants")
+}
+
+model StockMovement {
+  id                 String          @id @default(uuid()) @db.Uuid
+  product_id         String?         @db.Uuid
+  product_variant_id String?         @db.Uuid
+  type               MovementType
+  quantity           Int
+  reason             String?         @db.VarChar(255)
+  created_at         DateTime        @default(now())
+
+  product            Product?        @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  product_variant    ProductVariant? @relation(fields: [product_variant_id], references: [id], onDelete: Cascade)
+
+  @@map("stock_movements")
+}
+
+enum ProductStatus {
+  active
+  inactive
+  discontinued
+}
+
+enum CategoryStatus {
+  active
+  inactive
+}
+
+enum VariantStatus {
+  active
+  inactive
+}
+
+enum MovementType {
+  adjustment
+  sale
+  purchase
+  return
+  transfer
+}
