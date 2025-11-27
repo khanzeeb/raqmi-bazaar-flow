@@ -37,17 +37,15 @@ services:
     networks:
       - microservices-network
 
-  # Product Service
+  # Product Service (Fastify + Prisma)
   product-service:
     build: ./product-service
     ports:
       - "3001:3001"
     environment:
-      - PRODUCT_DB_HOST=product-db
-      - PRODUCT_DB_PORT=5432
-      - PRODUCT_DB_USER=postgres
-      - PRODUCT_DB_PASSWORD=password
-      - PRODUCT_DB_NAME=product_db
+      - DATABASE_URL=postgresql://postgres:password@product-db:5432/product_db?schema=public
+      - NODE_ENV=production
+      - PORT=3001
     depends_on:
       - product-db
     networks:

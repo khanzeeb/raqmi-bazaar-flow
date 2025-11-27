@@ -1,83 +1,155 @@
-import { Request, Response } from 'express';
-import { BaseController } from '../common/BaseController';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import ProductCategoryService from '../services/ProductCategoryService';
+import { CategoryQueryInput, CreateCategoryInput, UpdateCategoryInput } from '../schemas/categorySchemas';
 
-class ProductCategoryController extends BaseController {
-  async getCategories(req: Request, res: Response): Promise<void> {
-    await this.executeOperation(
-      req,
-      res,
-      async () => {
-        const filters = this.extractFilters(req);
-        return await ProductCategoryService.getAll(filters);
-      },
-      'Product categories fetched successfully',
-      'Failed to fetch product categories'
-    );
+class ProductCategoryController {
+  async getCategories(
+    request: FastifyRequest<{ Querystring: CategoryQueryInput }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const filters = {
+        page: request.query.page || 1,
+        limit: request.query.limit || 50,
+        search: request.query.search,
+        parent_id: request.query.parent_id,
+        status: request.query.status
+      };
+
+      const result = await ProductCategoryService.getAll(filters);
+      return reply.send({
+        success: true,
+        message: 'Product categories fetched successfully',
+        data: result
+      });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        message: 'Failed to fetch product categories'
+      });
+    }
   }
 
-  async getCategoryTree(req: Request, res: Response): Promise<void> {
-    await this.executeOperation(
-      req,
-      res,
-      async () => await ProductCategoryService.getTree(),
-      'Category tree fetched successfully',
-      'Failed to fetch category tree'
-    );
+  async getCategoryTree(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const tree = await ProductCategoryService.getTree();
+      return reply.send({
+        success: true,
+        message: 'Category tree fetched successfully',
+        data: tree
+      });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        message: 'Failed to fetch category tree'
+      });
+    }
   }
 
-  async getCategory(req: Request, res: Response): Promise<void> {
-    await this.executeOperation(
-      req,
-      res,
-      async () => await ProductCategoryService.getById(req.params.id),
-      'Category fetched successfully',
-      'Failed to fetch category'
-    );
+  async getCategory(
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const category = await ProductCategoryService.getById(request.params.id);
+      
+      if (!category) {
+        return reply.status(404).send({
+          success: false,
+          message: 'Category not found'
+        });
+      }
+
+      return reply.send({
+        success: true,
+        message: 'Category fetched successfully',
+        data: category
+      });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        message: 'Failed to fetch category'
+      });
+    }
   }
 
-  async createCategory(req: Request, res: Response): Promise<void> {
-    await this.executeOperation(
-      req,
-      res,
-      async () => await ProductCategoryService.create(req.body),
-      'Product category created successfully',
-      'Failed to create product category',
-      201
-    );
+  async createCategory(
+    request: FastifyRequest<{ Body: CreateCategoryInput }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const category = await ProductCategoryService.create(request.body);
+      return reply.status(201).send({
+        success: true,
+        message: 'Product category created successfully',
+        data: category
+      });
+    } catch (error: any) {
+      request.log.error(error);
+      return reply.status(400).send({
+        success: false,
+        message: error.message || 'Failed to create product category'
+      });
+    }
   }
 
-  async updateCategory(req: Request, res: Response): Promise<void> {
-    await this.executeOperation(
-      req,
-      res,
-      async () => await ProductCategoryService.update(req.params.id, req.body),
-      'Product category updated successfully',
-      'Failed to update product category'
-    );
+  async updateCategory(
+    request: FastifyRequest<{ Params: { id: string }; Body: UpdateCategoryInput }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const category = await ProductCategoryService.update(request.params.id, request.body);
+      
+      if (!category) {
+        return reply.status(404).send({
+          success: false,
+          message: 'Category not found'
+        });
+      }
+
+      return reply.send({
+        success: true,
+        message: 'Product category updated successfully',
+        data: category
+      });
+    } catch (error: any) {
+      request.log.error(error);
+      return reply.status(400).send({
+        success: false,
+        message: error.message || 'Failed to update product category'
+      });
+    }
   }
 
-  async deleteCategory(req: Request, res: Response): Promise<void> {
-    await this.executeOperation(
-      req,
-      res,
-      async () => {
-        const success = await ProductCategoryService.delete(req.params.id);
-        return success ? { deleted: true } : null;
-      },
-      'Product category deleted successfully',
-      'Failed to delete product category'
-    );
-  }
+  async deleteCategory(
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const success = await ProductCategoryService.delete(request.params.id);
+      
+      if (!success) {
+        return reply.status(404).send({
+          success: false,
+          message: 'Category not found'
+        });
+      }
 
-  private extractFilters(req: Request) {
-    return {
-      parent_id: req.query.parent_id as string,
-      status: req.query.status as 'active' | 'inactive',
-      search: req.query.search as string,
-      page: parseInt(req.query.page as string) || 1,
-      limit: parseInt(req.query.limit as string) || 50
-    };
+      return reply.send({
+        success: true,
+        message: 'Product category deleted successfully',
+        data: { deleted: true }
+      });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        message: 'Failed to delete product category'
+      });
+    }
   }
 }
 

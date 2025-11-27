@@ -1,45 +1,57 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
-import compression from 'compression';
+import Fastify from 'fastify';
+import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
+import compress from '@fastify/compress';
 import dotenv from 'dotenv';
 
 import productRoutes from './routes/productRoutes';
-import inventoryRoutes from './routes/inventoryRoutes';
-import { errorHandler } from './middleware/errorHandler';
-import { notFound } from './middleware/notFound';
+import productCategoryRoutes from './routes/productCategoryRoutes';
+import productVariantRoutes from './routes/productVariantRoutes';
+import { errorHandler } from './plugins/errorHandler';
 
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 3001;
+const app = Fastify({
+  logger: {
+    level: process.env.LOG_LEVEL || 'info',
+    transport: process.env.NODE_ENV === 'development' ? {
+      target: 'pino-pretty',
+      options: { colorize: true }
+    } : undefined
+  }
+});
 
-// Middleware
-app.use(helmet());
-app.use(cors());
-app.use(compression());
-app.use(morgan('combined'));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+const PORT = parseInt(process.env.PORT || '3001');
 
-// Routes
-app.use('/api/products', productRoutes);
-app.use('/api/inventory', inventoryRoutes);
+// Register plugins
+app.register(helmet);
+app.register(cors, { origin: true });
+app.register(compress);
+app.register(errorHandler);
+
+// Register routes
+app.register(productRoutes, { prefix: '/api/products' });
+app.register(productCategoryRoutes, { prefix: '/api/categories' });
+app.register(productVariantRoutes, { prefix: '/api/products' });
 
 // Health check
-app.get('/health', (req, res) => {
-  res.json({ 
-    service: 'product-service',
-    status: 'OK', 
-    timestamp: new Date().toISOString() 
-  });
-});
+app.get('/health', async () => ({
+  service: 'product-service',
+  status: 'OK',
+  timestamp: new Date().toISOString()
+}));
 
-// Error handling
-app.use(notFound);
-app.use(errorHandler);
+// Start server
+const start = async () => {
+  try {
+    await app.listen({ port: PORT, host: '0.0.0.0' });
+    console.log(`Product Service running on port ${PORT}`);
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
+};
 
-app.listen(PORT, () => {
-  console.log(`Product Service running on port ${PORT}`);
-});
+start();
+
+export default app;

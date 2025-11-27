@@ -1,128 +1,231 @@
-import { Request, Response } from 'express';
-import { BaseController } from '../common/BaseController';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import ProductService from '../services/ProductService';
+import { ProductQueryInput, CreateProductInput, UpdateProductInput, UpdateStockInput, IdParam } from '../schemas/productSchemas';
 
-class ProductController extends BaseController {
-  async getProducts(req: Request, res: Response): Promise<void> {
-    await this.executeOperation(
-      req,
-      res,
-      async () => {
-        const filters = this.extractProductFilters(req);
-        return await ProductService.getAll(filters);
-      },
-      'Products fetched successfully',
-      'Failed to fetch products'
-    );
+class ProductController {
+  async getProducts(
+    request: FastifyRequest<{ Querystring: ProductQueryInput }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const filters = {
+        page: request.query.page || 1,
+        limit: request.query.limit || 10,
+        search: request.query.search,
+        category: request.query.category,
+        category_id: request.query.category_id,
+        status: request.query.status,
+        stockStatus: request.query.stockStatus,
+        sortBy: request.query.sortBy,
+        sortOrder: request.query.sortOrder,
+        supplier: request.query.supplier,
+        priceRange: request.query.priceMin && request.query.priceMax ? {
+          min: request.query.priceMin,
+          max: request.query.priceMax
+        } : undefined
+      };
+
+      const result = await ProductService.getAll(filters);
+      return reply.send({
+        success: true,
+        message: 'Products fetched successfully',
+        data: result
+      });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        message: 'Failed to fetch products'
+      });
+    }
   }
 
-  async getProduct(req: Request, res: Response): Promise<void> {
-    await this.executeOperation(
-      req,
-      res,
-      async () => await ProductService.getById(req.params.id),
-      'Product fetched successfully',
-      'Failed to fetch product'
-    );
+  async getProduct(
+    request: FastifyRequest<{ Params: IdParam }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const product = await ProductService.getById(request.params.id);
+      
+      if (!product) {
+        return reply.status(404).send({
+          success: false,
+          message: 'Product not found'
+        });
+      }
+
+      return reply.send({
+        success: true,
+        message: 'Product fetched successfully',
+        data: product
+      });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        message: 'Failed to fetch product'
+      });
+    }
   }
 
-  async createProduct(req: Request, res: Response): Promise<void> {
-    await this.executeOperation(
-      req,
-      res,
-      async () => await ProductService.create(req.body),
-      'Product created successfully',
-      'Failed to create product',
-      201
-    );
+  async createProduct(
+    request: FastifyRequest<{ Body: CreateProductInput }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const product = await ProductService.create(request.body);
+      return reply.status(201).send({
+        success: true,
+        message: 'Product created successfully',
+        data: product
+      });
+    } catch (error: any) {
+      request.log.error(error);
+      return reply.status(400).send({
+        success: false,
+        message: error.message || 'Failed to create product'
+      });
+    }
   }
 
-  async updateProduct(req: Request, res: Response): Promise<void> {
-    await this.executeOperation(
-      req,
-      res,
-      async () => await ProductService.update(req.params.id, req.body),
-      'Product updated successfully',
-      'Failed to update product'
-    );
+  async updateProduct(
+    request: FastifyRequest<{ Params: IdParam; Body: UpdateProductInput }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const product = await ProductService.update(request.params.id, request.body);
+      
+      if (!product) {
+        return reply.status(404).send({
+          success: false,
+          message: 'Product not found'
+        });
+      }
+
+      return reply.send({
+        success: true,
+        message: 'Product updated successfully',
+        data: product
+      });
+    } catch (error: any) {
+      request.log.error(error);
+      return reply.status(400).send({
+        success: false,
+        message: error.message || 'Failed to update product'
+      });
+    }
   }
 
-  async deleteProduct(req: Request, res: Response): Promise<void> {
-    await this.executeOperation(
-      req,
-      res,
-      async () => {
-        const success = await ProductService.delete(req.params.id);
-        return success ? { deleted: true } : null;
-      },
-      'Product deleted successfully',
-      'Failed to delete product'
-    );
+  async deleteProduct(
+    request: FastifyRequest<{ Params: IdParam }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const success = await ProductService.delete(request.params.id);
+      
+      if (!success) {
+        return reply.status(404).send({
+          success: false,
+          message: 'Product not found'
+        });
+      }
+
+      return reply.send({
+        success: true,
+        message: 'Product deleted successfully',
+        data: { deleted: true }
+      });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        message: 'Failed to delete product'
+      });
+    }
   }
 
-  async updateStock(req: Request, res: Response): Promise<void> {
-    await this.executeOperation(
-      req,
-      res,
-      async () => {
-        const { stock, reason } = req.body;
-        return await ProductService.updateStock(req.params.id, stock, reason);
-      },
-      'Stock updated successfully',
-      'Failed to update stock'
-    );
+  async updateStock(
+    request: FastifyRequest<{ Params: IdParam; Body: UpdateStockInput }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { stock, reason } = request.body;
+      const product = await ProductService.updateStock(request.params.id, stock, reason);
+      
+      if (!product) {
+        return reply.status(404).send({
+          success: false,
+          message: 'Product not found'
+        });
+      }
+
+      return reply.send({
+        success: true,
+        message: 'Stock updated successfully',
+        data: product
+      });
+    } catch (error: any) {
+      request.log.error(error);
+      return reply.status(400).send({
+        success: false,
+        message: error.message || 'Failed to update stock'
+      });
+    }
   }
 
-  async getSuppliers(req: Request, res: Response): Promise<void> {
-    await this.executeOperation(
-      req,
-      res,
-      async () => await ProductService.getSuppliers(),
-      'Suppliers fetched successfully',
-      'Failed to fetch suppliers'
-    );
+  async getSuppliers(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const suppliers = await ProductService.getSuppliers();
+      return reply.send({
+        success: true,
+        message: 'Suppliers fetched successfully',
+        data: suppliers
+      });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        message: 'Failed to fetch suppliers'
+      });
+    }
   }
 
-  async getLowStockProducts(req: Request, res: Response): Promise<void> {
-    await this.executeOperation(
-      req,
-      res,
-      async () => {
-        const limit = parseInt(req.query.limit as string) || 10;
-        return await ProductService.getLowStockProducts(limit);
-      },
-      'Low stock products fetched successfully',
-      'Failed to fetch low stock products'
-    );
+  async getLowStockProducts(
+    request: FastifyRequest<{ Querystring: { limit?: number } }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const limit = request.query.limit || 10;
+      const products = await ProductService.getLowStockProducts(limit);
+      return reply.send({
+        success: true,
+        message: 'Low stock products fetched successfully',
+        data: products
+      });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        message: 'Failed to fetch low stock products'
+      });
+    }
   }
 
-  async getProductStats(req: Request, res: Response): Promise<void> {
-    await this.executeOperation(
-      req,
-      res,
-      async () => await ProductService.getStats(),
-      'Product stats fetched successfully',
-      'Failed to fetch product stats'
-    );
-  }
-
-  private extractProductFilters(req: Request) {
-    return {
-      page: parseInt(req.query.page as string) || 1,
-      limit: parseInt(req.query.limit as string) || 10,
-      search: req.query.search as string,
-      category: req.query.category as string,
-      category_id: req.query.category_id as string,
-      status: req.query.status as 'active' | 'inactive' | 'discontinued',
-      stockStatus: req.query.stockStatus as 'in-stock' | 'low-stock' | 'out-of-stock',
-      sortBy: req.query.sortBy as string,
-      sortOrder: req.query.sortOrder as 'asc' | 'desc',
-      supplier: req.query.supplier as string,
-      priceRange: req.query.priceMin && req.query.priceMax ? {
-        min: parseFloat(req.query.priceMin as string),
-        max: parseFloat(req.query.priceMax as string)
-      } : undefined
-    };
+  async getProductStats(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const stats = await ProductService.getStats();
+      return reply.send({
+        success: true,
+        message: 'Product stats fetched successfully',
+        data: stats
+      });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        message: 'Failed to fetch product stats'
+      });
+    }
   }
 }
 

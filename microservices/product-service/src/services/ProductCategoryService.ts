@@ -1,9 +1,6 @@
-import { BaseService } from '../common/BaseService';
-import { IProductCategoryService } from '../interfaces/IService';
-import ProductCategoryRepository from '../repositories/ProductCategoryRepository';
-import { ProductCategoryData, ProductCategoryFilters } from '../models/ProductCategory';
+import ProductCategoryRepository, { CategoryFilters } from '../repositories/ProductCategoryRepository';
 
-export interface CreateProductCategoryDTO {
+export interface CreateCategoryDTO {
   name: string;
   slug: string;
   description?: string;
@@ -14,45 +11,67 @@ export interface CreateProductCategoryDTO {
   meta_data?: Record<string, any>;
 }
 
-export interface UpdateProductCategoryDTO extends Partial<CreateProductCategoryDTO> {}
+export interface UpdateCategoryDTO extends Partial<CreateCategoryDTO> {}
 
-class ProductCategoryService extends BaseService<ProductCategoryData, CreateProductCategoryDTO, UpdateProductCategoryDTO, ProductCategoryFilters> implements IProductCategoryService {
-  constructor() {
-    super(ProductCategoryRepository);
+class ProductCategoryService {
+  async getById(id: string) {
+    return ProductCategoryRepository.findById(id);
   }
 
-  protected async validateCreateData(data: CreateProductCategoryDTO): Promise<any> {
+  async getAll(filters?: CategoryFilters) {
+    return ProductCategoryRepository.findAll(filters || {});
+  }
+
+  async create(data: CreateCategoryDTO) {
+    // Validation
     if (!data.name || data.name.trim().length === 0) {
       throw new Error('Category name is required');
     }
-    
     if (!data.slug || data.slug.trim().length === 0) {
       throw new Error('Category slug is required');
     }
-    
+
     // Ensure slug is URL-friendly
-    data.slug = data.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-    
-    return data;
+    const slug = data.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+
+    return ProductCategoryRepository.create({
+      ...data,
+      slug
+    });
   }
 
-  protected async validateUpdateData(data: UpdateProductCategoryDTO): Promise<any> {
+  async update(id: string, data: UpdateCategoryDTO) {
+    const existing = await ProductCategoryRepository.findById(id);
+    if (!existing) {
+      return null;
+    }
+
+    // Validation
     if (data.name !== undefined && data.name.trim().length === 0) {
       throw new Error('Category name cannot be empty');
     }
-    
+
+    const updateData = { ...data };
     if (data.slug !== undefined) {
       if (data.slug.trim().length === 0) {
         throw new Error('Category slug cannot be empty');
       }
-      data.slug = data.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      updateData.slug = data.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
     }
-    
-    return data;
+
+    return ProductCategoryRepository.update(id, updateData);
   }
 
-  async getTree(): Promise<ProductCategoryData[]> {
-    return await ProductCategoryRepository.getTree();
+  async delete(id: string) {
+    const existing = await ProductCategoryRepository.findById(id);
+    if (!existing) {
+      return false;
+    }
+    return ProductCategoryRepository.delete(id);
+  }
+
+  async getTree() {
+    return ProductCategoryRepository.getTree();
   }
 }
 

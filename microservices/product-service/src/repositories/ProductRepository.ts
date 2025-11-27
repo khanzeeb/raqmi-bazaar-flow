@@ -1,248 +1,280 @@
-import { Knex } from 'knex';
-import { BaseRepository } from '../common/BaseRepository';
-import { IProductRepository } from '../interfaces/IRepository';
-import { ProductData, ProductFilters } from '../models/Product';
-import ProductVariantRepository from './ProductVariantRepository';
-import ProductMapper from '../mappers/ProductMapper';
+import { Prisma, ProductStatus } from '@prisma/client';
+import prisma from '../config/prisma';
 
-class ProductRepository extends BaseRepository<ProductData, ProductFilters> implements IProductRepository {
-  protected tableName = 'products';
+export interface ProductFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  category?: string;
+  category_id?: string;
+  status?: ProductStatus;
+  stockStatus?: 'in-stock' | 'low-stock' | 'out-of-stock';
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  priceRange?: {
+    min: number;
+    max: number;
+  };
+  supplier?: string;
+}
 
-  async findById(id: string): Promise<ProductData | null> {
-    const product = await this.db(this.tableName)
-      .leftJoin('product_categories', 'products.category_id', 'product_categories.id')
-      .select(
-        'products.*',
-        'product_categories.name as category_name',
-        'product_categories.slug as category_slug'
-      )
-      .where('products.id', id)
-      .first();
-    
-    if (!product) return null;
-    
-    const variants = await ProductVariantRepository.findByProductId(id);
-    const productData = ProductMapper.toProductData(product);
-    productData.variants = variants;
-    
-    return productData;
+class ProductRepository {
+  async findById(id: string) {
+    return prisma.product.findUnique({
+      where: { id },
+      include: {
+        category_rel: true,
+        variants: {
+          orderBy: [{ sort_order: 'asc' }, { name: 'asc' }]
+        }
+      }
+    });
   }
 
-  async findByIds(ids: string[]): Promise<ProductData[]> {
-    const products = await this.db(this.tableName).whereIn('id', ids);
-    return ProductMapper.toProductDataList(products);
+  async findByIds(ids: string[]) {
+    return prisma.product.findMany({
+      where: { id: { in: ids } },
+      include: {
+        category_rel: true,
+        variants: true
+      }
+    });
   }
 
-  protected buildFindAllQuery(filters: ProductFilters): Knex.QueryBuilder {
-    let query = this.db(this.tableName)
-      .leftJoin('product_categories', 'products.category_id', 'product_categories.id')
-      .select(
-        'products.*',
-        'product_categories.name as category_name',
-        'product_categories.slug as category_slug'
-      );
-    
-    this.applyCategoryFilter(query, filters);
-    this.applyStatusFilter(query, filters);
-    this.applyStockStatusFilter(query, filters);
-    this.applyPriceRangeFilter(query, filters);
-    this.applySupplierFilter(query, filters);
-    
-    if (filters.search) {
-      this.applySearchFilter(query, filters.search, [
-        'products.name',
-        'products.sku',
-        'products.description',
-        'product_categories.name'
-      ]);
+  async findAll(filters: ProductFilters) {
+    const page = filters.page || 1;
+    const limit = filters.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const where = this.buildWhereClause(filters);
+    const orderBy = this.buildOrderBy(filters);
+
+    const [data, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        include: {
+          category_rel: true,
+          variants: {
+            orderBy: [{ sort_order: 'asc' }, { name: 'asc' }]
+          }
+        },
+        orderBy,
+        skip,
+        take: limit
+      }),
+      prisma.product.count({ where })
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
+  }
+
+  async count(filters: ProductFilters) {
+    const where = this.buildWhereClause(filters);
+    return prisma.product.count({ where });
+  }
+
+  async create(data: Prisma.ProductCreateInput) {
+    return prisma.product.create({
+      data,
+      include: {
+        category_rel: true,
+        variants: true
+      }
+    });
+  }
+
+  async createWithVariants(productData: any, variants?: any[]) {
+    return prisma.$transaction(async (tx) => {
+      const product = await tx.product.create({
+        data: {
+          ...productData,
+          variants: variants && variants.length > 0 ? {
+            create: variants
+          } : undefined
+        },
+        include: {
+          category_rel: true,
+          variants: true
+        }
+      });
+
+      return product;
+    });
+  }
+
+  async update(id: string, data: Prisma.ProductUpdateInput) {
+    return prisma.product.update({
+      where: { id },
+      data,
+      include: {
+        category_rel: true,
+        variants: true
+      }
+    });
+  }
+
+  async updateWithVariants(id: string, productData: any, variants?: any[]) {
+    return prisma.$transaction(async (tx) => {
+      // Update product
+      const product = await tx.product.update({
+        where: { id },
+        data: productData
+      });
+
+      // Handle variants if provided
+      if (variants !== undefined) {
+        // Delete existing variants
+        await tx.productVariant.deleteMany({
+          where: { product_id: id }
+        });
+
+        // Create new variants
+        if (variants.length > 0) {
+          await tx.productVariant.createMany({
+            data: variants.map(variant => ({
+              ...variant,
+              product_id: id
+            }))
+          });
+        }
+      }
+
+      // Return updated product with variants
+      return tx.product.findUnique({
+        where: { id },
+        include: {
+          category_rel: true,
+          variants: true
+        }
+      });
+    });
+  }
+
+  async delete(id: string) {
+    try {
+      await prisma.product.delete({
+        where: { id }
+      });
+      return true;
+    } catch {
+      return false;
     }
-    
-    this.applySorting(query, `products.${filters.sortBy || 'created_at'}`, filters.sortOrder);
-    
-    return query;
   }
 
-  protected buildCountQuery(filters: ProductFilters): Knex.QueryBuilder {
-    let query = this.db(this.tableName)
-      .leftJoin('product_categories', 'products.category_id', 'product_categories.id')
-      .count('products.id as count');
-    
-    this.applyCategoryFilter(query, filters);
-    this.applyStatusFilter(query, filters);
-    this.applyStockStatusFilter(query, filters);
-    this.applyPriceRangeFilter(query, filters);
-    this.applySupplierFilter(query, filters);
-    
+  async updateStock(id: string, newStock: number, reason = '') {
+    return prisma.$transaction(async (tx) => {
+      const product = await tx.product.update({
+        where: { id },
+        data: { stock: newStock }
+      });
+
+      await tx.stockMovement.create({
+        data: {
+          product_id: id,
+          type: 'adjustment',
+          quantity: newStock,
+          reason
+        }
+      });
+
+      return tx.product.findUnique({
+        where: { id },
+        include: {
+          category_rel: true,
+          variants: true
+        }
+      });
+    });
+  }
+
+  async getCategories() {
+    const result = await prisma.product.findMany({
+      where: { category: { not: null } },
+      select: { category: true },
+      distinct: ['category'],
+      orderBy: { category: 'asc' }
+    });
+
+    return result.map(r => r.category).filter(Boolean) as string[];
+  }
+
+  async getSuppliers() {
+    const result = await prisma.product.findMany({
+      where: { supplier: { not: null } },
+      select: { supplier: true },
+      distinct: ['supplier'],
+      orderBy: { supplier: 'asc' }
+    });
+
+    return result.map(r => r.supplier).filter(Boolean) as string[];
+  }
+
+  private buildWhereClause(filters: ProductFilters): Prisma.ProductWhereInput {
+    const where: Prisma.ProductWhereInput = {};
+
     if (filters.search) {
-      this.applySearchFilter(query, filters.search, [
-        'products.name',
-        'products.sku',
-        'products.description',
-        'product_categories.name'
-      ]);
+      where.OR = [
+        { name: { contains: filters.search, mode: 'insensitive' } },
+        { sku: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: filters.search, mode: 'insensitive' } },
+        { category_rel: { name: { contains: filters.search, mode: 'insensitive' } } }
+      ];
     }
-    
-    return query;
-  }
 
-  private applyCategoryFilter(query: Knex.QueryBuilder, filters: ProductFilters): void {
     if (filters.category_id) {
-      query.where('products.category_id', filters.category_id);
+      where.category_id = filters.category_id;
     } else if (filters.category) {
-      query.where('product_categories.name', filters.category);
+      where.category_rel = { name: filters.category };
     }
-  }
 
-  private applyStatusFilter(query: Knex.QueryBuilder, filters: ProductFilters): void {
     if (filters.status) {
-      query.where('products.status', filters.status);
+      where.status = filters.status;
     }
-  }
 
-  private applyStockStatusFilter(query: Knex.QueryBuilder, filters: ProductFilters): void {
     if (filters.stockStatus) {
       switch (filters.stockStatus) {
         case 'out-of-stock':
-          query.where('products.stock', '<=', 0);
+          where.stock = { lte: 0 };
           break;
         case 'low-stock':
-          query.whereRaw('products.stock <= products.min_stock AND products.stock > 0');
+          where.AND = [
+            { stock: { gt: 0 } },
+            { stock: { lte: prisma.product.fields.min_stock as any } }
+          ];
+          // Use raw query for complex comparison
+          where.stock = { gt: 0 };
           break;
         case 'in-stock':
-          query.whereRaw('products.stock > products.min_stock');
+          where.stock = { gt: 0 };
           break;
       }
     }
-  }
 
-  private applyPriceRangeFilter(query: Knex.QueryBuilder, filters: ProductFilters): void {
     if (filters.priceRange) {
-      query.whereBetween('products.price', [filters.priceRange.min, filters.priceRange.max]);
+      where.price = {
+        gte: filters.priceRange.min,
+        lte: filters.priceRange.max
+      };
     }
-  }
 
-  private applySupplierFilter(query: Knex.QueryBuilder, filters: ProductFilters): void {
     if (filters.supplier) {
-      query.where('products.supplier', filters.supplier);
+      where.supplier = filters.supplier;
     }
+
+    return where;
   }
 
-  async create(productData: Omit<ProductData, 'id' | 'created_at' | 'updated_at'>): Promise<ProductData> {
-    const trx = await this.db.transaction();
-    
-    try {
-      const dbData = ProductMapper.toDatabase(productData);
-      const [product] = await trx(this.tableName)
-        .insert({
-          ...dbData,
-          created_at: new Date(),
-          updated_at: new Date()
-        })
-        .returning('*');
-      
-      if (productData.variants && productData.variants.length > 0) {
-        const variants = productData.variants.map(variant => ({
-          ...variant,
-          product_id: product.id,
-          created_at: new Date(),
-          updated_at: new Date()
-        }));
-        
-        await trx('product_variants').insert(variants);
-      }
-      
-      await trx.commit();
-      return await this.findById(product.id) as ProductData;
-    } catch (error) {
-      await trx.rollback();
-      throw error;
-    }
-  }
+  private buildOrderBy(filters: ProductFilters): Prisma.ProductOrderByWithRelationInput {
+    const sortBy = filters.sortBy || 'created_at';
+    const sortOrder = filters.sortOrder || 'desc';
 
-  async update(id: string, productData: Partial<ProductData>): Promise<ProductData | null> {
-    const trx = await this.db.transaction();
-    
-    try {
-      const dbData = ProductMapper.toDatabase(productData);
-      await trx(this.tableName)
-        .where({ id })
-        .update({
-          ...dbData,
-          updated_at: new Date()
-        });
-      
-      if (productData.variants !== undefined) {
-        await trx('product_variants').where({ product_id: id }).del();
-        
-        if (productData.variants.length > 0) {
-          const variants = productData.variants.map(variant => ({
-            ...variant,
-            product_id: id,
-            created_at: new Date(),
-            updated_at: new Date()
-          }));
-          
-          await trx('product_variants').insert(variants);
-        }
-      }
-      
-      await trx.commit();
-      return await this.findById(id);
-    } catch (error) {
-      await trx.rollback();
-      throw error;
-    }
-  }
-
-  async delete(id: string): Promise<boolean> {
-    const trx = await this.db.transaction();
-    
-    try {
-      await trx('product_variants').where({ product_id: id }).del();
-      await trx(this.tableName).where({ id }).del();
-      await trx.commit();
-      return true;
-    } catch (error) {
-      await trx.rollback();
-      throw error;
-    }
-  }
-
-  async updateStock(id: string, newStock: number, reason = ''): Promise<ProductData | null> {
-    await this.db(this.tableName)
-      .where({ id })
-      .update({
-        stock: newStock,
-        updated_at: new Date()
-      });
-    
-    await this.db('stock_movements').insert({
-      product_id: id,
-      type: 'adjustment',
-      quantity: newStock,
-      reason,
-      created_at: new Date()
-    });
-    
-    return await this.findById(id);
-  }
-
-  async getCategories(): Promise<string[]> {
-    const result = await this.db(this.tableName)
-      .distinct('category')
-      .whereNotNull('category')
-      .orderBy('category');
-    
-    return result.map(row => row.category);
-  }
-
-  async getSuppliers(): Promise<string[]> {
-    const result = await this.db(this.tableName)
-      .distinct('supplier')
-      .whereNotNull('supplier')
-      .orderBy('supplier');
-    
-    return result.map(row => row.supplier);
+    return { [sortBy]: sortOrder };
   }
 }
 
