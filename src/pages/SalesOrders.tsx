@@ -7,6 +7,7 @@ import { Plus, Search, Filter, Download, Printer, Eye, RotateCcw } from "lucide-
 import { OrderDialog } from "@/components/SalesOrders/OrderDialog";
 import { ReturnDialog } from "@/components/SalesOrders/ReturnDialog";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useUserSettings } from "@/contexts/UserSettingsContext";
 import { useToast } from "@/hooks/use-toast";
 
 export interface SalesOrder {
@@ -38,7 +39,8 @@ export interface SalesOrder {
 }
 
 const SalesOrders = () => {
-  const { t, language } = useLanguage();
+  const { t, language, isRTL } = useLanguage();
+  const { formatCurrency, getCurrencySymbol } = useUserSettings();
   const isArabic = language === 'ar';
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');

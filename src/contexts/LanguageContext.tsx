@@ -1,10 +1,13 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 
 interface LanguageContextType {
   language: 'en' | 'ar';
+  isRTL: boolean;
   toggleLanguage: () => void;
+  setLanguage: (lang: 'en' | 'ar') => void;
   t: (key: string) => string;
+  dir: 'rtl' | 'ltr';
 }
 
 const translations = {
@@ -71,6 +74,18 @@ const translations = {
     'search': 'Search',
     'all_statuses': 'All Statuses',
     
+    // Quotations
+    'quotations': 'Quotations',
+    'new_quotation': 'New Quotation',
+    'quotation_number': 'Quotation Number',
+    'validity': 'Validity',
+    'expiry_date': 'Expiry Date',
+    'draft': 'Draft',
+    'sent': 'Sent',
+    'accepted': 'Accepted',
+    'expired': 'Expired',
+    'convert_to_sale': 'Convert to Sale',
+    
     // Customers
     'customers': 'Customers',
     'customer_management': 'Customer Management',
@@ -87,7 +102,8 @@ const translations = {
     'actions': 'Actions',
     'status': 'Status',
     'created_at': 'Created At',
-    'updated_at': 'Updated At'
+    'updated_at': 'Updated At',
+    'add_new': 'Add New',
   },
   ar: {
     // Dashboard
@@ -152,6 +168,18 @@ const translations = {
     'search': 'بحث',
     'all_statuses': 'جميع الحالات',
     
+    // Quotations
+    'quotations': 'عروض الأسعار',
+    'new_quotation': 'عرض سعر جديد',
+    'quotation_number': 'رقم العرض',
+    'validity': 'الصلاحية',
+    'expiry_date': 'تاريخ الانتهاء',
+    'draft': 'مسودة',
+    'sent': 'مرسل',
+    'accepted': 'مقبول',
+    'expired': 'منتهي الصلاحية',
+    'convert_to_sale': 'تحويل إلى بيع',
+    
     // Customers
     'customers': 'العملاء',
     'customer_management': 'إدارة العملاء',
@@ -168,7 +196,8 @@ const translations = {
     'actions': 'الإجراءات',
     'status': 'الحالة',
     'created_at': 'تاريخ الإنشاء',
-    'updated_at': 'تاريخ التحديث'
+    'updated_at': 'تاريخ التحديث',
+    'add_new': 'إضافة جديد',
   }
 };
 
@@ -187,10 +216,28 @@ interface LanguageProviderProps {
 }
 
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) => {
-  const [language, setLanguage] = useState<'en' | 'ar'>('ar');
+  const [language, setLanguageState] = useState<'en' | 'ar'>(() => {
+    const saved = localStorage.getItem('language');
+    return (saved === 'en' || saved === 'ar') ? saved : 'ar';
+  });
+
+  const isRTL = language === 'ar';
+  const dir = isRTL ? 'rtl' : 'ltr';
+
+  useEffect(() => {
+    localStorage.setItem('language', language);
+    // Update document direction and lang
+    document.documentElement.setAttribute('dir', dir);
+    document.documentElement.setAttribute('lang', language);
+    document.body.style.textAlign = isRTL ? 'right' : 'left';
+  }, [language, dir, isRTL]);
 
   const toggleLanguage = () => {
-    setLanguage(prev => prev === 'en' ? 'ar' : 'en');
+    setLanguageState(prev => prev === 'en' ? 'ar' : 'en');
+  };
+
+  const setLanguage = (lang: 'en' | 'ar') => {
+    setLanguageState(lang);
   };
 
   const t = (key: string): string => {
@@ -198,8 +245,8 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
   };
 
   return (
-    <LanguageContext.Provider value={{ language, toggleLanguage, t }}>
-      <div className={language === 'ar' ? 'rtl' : 'ltr'} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <LanguageContext.Provider value={{ language, isRTL, toggleLanguage, setLanguage, t, dir }}>
+      <div className={isRTL ? 'rtl' : 'ltr'} dir={dir}>
         {children}
       </div>
     </LanguageContext.Provider>
