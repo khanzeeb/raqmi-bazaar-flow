@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { 
   TrendingUp, 
   ShoppingCart, 
@@ -12,20 +11,18 @@ import {
 import { StatsCard } from "@/components/Dashboard/StatsCard";
 import { QuickActions } from "@/components/Dashboard/QuickActions";
 import { RecentActivity } from "@/components/Dashboard/RecentActivity";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useUserSettings } from "@/contexts/UserSettingsContext";
 
 const Dashboard = () => {
-  const [isArabic, setIsArabic] = useState(false);
-
-  // Check if Arabic is selected from localStorage
-  useEffect(() => {
-    const savedLanguage = localStorage.getItem("language");
-    setIsArabic(savedLanguage === "ar");
-  }, []);
+  const { language, isRTL } = useLanguage();
+  const { formatCurrency } = useUserSettings();
+  const isArabic = language === 'ar';
 
   const statsData = [
     {
       title: isArabic ? "إجمالي المبيعات" : "Total Sales",
-      value: isArabic ? "ر.س 127,540" : "SAR 127,540",
+      value: formatCurrency(127540),
       change: "+12.5%",
       changeType: "increase" as const,
       icon: DollarSign,
@@ -57,7 +54,7 @@ const Dashboard = () => {
     },
     {
       title: isArabic ? "متوسط قيمة الطلب" : "Average Order Value",
-      value: isArabic ? "ر.س 373" : "SAR 373",
+      value: formatCurrency(373),
       change: "-2.4%",
       changeType: "decrease" as const,
       icon: Target,
@@ -74,9 +71,9 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isRTL ? 'text-right' : 'text-left'}`}>
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
         <div>
           <h1 className="text-3xl font-bold text-foreground">
             {isArabic ? "لوحة التحكم" : "Dashboard"}
@@ -86,11 +83,11 @@ const Dashboard = () => {
           </p>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <div className="text-sm text-muted-foreground">
             {isArabic ? "آخر تحديث:" : "Last updated:"}
           </div>
-          <div className="flex items-center gap-1 text-sm font-medium text-foreground">
+          <div className={`flex items-center gap-1 text-sm font-medium text-foreground ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Activity className="h-4 w-4 icon-green" />
             {isArabic ? "الآن" : "Now"}
           </div>
@@ -115,9 +112,9 @@ const Dashboard = () => {
 
       {/* Low Stock Alert */}
       <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
-        <div className="flex items-center gap-3">
+        <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <AlertTriangle className="h-5 w-5 icon-yellow" />
-          <div>
+          <div className={isRTL ? 'text-right' : 'text-left'}>
             <h3 className="font-semibold text-foreground">
               {isArabic ? "تنبيه مخزون منخفض" : "Low Stock Alert"}
             </h3>
@@ -127,7 +124,7 @@ const Dashboard = () => {
                 : "5 products need restocking"}
             </p>
           </div>
-          <button className="ml-auto text-sm font-medium text-warning hover:text-warning/80 transition-colors">
+          <button className={`${isRTL ? 'mr-auto' : 'ml-auto'} text-sm font-medium text-warning hover:text-warning/80 transition-colors`}>
             {isArabic ? "عرض التفاصيل" : "View Details"}
           </button>
         </div>

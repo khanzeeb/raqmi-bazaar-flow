@@ -21,9 +21,12 @@ import {
   Download,
   Upload,
   Save,
-  RefreshCw
+  RefreshCw,
+  DollarSign,
+  Check
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useUserSettings, CURRENCIES, Currency } from "@/contexts/UserSettingsContext";
 
 interface NotificationSettings {
   emailNotifications: boolean;
@@ -53,7 +56,8 @@ interface CompanyInfo {
 }
 
 const Settings = () => {
-  const { language, toggleLanguage } = useLanguage();
+  const { language, toggleLanguage, setLanguage } = useLanguage();
+  const { settings, updateSettings, formatCurrency } = useUserSettings();
   const isArabic = language === 'ar';
   
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
@@ -397,19 +401,115 @@ const Settings = () => {
         <TabsContent value="language" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>{isArabic ? 'إعدادات اللغة' : 'Language Settings'}</CardTitle>
+              <CardTitle>{isArabic ? 'إعدادات اللغة والعملة' : 'Language & Currency Settings'}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>{isArabic ? 'اللغة الحالية' : 'Current Language'}</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {language === 'ar' ? (isArabic ? 'العربية' : 'Arabic') : (isArabic ? 'الإنجليزية' : 'English')}
-                  </p>
+            <CardContent className="space-y-6">
+              {/* Language Settings */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium flex items-center gap-2">
+                  <Globe className="w-5 h-5" />
+                  {isArabic ? 'اللغة' : 'Language'}
+                </h3>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>{isArabic ? 'اللغة المفضلة' : 'Preferred Language'}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ar' ? (isArabic ? 'العربية' : 'Arabic') : (isArabic ? 'الإنجليزية' : 'English')}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => setLanguage('en')} 
+                      variant={language === 'en' ? 'default' : 'outline'}
+                      size="sm"
+                    >
+                      English
+                    </Button>
+                    <Button 
+                      onClick={() => setLanguage('ar')} 
+                      variant={language === 'ar' ? 'default' : 'outline'}
+                      size="sm"
+                    >
+                      العربية
+                    </Button>
+                  </div>
                 </div>
-                <Button onClick={toggleLanguage} variant="outline">
-                  <Globe className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
-                  {isArabic ? 'تغيير إلى English' : 'Switch to العربية'}
+              </div>
+
+              <Separator />
+
+              {/* Currency Settings */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium flex items-center gap-2">
+                  <DollarSign className="w-5 h-5" />
+                  {isArabic ? 'العملة' : 'Currency'}
+                </h3>
+                <div>
+                  <Label>{isArabic ? 'العملة المفضلة' : 'Preferred Currency'}</Label>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {isArabic ? 'اختر العملة المستخدمة في جميع أنحاء النظام' : 'Select the currency used throughout the system'}
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                    {CURRENCIES.map((currency) => (
+                      <Button
+                        key={currency.code}
+                        variant={settings.currency.code === currency.code ? 'default' : 'outline'}
+                        className={`flex flex-col items-center gap-1 h-auto py-3 ${settings.currency.code === currency.code ? '' : 'hover:bg-muted'}`}
+                        onClick={() => updateSettings({ currency })}
+                      >
+                        <span className="text-lg font-bold">{currency.symbol}</span>
+                        <span className="text-xs">{currency.code}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {isArabic ? currency.nameAr : currency.nameEn}
+                        </span>
+                        {settings.currency.code === currency.code && (
+                          <Check className="w-4 h-4 absolute top-1 right-1" />
+                        )}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <Label>{isArabic ? 'معاينة التنسيق' : 'Format Preview'}</Label>
+                  <div className="flex gap-4 mt-2">
+                    <div>
+                      <span className="text-sm text-muted-foreground">{isArabic ? 'مثال:' : 'Example:'}</span>
+                      <p className="text-lg font-semibold">{formatCurrency(1234.56)}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-muted-foreground">{isArabic ? 'مبلغ كبير:' : 'Large amount:'}</span>
+                      <p className="text-lg font-semibold">{formatCurrency(125000)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Tax Rate Settings */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">{isArabic ? 'إعدادات الضريبة' : 'Tax Settings'}</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="taxRate">{isArabic ? 'معدل الضريبة الافتراضي (%)' : 'Default Tax Rate (%)'}</Label>
+                    <Input
+                      id="taxRate"
+                      type="number"
+                      value={settings.taxRate}
+                      onChange={(e) => updateSettings({ taxRate: parseFloat(e.target.value) || 0 })}
+                      min="0"
+                      max="100"
+                      step="0.5"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className={`flex ${isArabic ? 'justify-start' : 'justify-end'}`}>
+                <Button>
+                  <Save className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
+                  {isArabic ? 'حفظ التغييرات' : 'Save Changes'}
                 </Button>
               </div>
             </CardContent>

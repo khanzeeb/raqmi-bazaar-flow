@@ -7,56 +7,69 @@ import {
   Receipt
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { BilingualLabel } from "@/components/common/BilingualLabel";
 
 interface QuickActionsProps {
   isArabic?: boolean;
 }
 
 export function QuickActions({ isArabic = false }: QuickActionsProps) {
+  const navigate = useNavigate();
+
   const actions = [
     {
-      title: isArabic ? "بيع جديد" : "New Sale",
+      titleEn: "New Sale",
+      titleAr: "بيع جديد",
       icon: ShoppingCart,
       color: "icon-green",
       bgColor: "bg-icon-green/10",
-      action: () => console.log("New Sale")
+      action: () => navigate("/sales-orders")
     },
     {
-      title: isArabic ? "عرض سعر" : "New Quote", 
+      titleEn: "New Quotation",
+      titleAr: "عرض سعر جديد",
       icon: FileText,
       color: "icon-blue",
       bgColor: "bg-icon-blue/10",
-      action: () => console.log("New Quote")
+      action: () => navigate("/quotations")
     },
     {
-      title: isArabic ? "عميل جديد" : "Add Customer",
+      titleEn: "Add Customer",
+      titleAr: "إضافة عميل",
       icon: Users,
       color: "icon-purple",
       bgColor: "bg-icon-purple/10", 
-      action: () => console.log("Add Customer")
+      action: () => navigate("/customers")
     },
     {
-      title: isArabic ? "منتج جديد" : "Add Product",
+      titleEn: "Add Product",
+      titleAr: "إضافة منتج",
       icon: Package,
       color: "icon-orange",
       bgColor: "bg-icon-orange/10",
-      action: () => console.log("Add Product")
+      action: () => navigate("/products")
     },
     {
-      title: isArabic ? "فاتورة جديدة" : "New Invoice",
+      titleEn: "New Invoice",
+      titleAr: "فاتورة جديدة",
       icon: Receipt,
       color: "icon-cyan",
       bgColor: "bg-icon-cyan/10",
-      action: () => console.log("New Invoice")
+      action: () => navigate("/invoices")
     }
   ];
 
   return (
-    <div className="card-elegant p-6">
-      <div className="flex items-center gap-2 mb-4">
+    <div className={`card-elegant p-6 ${isArabic ? 'text-right' : 'text-left'}`}>
+      <div className={`flex items-center gap-2 mb-4 ${isArabic ? 'flex-row-reverse' : ''}`}>
         <Plus className="h-5 w-5 icon-blue" />
         <h3 className="text-lg font-semibold text-foreground">
-          {isArabic ? "إجراءات سريعة" : "Quick Actions"}
+          <BilingualLabel 
+            enLabel="Quick Actions" 
+            arLabel="إجراءات سريعة"
+            showBoth={false}
+          />
         </h3>
       </div>
       
@@ -65,13 +78,20 @@ export function QuickActions({ isArabic = false }: QuickActionsProps) {
           <Button
             key={index}
             variant="ghost"
-            className={`flex items-center gap-3 p-4 h-auto justify-start hover:${action.bgColor} transition-all duration-200`}
+            className={`flex items-center gap-3 p-4 h-auto ${isArabic ? 'flex-row-reverse justify-end' : 'justify-start'} hover:${action.bgColor} transition-all duration-200`}
             onClick={action.action}
           >
             <div className={`p-2 rounded-lg ${action.bgColor}`}>
               <action.icon className={`h-4 w-4 ${action.color}`} />
             </div>
-            <span className="font-medium">{action.title}</span>
+            <BilingualLabel 
+              enLabel={action.titleEn}
+              arLabel={action.titleAr}
+              className="font-medium"
+              showBoth={true}
+              primaryClassName="text-sm"
+              secondaryClassName="text-[10px]"
+            />
           </Button>
         ))}
       </div>

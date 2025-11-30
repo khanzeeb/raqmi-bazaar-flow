@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Filter, Download, Printer, Eye, Send, CheckCircle, Clock, XCircle, ShoppingCart, History } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useUserSettings } from "@/contexts/UserSettingsContext";
 import { QuotationDialog } from "@/components/Quotations/QuotationDialog";
 import { QuotationHistory } from "@/components/Quotations/QuotationHistory";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { SalesOrder } from "./SalesOrders";
+import { BilingualLabel, BilingualInline } from "@/components/common/BilingualLabel";
 
 export interface QuotationHistory {
   id: string;
@@ -49,7 +51,8 @@ export interface Quotation {
 }
 
 const Quotations = () => {
-  const { t, language } = useLanguage();
+  const { t, language, isRTL } = useLanguage();
+  const { formatCurrency, getCurrencySymbol } = useUserSettings();
   const isArabic = language === 'ar';
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -251,6 +254,7 @@ const Quotations = () => {
   };
 
   const handlePrintQuotation = (quotation: Quotation) => {
+    const currencySymbol = getCurrencySymbol();
     const printContent = `
       <html>
         <head>
@@ -296,8 +300,8 @@ const Quotations = () => {
                   <tr>
                     <td>${item.name}</td>
                     <td>${item.quantity}</td>
-                    <td>${item.price} ${isArabic ? 'ر.س' : 'SAR'}</td>
-                    <td>${item.total} ${isArabic ? 'ر.س' : 'SAR'}</td>
+                    <td>${item.price.toLocaleString()} ${currencySymbol}</td>
+                    <td>${item.total.toLocaleString()} ${currencySymbol}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -306,10 +310,10 @@ const Quotations = () => {
 
           <div class="section">
             <table>
-              <tr><td><strong>${isArabic ? 'المجموع الفرعي:' : 'Subtotal:'}</strong></td><td>${quotation.subtotal} ${isArabic ? 'ر.س' : 'SAR'}</td></tr>
-              <tr><td><strong>${isArabic ? 'الخصم:' : 'Discount:'}</strong></td><td>-${quotation.discount} ${isArabic ? 'ر.س' : 'SAR'}</td></tr>
-              <tr><td><strong>${isArabic ? 'الضريبة' : 'Tax'} (${quotation.taxRate}%):</strong></td><td>${quotation.taxAmount} ${isArabic ? 'ر.س' : 'SAR'}</td></tr>
-              <tr class="total"><td><strong>${isArabic ? 'المجموع الكلي:' : 'Total:'}</strong></td><td>${quotation.total} ${isArabic ? 'ر.س' : 'SAR'}</td></tr>
+              <tr><td><strong>${isArabic ? 'المجموع الفرعي:' : 'Subtotal:'}</strong></td><td>${quotation.subtotal.toLocaleString()} ${currencySymbol}</td></tr>
+              <tr><td><strong>${isArabic ? 'الخصم:' : 'Discount:'}</strong></td><td>-${quotation.discount.toLocaleString()} ${currencySymbol}</td></tr>
+              <tr><td><strong>${isArabic ? 'الضريبة' : 'Tax'} (${quotation.taxRate}%):</strong></td><td>${quotation.taxAmount.toLocaleString()} ${currencySymbol}</td></tr>
+              <tr class="total"><td><strong>${isArabic ? 'المجموع الكلي:' : 'Total:'}</strong></td><td>${quotation.total.toLocaleString()} ${currencySymbol}</td></tr>
             </table>
           </div>
 
@@ -370,28 +374,32 @@ const Quotations = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className={`p-6 max-w-7xl mx-auto ${isRTL ? 'text-right' : 'text-left'}`}>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground mb-2">
-          {isArabic ? "عروض الأسعار" : "Quotations"}
+          <BilingualLabel enLabel="Quotations" arLabel="عروض الأسعار" showBoth={false} />
         </h1>
         <p className="text-muted-foreground">
-          {isArabic ? "إدارة عروض الأسعار والتحويل إلى مبيعات" : "Manage quotations and convert to sales"}
+          <BilingualLabel 
+            enLabel="Manage quotations and convert to sales" 
+            arLabel="إدارة عروض الأسعار والتحويل إلى مبيعات" 
+            showBoth={false} 
+          />
         </p>
       </div>
 
       {/* Actions Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+      <div className={`flex flex-col sm:flex-row gap-4 mb-6 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4`} />
           <Input
             placeholder={isArabic ? "البحث برقم العرض أو اسم العميل..." : "Search by quotation number or customer name..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className={isRTL ? 'pr-10' : 'pl-10'}
           />
         </div>
-        <div className="flex gap-2">
+        <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value as any)}
@@ -407,14 +415,20 @@ const Quotations = () => {
             <Filter className="w-4 h-4" />
           </Button>
           <Button 
-            className="flex items-center gap-2"
+            className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
             onClick={() => {
               setSelectedQuotation(undefined);
               setIsDialogOpen(true);
             }}
           >
             <Plus className="w-4 h-4" />
-            {isArabic ? "عرض سعر جديد" : "New Quotation"}
+            <BilingualLabel 
+              enLabel="New Quotation" 
+              arLabel="عرض سعر جديد"
+              showBoth={true}
+              primaryClassName="text-sm"
+              secondaryClassName="text-[10px] opacity-80"
+            />
           </Button>
         </div>
       </div>
@@ -448,7 +462,7 @@ const Quotations = () => {
                     {isArabic ? "المجموع" : "Total"}
                   </p>
                   <p className="font-semibold">
-                    {quotation.total.toLocaleString()} {isArabic ? "ر.س" : "SAR"}
+                    {formatCurrency(quotation.total)}
                   </p>
                 </div>
                 <div>
@@ -480,10 +494,10 @@ const Quotations = () => {
                 </p>
                 <div className="space-y-1">
                   {quotation.items.slice(0, 2).map((item) => (
-                    <div key={item.id} className="flex justify-between text-sm">
+                    <div key={item.id} className={`flex justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <span>{item.name} × {item.quantity}</span>
                       <span>
-                        {item.total.toLocaleString()} {isArabic ? "ر.س" : "SAR"}
+                        {formatCurrency(item.total)}
                       </span>
                     </div>
                   ))}
