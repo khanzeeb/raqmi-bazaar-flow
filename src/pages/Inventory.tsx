@@ -19,8 +19,8 @@ const Inventory = () => {
   const { toast } = useToast();
   const isArabic = language === 'ar';
   
-  const { inventory, setInventory } = useInventoryData();
-  const { filters, filteredInventory, setSearchQuery, setCategory, setStatus } = useInventoryFiltering(inventory);
+  const { inventory, categories } = useInventoryData(isArabic);
+  const { filters, filteredInventory, setSearchTerm, setSelectedCategory, setSelectedStatus } = useInventoryFiltering(inventory);
   const stats = useInventoryStats(inventory);
   
   // Dialog states
@@ -30,7 +30,7 @@ const Inventory = () => {
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
 
-  const categories = [...new Set(inventory.map(item => item.category))];
+  // categories already provided by useInventoryData
 
   const handleEditItem = (item: InventoryItem) => {
     setSelectedItem(item);
@@ -166,12 +166,12 @@ const Inventory = () => {
 
         <TabsContent value="inventory" className="space-y-6">
           <InventoryFilters
-            searchQuery={filters.searchQuery}
-            onSearchChange={setSearchQuery}
-            selectedCategory={filters.category}
-            onCategoryChange={setCategory}
-            selectedStatus={filters.status}
-            onStatusChange={setStatus}
+            searchTerm={filters.searchTerm}
+            onSearchChange={setSearchTerm}
+            selectedCategory={filters.selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            selectedStatus={filters.selectedStatus}
+            onStatusChange={setSelectedStatus}
             categories={categories}
             isArabic={isArabic}
           />
@@ -225,27 +225,23 @@ const Inventory = () => {
             onOpenChange={setEditDialogOpen}
             item={selectedItem}
             onSave={handleSaveItem}
-            isArabic={isArabic}
           />
           <StockUpdateDialog
             open={stockUpdateDialogOpen}
             onOpenChange={setStockUpdateDialogOpen}
             item={selectedItem}
             onUpdate={handleStockUpdate}
-            isArabic={isArabic}
           />
           <ReorderDialog
             open={reorderDialogOpen}
             onOpenChange={setReorderDialogOpen}
             item={selectedItem}
-            onSubmit={handleReorderSubmit}
-            isArabic={isArabic}
+            onReorder={handleReorderSubmit}
           />
           <InventoryReportDialog
             open={reportDialogOpen}
             onOpenChange={setReportDialogOpen}
             item={selectedItem}
-            isArabic={isArabic}
           />
         </>
       )}

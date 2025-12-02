@@ -20,7 +20,7 @@ const Reports = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedReport, setSelectedReport] = useState('overview');
 
-  const { salesData, productCategoryData, topProductsData, expenseData, kpiData } = useReportsData();
+  const { salesData, productCategoryData, topProductsData, expenseData, kpiData } = useReportsData(isArabic);
 
   const handleExport = () => {
     toast({

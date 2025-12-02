@@ -14,9 +14,9 @@ const Pricing = () => {
   const isArabic = language === 'ar';
   const { toast } = useToast();
   
-  const { pricingRules, setPricingRules } = usePricingData();
-  const { filters, filteredRules, setSearchQuery, setType } = usePricingFiltering(pricingRules);
-  const { addRule, updateRule, toggleStatus, copyRule } = usePricingActions(pricingRules, setPricingRules);
+  const { pricingRules, setPricingRules } = usePricingData(isArabic);
+  const { filters, filteredRules, setSearchTerm, setSelectedType } = usePricingFiltering(pricingRules);
+  const { toggleRuleStatus, copyRule, saveRule } = usePricingActions(pricingRules, setPricingRules, isArabic);
   const stats = usePricingStats(pricingRules);
   
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
@@ -42,11 +42,7 @@ const Pricing = () => {
   };
 
   const handleToggleStatus = (ruleId: string) => {
-    toggleStatus(ruleId);
-    toast({
-      title: isArabic ? "تغيير حالة القاعدة" : "Rule Status Changed",
-      description: isArabic ? "تم تغيير حالة قاعدة التسعير" : "Pricing rule status has been changed",
-    });
+    toggleRuleStatus(ruleId);
   };
 
   const handleViewStats = (rule: PricingRule) => {
@@ -55,11 +51,8 @@ const Pricing = () => {
   };
 
   const handleSaveRule = (ruleData: Omit<PricingRule, 'id' | 'createdAt' | 'usageCount'>) => {
-    if (selectedRule) {
-      updateRule(selectedRule.id, ruleData);
-    } else {
-      addRule(ruleData);
-    }
+    saveRule(ruleData, selectedRule);
+    setRuleDialogOpen(false);
   };
 
   return (
@@ -110,11 +103,11 @@ const Pricing = () => {
       </div>
 
       <PricingFilters
-        searchQuery={filters.searchQuery}
-        onSearchChange={setSearchQuery}
-        selectedType={filters.type}
-        onTypeChange={setType}
-        onAddRule={handleNewRule}
+        searchTerm={filters.searchTerm}
+        onSearchChange={setSearchTerm}
+        selectedType={filters.selectedType}
+        onTypeChange={setSelectedType}
+        onNewRule={handleNewRule}
         isArabic={isArabic}
       />
 
@@ -137,7 +130,6 @@ const Pricing = () => {
         onOpenChange={setRuleDialogOpen}
         rule={selectedRule}
         onSave={handleSaveRule}
-        isArabic={isArabic}
       />
 
       {selectedRule && (
@@ -145,7 +137,6 @@ const Pricing = () => {
           open={statsDialogOpen}
           onOpenChange={setStatsDialogOpen}
           rule={selectedRule}
-          isArabic={isArabic}
         />
       )}
     </div>

@@ -16,8 +16,8 @@ const SalesOrders = () => {
   const { toast } = useToast();
   
   const { orders, setOrders } = useSalesOrdersData();
-  const { filters, filteredOrders, setSearchQuery, setStatus } = useSalesOrdersFiltering(orders);
-  const { addOrder, updateOrder } = useSalesOrdersActions(orders, setOrders);
+  const { filters, filteredOrders, setSearchTerm, setSelectedStatus } = useSalesOrdersFiltering(orders);
+  const { saveOrder, printOrder, downloadOrder } = useSalesOrdersActions(orders, setOrders, isArabic);
   const stats = useSalesOrdersStats(orders);
   
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
@@ -35,11 +35,7 @@ const SalesOrders = () => {
   };
 
   const handleSaveOrder = (orderData: Partial<SalesOrder>) => {
-    if (selectedOrder) {
-      updateOrder(selectedOrder.id, orderData);
-    } else {
-      addOrder(orderData);
-    }
+    saveOrder(orderData, selectedOrder);
     setSelectedOrder(null);
     setIsOrderDialogOpen(false);
   };
@@ -134,10 +130,10 @@ const SalesOrders = () => {
       </div>
 
       <SalesOrderFilters
-        searchTerm={filters.searchQuery}
-        onSearchChange={setSearchQuery}
-        selectedStatus={filters.status}
-        onStatusChange={setStatus}
+        searchTerm={filters.searchTerm}
+        onSearchChange={setSearchTerm}
+        selectedStatus={filters.selectedStatus}
+        onStatusChange={setSelectedStatus}
         onNewOrder={handleNewOrder}
         isArabic={isArabic}
         t={t}
@@ -167,7 +163,7 @@ const SalesOrders = () => {
 
       {selectedOrder && (
         <ReturnDialog
-          open={isReturnDialogOpen}
+          isOpen={isReturnDialogOpen}
           onOpenChange={setIsReturnDialogOpen}
           order={selectedOrder}
         />
