@@ -40,45 +40,23 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <SidebarProvider>
       <div className={`min-h-screen flex w-full bg-background ${isArabic ? 'rtl' : 'ltr'}`}>
-        {/* Sidebar position changes based on language direction */}
-        {isArabic ? (
-          <>
-            <div className="flex-1 flex flex-col min-w-0">
-              <AppHeader 
-                isArabic={isArabic}
-                onLanguageToggle={toggleLanguage}
-                onThemeToggle={handleThemeToggle}
-                isDark={isDark}
-              />
-              
-              <main className="flex-1 p-6 overflow-auto">
-                <div className="max-w-7xl mx-auto">
-                  {children}
-                </div>
-              </main>
+        {/* Sidebar always on the left */}
+        <AppSidebar isArabic={isArabic} />
+        
+        <div className="flex-1 flex flex-col min-w-0">
+          <AppHeader 
+            isArabic={isArabic}
+            onLanguageToggle={toggleLanguage}
+            onThemeToggle={handleThemeToggle}
+            isDark={isDark}
+          />
+          
+          <main className="flex-1 p-6 overflow-auto">
+            <div className="max-w-7xl mx-auto">
+              {children}
             </div>
-            <AppSidebar isArabic={isArabic} />
-          </>
-        ) : (
-          <>
-            <AppSidebar isArabic={isArabic} />
-            
-            <div className="flex-1 flex flex-col min-w-0">
-              <AppHeader 
-                isArabic={isArabic}
-                onLanguageToggle={toggleLanguage}
-                onThemeToggle={handleThemeToggle}
-                isDark={isDark}
-              />
-              
-              <main className="flex-1 p-6 overflow-auto">
-                <div className="max-w-7xl mx-auto">
-                  {children}
-                </div>
-              </main>
-            </div>
-          </>
-        )}
+          </main>
+        </div>
       </div>
     </SidebarProvider>
   );
