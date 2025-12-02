@@ -9,13 +9,22 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { RotateCcw, Eye, CheckCircle, XCircle, Clock } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { RotateCcw, Eye, CheckCircle, XCircle, Clock, MoreHorizontal, Check, X, PackageCheck } from "lucide-react";
 import { Return } from "@/types/return.types";
 
 interface ReturnsTableViewProps {
   returns: Return[];
   isArabic: boolean;
   onViewDetails: (returnItem: Return) => void;
+  onApprove?: (returnItem: Return) => void;
+  onReject?: (returnItem: Return) => void;
+  onComplete?: (returnItem: Return) => void;
 }
 
 const statusColors: Record<string, string> = {
@@ -45,14 +54,26 @@ const statusLabels: Record<string, { en: string; ar: string }> = {
   rejected: { en: "Rejected", ar: "مرفوض" }
 };
 
-export const ReturnsTableView = ({ returns, isArabic, onViewDetails }: ReturnsTableViewProps) => {
+export const ReturnsTableView = ({ 
+  returns, 
+  isArabic, 
+  onViewDetails,
+  onApprove,
+  onReject,
+  onComplete
+}: ReturnsTableViewProps) => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed': return <CheckCircle className="h-4 w-4" />;
       case 'rejected': return <XCircle className="h-4 w-4" />;
+      case 'approved': return <Check className="h-4 w-4" />;
       default: return <Clock className="h-4 w-4" />;
     }
   };
+
+  const canApprove = (status: string) => status === 'pending';
+  const canReject = (status: string) => status === 'pending';
+  const canComplete = (status: string) => status === 'approved';
 
   return (
     <Card>
@@ -109,13 +130,47 @@ export const ReturnsTableView = ({ returns, isArabic, onViewDetails }: ReturnsTa
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => onViewDetails(returnItem)}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => onViewDetails(returnItem)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {canApprove(returnItem.status) && onApprove && (
+                          <DropdownMenuItem onClick={() => onApprove(returnItem)}>
+                            <Check className="h-4 w-4 mr-2 text-green-600" />
+                            {isArabic ? "موافقة" : "Approve"}
+                          </DropdownMenuItem>
+                        )}
+                        {canReject(returnItem.status) && onReject && (
+                          <DropdownMenuItem onClick={() => onReject(returnItem)}>
+                            <X className="h-4 w-4 mr-2 text-red-600" />
+                            {isArabic ? "رفض" : "Reject"}
+                          </DropdownMenuItem>
+                        )}
+                        {canComplete(returnItem.status) && onComplete && (
+                          <DropdownMenuItem onClick={() => onComplete(returnItem)}>
+                            <PackageCheck className="h-4 w-4 mr-2 text-blue-600" />
+                            {isArabic ? "إتمام" : "Complete"}
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => onViewDetails(returnItem)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          {isArabic ? "عرض التفاصيل" : "View Details"}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
