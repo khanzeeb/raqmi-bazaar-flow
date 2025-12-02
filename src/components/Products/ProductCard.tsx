@@ -2,23 +2,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Eye, Package } from "lucide-react";
-
-interface Product {
-  id: string;
-  name: string;
-  nameAr: string;
-  sku: string;
-  category: string;
-  price: number;
-  stock: number;
-  status: 'active' | 'inactive';
-  image?: string;
-  variants?: string[];
-  barcode?: string;
-}
+import { ProductView } from "@/types/product.types";
+import { useUserSettings } from "@/contexts/UserSettingsContext";
 
 interface ProductCardProps {
-  product: Product;
+  product: ProductView;
   isArabic?: boolean;
   onView: () => void;
   onEdit: () => void;
@@ -26,6 +14,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, isArabic = false, onView, onEdit, onDelete }: ProductCardProps) {
+  const { formatCurrency } = useUserSettings();
   const getStockBadge = (stock: number) => {
     if (stock === 0) {
       return <Badge variant="destructive">{isArabic ? "نفد المخزون" : "Out of Stock"}</Badge>;
@@ -69,7 +58,7 @@ export function ProductCard({ product, isArabic = false, onView, onEdit, onDelet
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-bold text-lg">
-                  {isArabic ? `${product.price} ر.س` : `SAR ${product.price}`}
+                  {formatCurrency(product.price)}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {isArabic ? `المخزون: ${product.stock}` : `Stock: ${product.stock}`}
