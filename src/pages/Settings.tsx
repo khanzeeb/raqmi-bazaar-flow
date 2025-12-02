@@ -19,19 +19,14 @@ const Settings = () => {
   const { settings, updateSettings, formatCurrency } = useUserSettings();
   const isArabic = language === 'ar';
   
-  const { companyInfo, setCompanyInfo, notifications, setNotifications, security, setSecurity } = useSettingsData();
-
-  const handleCompanyInfoChange = (field: string, value: string) => {
-    setCompanyInfo(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleNotificationChange = (field: string, value: boolean) => {
-    setNotifications(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSecurityChange = (field: string, value: boolean | number) => {
-    setSecurity(prev => ({ ...prev, [field]: value }));
-  };
+  const { 
+    companyInfo, 
+    notifications, 
+    security, 
+    handleCompanyInfoChange, 
+    handleNotificationChange, 
+    handleSecurityChange 
+  } = useSettingsData();
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -370,13 +365,13 @@ const Settings = () => {
                   {CURRENCIES.map((currency) => (
                     <Button
                       key={currency.code}
-                      variant={settings.currency === currency.code ? 'default' : 'outline'}
+                      variant={settings.currency.code === currency.code ? 'default' : 'outline'}
                       className="flex flex-col h-auto py-3"
-                      onClick={() => updateSettings({ currency: currency.code as Currency })}
+                      onClick={() => updateSettings({ currency })}
                     >
                       <span className="text-lg font-bold">{currency.symbol}</span>
                       <span className="text-xs">{currency.code}</span>
-                      <span className="text-xs text-muted-foreground">{currency.name}</span>
+                      <span className="text-xs text-muted-foreground">{isArabic ? currency.nameAr : currency.nameEn}</span>
                     </Button>
                   ))}
                 </div>
