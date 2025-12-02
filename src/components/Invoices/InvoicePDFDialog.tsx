@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Download, FileText } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
-import type { Invoice } from "@/pages/Invoices";
+import type { Invoice } from "@/types/invoice.types";
 
 interface InvoicePDFDialogProps {
   open: boolean;
