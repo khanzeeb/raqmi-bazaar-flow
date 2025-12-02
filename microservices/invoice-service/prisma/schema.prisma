@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Invoice {
+  id              String          @id @default(uuid())
+  invoiceNumber   String          @unique @map("invoice_number")
+  orderId         String?         @map("order_id")
+  customerId      String          @map("customer_id")
+  customerName    String          @map("customer_name")
+  customerEmail   String?         @map("customer_email")
+  invoiceDate     DateTime        @map("invoice_date")
+  dueDate         DateTime        @map("due_date")
+  subtotal        Decimal         @db.Decimal(15, 2)
+  taxAmount       Decimal         @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  discountAmount  Decimal         @default(0) @map("discount_amount") @db.Decimal(15, 2)
+  totalAmount     Decimal         @map("total_amount") @db.Decimal(15, 2)
+  paidAmount      Decimal         @default(0) @map("paid_amount") @db.Decimal(15, 2)
+  balanceAmount   Decimal         @map("balance_amount") @db.Decimal(15, 2)
+  status          InvoiceStatus   @default(DRAFT)
+  paymentStatus   PaymentStatus   @default(UNPAID) @map("payment_status")
+  currency        String          @default("USD") @db.VarChar(3)
+  notes           String?
+  termsConditions String?         @map("terms_conditions")
+  metadata        Json?
+  items           InvoiceItem[]
+  payments        InvoicePayment[]
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id            String    @id @default(uuid())
+  invoiceId     String    @map("invoice_id")
+  invoice       Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId     String    @map("product_id")
+  productName   String    @map("product_name")
+  productSku    String?   @map("product_sku")
+  quantity      Decimal   @db.Decimal(10, 2)
+  unitPrice     Decimal   @map("unit_price") @db.Decimal(15, 2)
+  discountAmount Decimal  @default(0) @map("discount_amount") @db.Decimal(15, 2)
+  taxAmount     Decimal   @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  lineTotal     Decimal   @map("line_total") @db.Decimal(15, 2)
+  description   String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("invoice_items")
+}
+
+model InvoicePayment {
+  id            String    @id @default(uuid())
+  invoiceId     String    @map("invoice_id")
+  invoice       Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  paymentId     String    @map("payment_id")
+  amount        Decimal   @db.Decimal(15, 2)
+  appliedAt     DateTime  @default(now()) @map("applied_at")
+
+  @@map("invoice_payments")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  OVERPAID
+  REFUNDED
+}
