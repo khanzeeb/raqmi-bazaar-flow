@@ -2,35 +2,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Eye, User, Building, Phone, Mail, MapPin, Plus } from "lucide-react";
-
-interface Customer {
-  id: string;
-  name: string;
-  nameAr: string;
-  email: string;
-  phone: string;
-  customerType: 'individual' | 'business';
-  status: 'active' | 'inactive';
-  balance: number;
-  lifetimeValue: number;
-  totalOrders: number;
-  lastOrderDate?: string;
-  billingAddress: {
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-  };
-  tags?: string[];
-}
+import { Customer } from "@/types/customer.types";
 
 interface CustomerCardProps {
   customer: Customer;
   isArabic?: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
-  onNewPayment?: () => void;
+  onEdit: (customer: Customer) => void;
+  onDelete: (id: string) => void;
+  onNewPayment?: (customer: Customer) => void;
 }
 
 export function CustomerCard({ customer, isArabic = false, onEdit, onDelete, onNewPayment }: CustomerCardProps) {
@@ -143,18 +122,15 @@ export function CustomerCard({ customer, isArabic = false, onEdit, onDelete, onN
             <Button variant="ghost" size="sm">
               <Eye className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={onEdit}>
+            <Button variant="ghost" size="sm" onClick={() => onEdit(customer)}>
               <Edit className="h-4 w-4" />
             </Button>
             {onNewPayment && (
-              <Button variant="ghost" size="sm" onClick={() => {
-                console.log('Payment button clicked in CustomerCard');
-                onNewPayment();
-              }}>
+              <Button variant="ghost" size="sm" onClick={() => onNewPayment(customer)}>
                 <Plus className="h-4 w-4" />
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={onDelete}>
+            <Button variant="ghost" size="sm" onClick={() => onDelete(customer.id)}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
