@@ -6,10 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Trash2, Plus } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Quotation } from "@/pages/Quotations";
+import { BilingualLabel } from "@/components/common/BilingualLabel";
 
 interface QuotationDialogProps {
   open: boolean;
@@ -18,17 +18,20 @@ interface QuotationDialogProps {
   onSave: (quotation: Omit<Quotation, 'id' | 'createdAt'>) => void;
 }
 
+// Bilingual text helper
+const getText = (isArabic: boolean, ar: string, en: string) => isArabic ? ar : en;
+
 export function QuotationDialog({
   open,
   onOpenChange,
   quotation,
   onSave,
 }: QuotationDialogProps) {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const isArabic = language === 'ar';
   const [formData, setFormData] = useState({
     quotationNumber: '',
-      customer: { name: '', phone: '', email: '', type: 'individual' as 'individual' | 'business' },
+    customer: { name: '', phone: '', email: '', type: 'individual' as 'individual' | 'business' },
     items: [{ id: '1', name: '', quantity: 1, price: 0, total: 0 }],
     subtotal: 0,
     taxRate: 15,
@@ -102,13 +105,7 @@ export function QuotationDialog({
   };
 
   const addItem = () => {
-    const newItem = {
-      id: Date.now().toString(),
-      name: '',
-      quantity: 1,
-      price: 0,
-      total: 0
-    };
+    const newItem = { id: Date.now().toString(), name: '', quantity: 1, price: 0, total: 0 };
     setFormData({ ...formData, items: [...formData.items, newItem] });
   };
 
@@ -122,7 +119,6 @@ export function QuotationDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
     const currentDate = new Date().toISOString();
     const historyEntry = {
       id: Date.now().toString(),
@@ -138,15 +134,18 @@ export function QuotationDialog({
     onSave(quotationWithHistory);
   };
 
+  const currencySymbol = isArabic ? 'ر.س' : 'SAR';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {quotation 
-              ? (isArabic ? 'تعديل عرض السعر' : 'Edit Quotation') 
-              : (isArabic ? 'عرض سعر جديد' : 'New Quotation')
-            }
+            <BilingualLabel 
+              enLabel={quotation ? 'Edit Quotation' : 'New Quotation'} 
+              arLabel={quotation ? 'تعديل عرض السعر' : 'عرض سعر جديد'}
+              showBoth={false}
+            />
           </DialogTitle>
         </DialogHeader>
 
@@ -155,7 +154,7 @@ export function QuotationDialog({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="quotationNumber">
-                {isArabic ? "رقم العرض" : "Quotation Number"}
+                <BilingualLabel enLabel="Quotation Number" arLabel="رقم العرض" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
               </Label>
               <Input
                 id="quotationNumber"
@@ -166,7 +165,7 @@ export function QuotationDialog({
             </div>
             <div>
               <Label htmlFor="validityDays">
-                {isArabic ? "مدة الصلاحية (بالأيام)" : "Validity (Days)"}
+                <BilingualLabel enLabel="Validity (Days)" arLabel="مدة الصلاحية (بالأيام)" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
               </Label>
               <Input
                 id="validityDays"
@@ -190,12 +189,16 @@ export function QuotationDialog({
           {/* Customer Info */}
           <Card>
             <CardHeader>
-              <CardTitle>{isArabic ? "معلومات العميل" : "Customer Information"}</CardTitle>
+              <CardTitle>
+                <BilingualLabel enLabel="Customer Information" arLabel="معلومات العميل" showBoth={true} primaryClassName="text-base" secondaryClassName="text-xs" />
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="customerName">اسم العميل</Label>
+                  <Label htmlFor="customerName">
+                    <BilingualLabel enLabel="Customer Name" arLabel="اسم العميل" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+                  </Label>
                   <Input
                     id="customerName"
                     value={formData.customer.name}
@@ -207,7 +210,9 @@ export function QuotationDialog({
                   />
                 </div>
                 <div>
-                  <Label htmlFor="customerType">نوع العميل</Label>
+                  <Label htmlFor="customerType">
+                    <BilingualLabel enLabel="Customer Type" arLabel="نوع العميل" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+                  </Label>
                   <Select
                     value={formData.customer.type}
                     onValueChange={(value: 'individual' | 'business') =>
@@ -221,15 +226,17 @@ export function QuotationDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="individual">فردي</SelectItem>
-                      <SelectItem value="business">شركة</SelectItem>
+                      <SelectItem value="individual">{getText(isArabic, 'فردي', 'Individual')} / {getText(!isArabic, 'فردي', 'Individual')}</SelectItem>
+                      <SelectItem value="business">{getText(isArabic, 'شركة', 'Business')} / {getText(!isArabic, 'شركة', 'Business')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="customerPhone">الهاتف</Label>
+                  <Label htmlFor="customerPhone">
+                    <BilingualLabel enLabel="Phone" arLabel="الهاتف" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+                  </Label>
                   <Input
                     id="customerPhone"
                     value={formData.customer.phone}
@@ -241,7 +248,9 @@ export function QuotationDialog({
                   />
                 </div>
                 <div>
-                  <Label htmlFor="customerEmail">البريد الإلكتروني</Label>
+                  <Label htmlFor="customerEmail">
+                    <BilingualLabel enLabel="Email" arLabel="البريد الإلكتروني" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+                  </Label>
                   <Input
                     id="customerEmail"
                     type="email"
@@ -260,10 +269,12 @@ export function QuotationDialog({
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>العناصر</CardTitle>
+                <CardTitle>
+                  <BilingualLabel enLabel="Items" arLabel="العناصر" showBoth={true} primaryClassName="text-base" secondaryClassName="text-xs" />
+                </CardTitle>
                 <Button type="button" onClick={addItem} size="sm">
                   <Plus className="w-4 h-4 mr-1" />
-                  إضافة عنصر
+                  <BilingualLabel enLabel="Add Item" arLabel="إضافة عنصر" showBoth={false} />
                 </Button>
               </div>
             </CardHeader>
@@ -272,7 +283,9 @@ export function QuotationDialog({
                 {formData.items.map((item, index) => (
                   <div key={item.id} className="grid grid-cols-12 gap-2 items-end">
                     <div className="col-span-5">
-                      <Label>اسم المنتج</Label>
+                      <Label>
+                        <BilingualLabel enLabel="Product Name" arLabel="اسم المنتج" showBoth={true} primaryClassName="text-xs" secondaryClassName="text-[9px]" />
+                      </Label>
                       <Input
                         value={item.name}
                         onChange={(e) => handleItemChange(index, 'name', e.target.value)}
@@ -280,7 +293,9 @@ export function QuotationDialog({
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label>الكمية</Label>
+                      <Label>
+                        <BilingualLabel enLabel="Quantity" arLabel="الكمية" showBoth={true} primaryClassName="text-xs" secondaryClassName="text-[9px]" />
+                      </Label>
                       <Input
                         type="number"
                         min="1"
@@ -290,7 +305,9 @@ export function QuotationDialog({
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label>السعر</Label>
+                      <Label>
+                        <BilingualLabel enLabel="Price" arLabel="السعر" showBoth={true} primaryClassName="text-xs" secondaryClassName="text-[9px]" />
+                      </Label>
                       <Input
                         type="number"
                         min="0"
@@ -301,7 +318,9 @@ export function QuotationDialog({
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label>المجموع</Label>
+                      <Label>
+                        <BilingualLabel enLabel="Total" arLabel="المجموع" showBoth={true} primaryClassName="text-xs" secondaryClassName="text-[9px]" />
+                      </Label>
                       <Input value={item.total.toFixed(2)} readOnly />
                     </div>
                     <div className="col-span-1">
@@ -324,12 +343,16 @@ export function QuotationDialog({
           {/* Pricing */}
           <Card>
             <CardHeader>
-              <CardTitle>التسعير</CardTitle>
+              <CardTitle>
+                <BilingualLabel enLabel="Pricing" arLabel="التسعير" showBoth={true} primaryClassName="text-base" secondaryClassName="text-xs" />
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="discount">الخصم</Label>
+                  <Label htmlFor="discount">
+                    <BilingualLabel enLabel="Discount" arLabel="الخصم" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+                  </Label>
                   <Input
                     id="discount"
                     type="number"
@@ -344,7 +367,9 @@ export function QuotationDialog({
                   />
                 </div>
                 <div>
-                  <Label htmlFor="taxRate">معدل الضريبة (%)</Label>
+                  <Label htmlFor="taxRate">
+                    <BilingualLabel enLabel="Tax Rate (%)" arLabel="معدل الضريبة (%)" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+                  </Label>
                   <Input
                     id="taxRate"
                     type="number"
@@ -360,7 +385,9 @@ export function QuotationDialog({
                   />
                 </div>
                 <div>
-                  <Label htmlFor="status">حالة العرض</Label>
+                  <Label htmlFor="status">
+                    <BilingualLabel enLabel="Status" arLabel="حالة العرض" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+                  </Label>
                   <Select
                     value={formData.status}
                     onValueChange={(value: any) => setFormData({ ...formData, status: value })}
@@ -369,10 +396,10 @@ export function QuotationDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="draft">مسودة</SelectItem>
-                      <SelectItem value="sent">مرسل</SelectItem>
-                      <SelectItem value="accepted">مقبول</SelectItem>
-                      <SelectItem value="expired">منتهي الصلاحية</SelectItem>
+                      <SelectItem value="draft">{getText(isArabic, 'مسودة', 'Draft')} / {getText(!isArabic, 'مسودة', 'Draft')}</SelectItem>
+                      <SelectItem value="sent">{getText(isArabic, 'مرسل', 'Sent')} / {getText(!isArabic, 'مرسل', 'Sent')}</SelectItem>
+                      <SelectItem value="accepted">{getText(isArabic, 'مقبول', 'Accepted')} / {getText(!isArabic, 'مقبول', 'Accepted')}</SelectItem>
+                      <SelectItem value="expired">{getText(isArabic, 'منتهي الصلاحية', 'Expired')} / {getText(!isArabic, 'منتهي الصلاحية', 'Expired')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -381,20 +408,20 @@ export function QuotationDialog({
               <div className="border-t pt-4">
                 <div className="space-y-2 max-w-xs ml-auto">
                   <div className="flex justify-between">
-                    <span>المجموع الفرعي:</span>
-                    <span>{formData.subtotal.toFixed(2)} ر.س</span>
+                    <span><BilingualLabel enLabel="Subtotal:" arLabel="المجموع الفرعي:" showBoth={false} /></span>
+                    <span>{formData.subtotal.toFixed(2)} {currencySymbol}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>الخصم:</span>
-                    <span>-{formData.discount.toFixed(2)} ر.س</span>
+                    <span><BilingualLabel enLabel="Discount:" arLabel="الخصم:" showBoth={false} /></span>
+                    <span>-{formData.discount.toFixed(2)} {currencySymbol}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>الضريبة ({formData.taxRate}%):</span>
-                    <span>{formData.taxAmount.toFixed(2)} ر.س</span>
+                    <span><BilingualLabel enLabel={`Tax (${formData.taxRate}%):`} arLabel={`الضريبة (${formData.taxRate}%):`} showBoth={false} /></span>
+                    <span>{formData.taxAmount.toFixed(2)} {currencySymbol}</span>
                   </div>
                   <div className="flex justify-between font-bold text-lg border-t pt-2">
-                    <span>المجموع الكلي:</span>
-                    <span>{formData.total.toFixed(2)} ر.س</span>
+                    <span><BilingualLabel enLabel="Total:" arLabel="المجموع الكلي:" showBoth={false} /></span>
+                    <span>{formData.total.toFixed(2)} {currencySymbol}</span>
                   </div>
                 </div>
               </div>
@@ -403,7 +430,9 @@ export function QuotationDialog({
 
           {/* Notes */}
           <div>
-            <Label htmlFor="notes">ملاحظات</Label>
+            <Label htmlFor="notes">
+              <BilingualLabel enLabel="Notes" arLabel="ملاحظات" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+            </Label>
             <Textarea
               id="notes"
               value={formData.notes}
@@ -412,15 +441,16 @@ export function QuotationDialog({
             />
           </div>
 
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-2 gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {isArabic ? "إلغاء" : "Cancel"}
+              <BilingualLabel enLabel="Cancel" arLabel="إلغاء" showBoth={false} />
             </Button>
             <Button type="submit">
-              {quotation 
-                ? (isArabic ? 'تحديث العرض' : 'Update Quotation')
-                : (isArabic ? 'حفظ العرض' : 'Save Quotation')
-              }
+              <BilingualLabel 
+                enLabel={quotation ? 'Update Quotation' : 'Save Quotation'} 
+                arLabel={quotation ? 'تحديث العرض' : 'حفظ العرض'}
+                showBoth={false}
+              />
             </Button>
           </div>
         </form>

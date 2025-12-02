@@ -28,17 +28,20 @@ export function ProductCard({ product, isArabic = false, onView, onEdit, onDelet
     <Card className="hover:shadow-lg transition-shadow">
       <CardContent className="p-4">
         <div className="space-y-3">
-          {/* Product Image Placeholder */}
-          <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-            {product.image ? (
+          {/* Product Image */}
+          <div className="aspect-square bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+            {product.image && product.image !== '/placeholder.svg' ? (
               <img 
                 src={product.image} 
                 alt={isArabic ? product.nameAr : product.name}
                 className="w-full h-full object-cover rounded-lg"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                }}
               />
-            ) : (
-              <Package className="h-12 w-12 text-muted-foreground" />
-            )}
+            ) : null}
+            <Package className={`h-12 w-12 text-muted-foreground ${product.image && product.image !== '/placeholder.svg' ? 'hidden' : ''}`} />
           </div>
 
           {/* Product Info */}
