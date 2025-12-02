@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Receipt, DollarSign, User, FileText, CheckCircle } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Expense } from "@/pages/Expenses";
+import { Expense } from "@/types/expense.types";
 
 interface ExpenseDetailsDialogProps {
   open: boolean;

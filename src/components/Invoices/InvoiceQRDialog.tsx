@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { QrCode, Download, Share, Copy } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
-import type { Invoice } from "@/pages/Invoices";
+import type { Invoice } from "@/types/invoice.types";
 
 interface InvoiceQRDialogProps {
   open: boolean;

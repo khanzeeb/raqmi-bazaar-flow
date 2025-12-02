@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Expense } from "@/pages/Expenses";
+import { Expense } from "@/types/expense.types";
 import { Upload, X, FileText } from "lucide-react";
 
 interface ExpenseDialogProps {

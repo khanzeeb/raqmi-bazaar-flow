@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Plus } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Invoice } from "@/pages/Invoices";
+import { Invoice } from "@/types/invoice.types";
 
 interface InvoiceDialogProps {
   open: boolean;

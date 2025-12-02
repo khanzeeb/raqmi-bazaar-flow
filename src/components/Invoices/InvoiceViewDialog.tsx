@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useLanguage } from "@/contexts/LanguageContext";
-import type { Invoice } from "@/pages/Invoices";
+import type { Invoice } from "@/types/invoice.types";
 
 interface InvoiceViewDialogProps {
   open: boolean;
