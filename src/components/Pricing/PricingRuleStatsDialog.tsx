@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, Users, ShoppingCart, DollarSign, Calendar } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import type { PricingRule } from "@/pages/Pricing";
+import type { PricingRule } from "@/types/pricing.types";
 
 interface PricingRuleStatsDialogProps {
   open: boolean;
