@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Plus } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Quotation } from "@/pages/Quotations";
+import { Quotation } from "@/types/quotation.types";
 import { BilingualLabel } from "@/components/common/BilingualLabel";
 
 interface QuotationDialogProps {

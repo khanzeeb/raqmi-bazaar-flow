@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock, Send, CheckCircle, XCircle, ShoppingCart } from "lucide-react";
-import { QuotationHistory as HistoryItem } from "@/pages/Quotations";
+import { QuotationHistoryEntry as HistoryItem } from "@/types/quotation.types";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface QuotationHistoryProps {
