@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Payment {
+  id                String            @id @default(uuid())
+  paymentNumber     String            @unique @map("payment_number")
+  customerId        String            @map("customer_id")
+  customerName      String            @map("customer_name")
+  amount            Decimal           @db.Decimal(15, 2)
+  allocatedAmount   Decimal           @default(0) @map("allocated_amount") @db.Decimal(15, 2)
+  unallocatedAmount Decimal           @default(0) @map("unallocated_amount") @db.Decimal(15, 2)
+  paymentMethod     PaymentMethod     @map("payment_method")
+  paymentDate       DateTime          @map("payment_date")
+  status            PaymentStatus     @default(PENDING)
+  reference         String?
+  notes             String?
+  chequeImagePath   String?           @map("cheque_image_path")
+  metadata          Json?
+  allocations       PaymentAllocation[]
+  approvedAt        DateTime?         @map("approved_at")
+  approvedBy        String?           @map("approved_by")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  @@map("payments")
+}
+
+model PaymentAllocation {
+  id          String    @id @default(uuid())
+  paymentId   String    @map("payment_id")
+  payment     Payment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  targetType  String    @map("target_type") // 'invoice', 'order'
+  targetId    String    @map("target_id")
+  amount      Decimal   @db.Decimal(15, 2)
+  allocatedAt DateTime  @default(now()) @map("allocated_at")
+
+  @@map("payment_allocations")
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  BANK_TRANSFER
+  CHEQUE
+  MOBILE_PAYMENT
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}

@@ -1,6 +1,32 @@
 version: '3.8'
 
 services:
+  # Kafka Infrastructure
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - microservices-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - microservices-network
+
   # Load Balancer (using nginx)
   nginx:
     image: nginx:alpine
@@ -26,7 +52,10 @@ services:
       - PURCHASE_SERVICE_URL=http://purchase-service:3005
       - EXPENSE_SERVICE_URL=http://expense-service:3006
       - INVOICE_SERVICE_URL=http://invoice-service:3007
+      - PAYMENT_SERVICE_URL=http://payment-service:3013
+      - KAFKA_BROKER=kafka:9092
     depends_on:
+      - kafka
       - product-service
       - order-service
       - customer-service
@@ -34,10 +63,11 @@ services:
       - purchase-service
       - expense-service
       - invoice-service
+      - payment-service
     networks:
       - microservices-network
 
-  # Product Service (Fastify + Prisma)
+  # Product Service (NestJS + Prisma)
   product-service:
     build: ./product-service
     ports:
@@ -51,21 +81,19 @@ services:
     networks:
       - microservices-network
 
-  # Order Service
+  # Order Service (NestJS + Prisma + Kafka)
   order-service:
     build: ./order-service
     ports:
       - "3002:3002"
     environment:
-      - ORDER_DB_HOST=order-db
-      - ORDER_DB_PORT=5432
-      - ORDER_DB_USER=postgres
-      - ORDER_DB_PASSWORD=password
-      - ORDER_DB_NAME=order_db
-      - PRODUCT_SERVICE_URL=http://product-service:3001
-      - CUSTOMER_SERVICE_URL=http://customer-service:3003
+      - DATABASE_URL=postgresql://postgres:password@order-db:5432/order_db?schema=public
+      - KAFKA_BROKER=kafka:9092
+      - NODE_ENV=production
+      - PORT=3002
     depends_on:
       - order-db
+      - kafka
     networks:
       - microservices-network
 
@@ -133,19 +161,35 @@ services:
     networks:
       - microservices-network
 
-  # Invoice Service
+  # Invoice Service (NestJS + Prisma + Kafka)
   invoice-service:
     build: ./invoice-service
     ports:
       - "3007:3007"
     environment:
-      - INVOICE_DB_HOST=invoice-db
-      - INVOICE_DB_PORT=5432
-      - INVOICE_DB_USER=postgres
-      - INVOICE_DB_PASSWORD=password
-      - INVOICE_DB_NAME=invoice_db
+      - DATABASE_URL=postgresql://postgres:password@invoice-db:5432/invoice_db?schema=public
+      - KAFKA_BROKER=kafka:9092
+      - NODE_ENV=production
+      - PORT=3007
     depends_on:
       - invoice-db
+      - kafka
+    networks:
+      - microservices-network
+
+  # Payment Service (NestJS + Prisma + Kafka)
+  payment-service:
+    build: ./payment-service
+    ports:
+      - "3013:3013"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@payment-db:5432/payment_db?schema=public
+      - KAFKA_BROKER=kafka:9092
+      - NODE_ENV=production
+      - PORT=3013
+    depends_on:
+      - payment-db
+      - kafka
     networks:
       - microservices-network
 
@@ -357,6 +401,17 @@ services:
     networks:
       - microservices-network
 
+  payment-db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=payment_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - payment-db-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+
 volumes:
   product-db-data:
   order-db-data:
@@ -370,6 +425,7 @@ volumes:
   return-db-data:
   inventory-db-data:
   settings-db-data:
+  payment-db-data:
 
 networks:
   microservices-network:
