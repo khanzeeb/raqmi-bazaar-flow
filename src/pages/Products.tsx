@@ -1,12 +1,12 @@
-// Products Page - Refactored with SOLID, KISS, DRY principles
+// Products Page - Refactored with separated hooks
 
 import { useState, useCallback } from 'react';
-import { useProductsRefactored } from '@/hooks/useProductsRefactored';
+import { useProductsData, useProductsActions, useProductsStats, useProductsState } from '@/hooks/products';
 import { ProductView } from '@/types/product.types';
 import { exportToCSV } from '@/lib/product/export';
 import { useToast } from '@/hooks/use-toast';
 
-// Components (Single Responsibility)
+// Components
 import { ProductHeader } from '@/components/Products/ProductHeader';
 import { ProductStatsCards } from '@/components/Products/ProductStats';
 import { ProductFilters, ViewMode } from '@/components/Products/ProductFilters';
@@ -23,8 +23,8 @@ interface ProductsProps {
 
 export default function Products({ isArabic = false }: ProductsProps) {
   const { toast } = useToast();
-  
-  // Hook handles all data fetching and state (Separation of Concerns)
+
+  // Data hook
   const {
     products,
     allProducts,
@@ -33,15 +33,19 @@ export default function Products({ isArabic = false }: ProductsProps) {
     pagination,
     search,
     localFilters,
-    stats,
-    create,
-    update,
-    remove,
     updateSearch,
     updateLocalFilters,
-    hasProducts,
-    isEmpty,
-  } = useProductsRefactored({ initialLimit: 50 });
+    refresh
+  } = useProductsData({ initialLimit: 50 });
+
+  // Actions hook
+  const { create, update, remove } = useProductsActions({ onSuccess: refresh });
+
+  // Stats hook
+  const stats = useProductsStats(allProducts);
+
+  // State hook
+  const { hasProducts, isEmpty } = useProductsState(allProducts, loading);
 
   // Local UI state
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -50,7 +54,7 @@ export default function Products({ isArabic = false }: ProductsProps) {
   const [viewProduct, setViewProduct] = useState<ProductView | null>(null);
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
 
-  // Handlers (KISS - Keep It Simple)
+  // Handlers
   const handleAdd = useCallback(() => {
     setSelectedProduct(null);
     setIsDialogOpen(true);
@@ -93,7 +97,7 @@ export default function Products({ isArabic = false }: ProductsProps) {
     });
   }, [allProducts, isArabic, toast]);
 
-  // Render states (Single Responsibility for each state)
+  // Render states
   if (loading && !hasProducts) {
     return (
       <div className="space-y-6">
