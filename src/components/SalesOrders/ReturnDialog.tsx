@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RotateCcw, Package, AlertCircle } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
-import { SalesOrder } from "@/pages/SalesOrders";
+import { SalesOrder } from "@/types/salesOrder.types";
 
 interface ReturnDialogProps {
   isOpen: boolean;

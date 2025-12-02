@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { X, Plus } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
-import type { PricingRule } from "@/pages/Pricing";
+import type { PricingRule } from "@/types/pricing.types";
 
 interface PricingRuleDialogProps {
   open: boolean;

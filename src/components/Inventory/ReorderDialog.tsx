@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ShoppingCart } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { InventoryItem } from "@/pages/Inventory";
+import { InventoryItem } from "@/types/inventory.types";
 
 interface ReorderDialogProps {
   open: boolean;

@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Minus, Search, Calculator } from "lucide-react";
-import { SalesOrder } from "@/pages/SalesOrders";
+import { SalesOrder } from "@/types/salesOrder.types";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface OrderDialogProps {

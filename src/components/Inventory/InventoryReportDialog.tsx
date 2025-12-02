@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, Download, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { InventoryItem } from "@/pages/Inventory";
+import { InventoryItem } from "@/types/inventory.types";
 
 interface InventoryReportDialogProps {
   open: boolean;

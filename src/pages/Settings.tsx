@@ -1,111 +1,36 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { 
-  Settings as SettingsIcon, 
-  User, 
-  Bell, 
-  Shield, 
-  Globe, 
-  Palette, 
-  Database,
-  Mail,
-  Smartphone,
-  Key,
-  Download,
-  Upload,
-  Save,
-  RefreshCw,
-  DollarSign,
-  Check
+  User, Bell, Shield, Globe, Palette, Database,
+  Mail, Smartphone, Key, Download, Upload, Save, DollarSign
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useUserSettings, CURRENCIES, Currency } from "@/contexts/UserSettingsContext";
-
-interface NotificationSettings {
-  emailNotifications: boolean;
-  smsNotifications: boolean;
-  browserNotifications: boolean;
-  salesAlerts: boolean;
-  lowStockAlerts: boolean;
-  paymentReminders: boolean;
-}
-
-interface SecuritySettings {
-  twoFactorAuth: boolean;
-  sessionTimeout: number;
-  passwordExpiry: number;
-  loginNotifications: boolean;
-}
-
-interface CompanyInfo {
-  name: string;
-  nameAr: string;
-  email: string;
-  phone: string;
-  address: string;
-  taxId: string;
-  crNumber: string;
-  website?: string;
-}
+import { useSettingsData } from "@/hooks/settings";
 
 const Settings = () => {
-  const { language, toggleLanguage, setLanguage } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const { settings, updateSettings, formatCurrency } = useUserSettings();
   const isArabic = language === 'ar';
   
-  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
-    name: 'RAQMI Technology Solutions',
-    nameAr: 'شركة رقمي للحلول التقنية',
-    email: 'info@raqmi.com',
-    phone: '+966112345678',
-    address: 'الرياض، المملكة العربية السعودية',
-    taxId: '123456789012345',
-    crNumber: '1010123456',
-    website: 'www.raqmi.com'
-  });
+  const { companyInfo, setCompanyInfo, notifications, setNotifications, security, setSecurity } = useSettingsData();
 
-  const [notifications, setNotifications] = useState<NotificationSettings>({
-    emailNotifications: true,
-    smsNotifications: false,
-    browserNotifications: true,
-    salesAlerts: true,
-    lowStockAlerts: true,
-    paymentReminders: true
-  });
-
-  const [security, setSecurity] = useState<SecuritySettings>({
-    twoFactorAuth: false,
-    sessionTimeout: 30,
-    passwordExpiry: 90,
-    loginNotifications: true
-  });
-
-  const handleCompanyInfoChange = (field: keyof CompanyInfo, value: string) => {
-    setCompanyInfo(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleCompanyInfoChange = (field: string, value: string) => {
+    setCompanyInfo(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleNotificationChange = (field: keyof NotificationSettings, value: boolean) => {
-    setNotifications(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleNotificationChange = (field: string, value: boolean) => {
+    setNotifications(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSecurityChange = (field: keyof SecuritySettings, value: boolean | number) => {
-    setSecurity(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleSecurityChange = (field: string, value: boolean | number) => {
+    setSecurity(prev => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -168,7 +93,6 @@ const Settings = () => {
                     id="companyNameAr"
                     value={companyInfo.nameAr}
                     onChange={(e) => handleCompanyInfoChange('nameAr', e.target.value)}
-                    className={isArabic ? 'text-right' : ''}
                   />
                 </div>
               </div>
@@ -404,7 +328,6 @@ const Settings = () => {
               <CardTitle>{isArabic ? 'إعدادات اللغة والعملة' : 'Language & Currency Settings'}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Language Settings */}
               <div className="space-y-4">
                 <h3 className="text-lg font-medium flex items-center gap-2">
                   <Globe className="w-5 h-5" />
@@ -438,79 +361,25 @@ const Settings = () => {
 
               <Separator />
 
-              {/* Currency Settings */}
               <div className="space-y-4">
                 <h3 className="text-lg font-medium flex items-center gap-2">
                   <DollarSign className="w-5 h-5" />
                   {isArabic ? 'العملة' : 'Currency'}
                 </h3>
-                <div>
-                  <Label>{isArabic ? 'العملة المفضلة' : 'Preferred Currency'}</Label>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {isArabic ? 'اختر العملة المستخدمة في جميع أنحاء النظام' : 'Select the currency used throughout the system'}
-                  </p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                    {CURRENCIES.map((currency) => (
-                      <Button
-                        key={currency.code}
-                        variant={settings.currency.code === currency.code ? 'default' : 'outline'}
-                        className={`flex flex-col items-center gap-1 h-auto py-3 ${settings.currency.code === currency.code ? '' : 'hover:bg-muted'}`}
-                        onClick={() => updateSettings({ currency })}
-                      >
-                        <span className="text-lg font-bold">{currency.symbol}</span>
-                        <span className="text-xs">{currency.code}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {isArabic ? currency.nameAr : currency.nameEn}
-                        </span>
-                        {settings.currency.code === currency.code && (
-                          <Check className="w-4 h-4 absolute top-1 right-1" />
-                        )}
-                      </Button>
-                    ))}
-                  </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {CURRENCIES.map((currency) => (
+                    <Button
+                      key={currency.code}
+                      variant={settings.currency === currency.code ? 'default' : 'outline'}
+                      className="flex flex-col h-auto py-3"
+                      onClick={() => updateSettings({ currency: currency.code as Currency })}
+                    >
+                      <span className="text-lg font-bold">{currency.symbol}</span>
+                      <span className="text-xs">{currency.code}</span>
+                      <span className="text-xs text-muted-foreground">{currency.name}</span>
+                    </Button>
+                  ))}
                 </div>
-                
-                <div className="bg-muted/50 rounded-lg p-4">
-                  <Label>{isArabic ? 'معاينة التنسيق' : 'Format Preview'}</Label>
-                  <div className="flex gap-4 mt-2">
-                    <div>
-                      <span className="text-sm text-muted-foreground">{isArabic ? 'مثال:' : 'Example:'}</span>
-                      <p className="text-lg font-semibold">{formatCurrency(1234.56)}</p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">{isArabic ? 'مبلغ كبير:' : 'Large amount:'}</span>
-                      <p className="text-lg font-semibold">{formatCurrency(125000)}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Tax Rate Settings */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">{isArabic ? 'إعدادات الضريبة' : 'Tax Settings'}</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="taxRate">{isArabic ? 'معدل الضريبة الافتراضي (%)' : 'Default Tax Rate (%)'}</Label>
-                    <Input
-                      id="taxRate"
-                      type="number"
-                      value={settings.taxRate}
-                      onChange={(e) => updateSettings({ taxRate: parseFloat(e.target.value) || 0 })}
-                      min="0"
-                      max="100"
-                      step="0.5"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className={`flex ${isArabic ? 'justify-start' : 'justify-end'}`}>
-                <Button>
-                  <Save className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
-                  {isArabic ? 'حفظ التغييرات' : 'Save Changes'}
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -523,7 +392,7 @@ const Settings = () => {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                {isArabic ? 'إعدادات المظهر والثيمات قريباً...' : 'Appearance and theme settings coming soon...'}
+                {isArabic ? 'قريباً - تخصيص مظهر النظام' : 'Coming soon - System appearance customization'}
               </p>
             </CardContent>
           </Card>
@@ -535,27 +404,29 @@ const Settings = () => {
               <CardTitle>{isArabic ? 'إدارة البيانات' : 'Data Management'}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">{isArabic ? 'تصدير البيانات' : 'Export Data'}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {isArabic ? 'تصدير جميع بيانات النظام' : 'Export all system data'}
+                  </p>
+                </div>
                 <Button variant="outline">
                   <Download className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
-                  {isArabic ? 'تصدير البيانات' : 'Export Data'}
-                </Button>
-                <Button variant="outline">
-                  <Upload className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
-                  {isArabic ? 'استيراد البيانات' : 'Import Data'}
+                  {isArabic ? 'تصدير' : 'Export'}
                 </Button>
               </div>
-              
-              <Separator />
-              
-              <div className="space-y-2">
-                <Label className="text-destructive">{isArabic ? 'منطقة خطر' : 'Danger Zone'}</Label>
-                <p className="text-sm text-muted-foreground">
-                  {isArabic ? 'إعادة تعيين البيانات ستحذف جميع المعلومات نهائياً' : 'Resetting data will permanently delete all information'}
-                </p>
-                <Button variant="destructive" size="sm">
-                  <RefreshCw className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
-                  {isArabic ? 'إعادة تعيين البيانات' : 'Reset Data'}
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">{isArabic ? 'استيراد البيانات' : 'Import Data'}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {isArabic ? 'استيراد بيانات من ملف' : 'Import data from file'}
+                  </p>
+                </div>
+                <Button variant="outline">
+                  <Upload className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
+                  {isArabic ? 'استيراد' : 'Import'}
                 </Button>
               </div>
             </CardContent>
