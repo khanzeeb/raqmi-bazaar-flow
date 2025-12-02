@@ -19,9 +19,10 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, Upload } from "lucide-react";
+import { ProductView } from "@/types/product.types";
 
-interface Product {
-  id: string;
+// Form data type for dialog
+interface ProductFormData {
   name: string;
   nameAr: string;
   sku: string;
@@ -41,8 +42,8 @@ interface Product {
 interface ProductDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  product: Product | null;
-  onSave: (product: Partial<Product>) => void;
+  product: ProductView | null;
+  onSave: (product: Partial<ProductView>) => void;
   isArabic?: boolean;
 }
 
@@ -68,7 +69,7 @@ const unitsOfMeasure = [
 ];
 
 export function ProductDialog({ open, onOpenChange, product, onSave, isArabic = false }: ProductDialogProps) {
-  const [formData, setFormData] = useState<Partial<Product>>({
+  const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     nameAr: '',
     sku: '',
@@ -86,7 +87,10 @@ export function ProductDialog({ open, onOpenChange, product, onSave, isArabic = 
 
   useEffect(() => {
     if (product) {
-      setFormData(product);
+      setFormData({
+        ...product,
+        status: product.status === 'discontinued' ? 'inactive' : product.status,
+      });
     } else {
       setFormData({
         name: '',

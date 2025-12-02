@@ -1,0 +1,207 @@
+// API Gateway - Single entry point for all API requests
+// Implements centralized error handling, request/response transformation
+
+import { ApiResponse, ApiError, QueryParams } from '@/types/api';
+
+export interface GatewayConfig {
+  baseUrl: string;
+  timeout: number;
+  retries: number;
+  onError?: (error: GatewayError) => void;
+}
+
+export interface GatewayError {
+  code: string;
+  message: string;
+  status: number;
+  details?: Record<string, unknown>;
+  timestamp: string;
+}
+
+export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+interface RequestOptions {
+  method: RequestMethod;
+  body?: unknown;
+  params?: QueryParams;
+  headers?: Record<string, string>;
+}
+
+const DEFAULT_CONFIG: GatewayConfig = {
+  baseUrl: '/api',
+  timeout: 10000,
+  retries: 1,
+};
+
+class ApiGateway {
+  private config: GatewayConfig;
+  private errorHandlers: Set<(error: GatewayError) => void> = new Set();
+
+  constructor(config: Partial<GatewayConfig> = {}) {
+    this.config = { ...DEFAULT_CONFIG, ...config };
+  }
+
+  // Register global error handler
+  onError(handler: (error: GatewayError) => void): () => void {
+    this.errorHandlers.add(handler);
+    return () => this.errorHandlers.delete(handler);
+  }
+
+  // Notify all error handlers
+  private notifyError(error: GatewayError): void {
+    this.errorHandlers.forEach(handler => handler(error));
+    this.config.onError?.(error);
+  }
+
+  // Create standardized error
+  private createError(
+    code: string,
+    message: string,
+    status: number = 500,
+    details?: Record<string, unknown>
+  ): GatewayError {
+    return {
+      code,
+      message,
+      status,
+      details,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  // Build URL with query params
+  private buildUrl(endpoint: string, params?: QueryParams): string {
+    const url = new URL(`${this.config.baseUrl}${endpoint}`, window.location.origin);
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          url.searchParams.set(
+            key,
+            typeof value === 'object' ? JSON.stringify(value) : String(value)
+          );
+        }
+      });
+    }
+    
+    return url.pathname + url.search;
+  }
+
+  // Core request method with retry logic
+  private async executeRequest<T>(
+    endpoint: string,
+    options: RequestOptions,
+    attempt: number = 1
+  ): Promise<ApiResponse<T>> {
+    const { method, body, params, headers } = options;
+    const url = this.buildUrl(endpoint, params);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
+
+    try {
+      // Simulate API delay (remove in production)
+      await this.simulateDelay();
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error = this.createError(
+          'HTTP_ERROR',
+          `HTTP ${response.status}: ${response.statusText}`,
+          response.status
+        );
+        this.notifyError(error);
+        return { success: false, error: error.message };
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (err) {
+      clearTimeout(timeoutId);
+
+      // Retry logic for network errors
+      if (attempt < this.config.retries && this.isRetryableError(err)) {
+        return this.executeRequest<T>(endpoint, options, attempt + 1);
+      }
+
+      const error = this.createError(
+        this.getErrorCode(err),
+        this.getErrorMessage(err),
+        this.getErrorStatus(err)
+      );
+      this.notifyError(error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  private isRetryableError(err: unknown): boolean {
+    if (err instanceof Error) {
+      return err.name === 'AbortError' || err.message.includes('network');
+    }
+    return false;
+  }
+
+  private getErrorCode(err: unknown): string {
+    if (err instanceof Error) {
+      if (err.name === 'AbortError') return 'TIMEOUT';
+      if (err.message.includes('network')) return 'NETWORK_ERROR';
+    }
+    return 'UNKNOWN_ERROR';
+  }
+
+  private getErrorMessage(err: unknown): string {
+    if (err instanceof Error) {
+      if (err.name === 'AbortError') return 'Request timed out';
+      return err.message;
+    }
+    return 'An unknown error occurred';
+  }
+
+  private getErrorStatus(err: unknown): number {
+    if (err instanceof Error && err.name === 'AbortError') return 408;
+    return 500;
+  }
+
+  private async simulateDelay(): Promise<void> {
+    const delay = Math.random() * 200 + 100;
+    return new Promise(resolve => setTimeout(resolve, delay));
+  }
+
+  // Public API methods
+  async get<T>(endpoint: string, params?: QueryParams): Promise<ApiResponse<T>> {
+    return this.executeRequest<T>(endpoint, { method: 'GET', params });
+  }
+
+  async post<T>(endpoint: string, body?: unknown, params?: QueryParams): Promise<ApiResponse<T>> {
+    return this.executeRequest<T>(endpoint, { method: 'POST', body, params });
+  }
+
+  async put<T>(endpoint: string, body?: unknown, params?: QueryParams): Promise<ApiResponse<T>> {
+    return this.executeRequest<T>(endpoint, { method: 'PUT', body, params });
+  }
+
+  async patch<T>(endpoint: string, body?: unknown, params?: QueryParams): Promise<ApiResponse<T>> {
+    return this.executeRequest<T>(endpoint, { method: 'PATCH', body, params });
+  }
+
+  async delete<T>(endpoint: string, params?: QueryParams): Promise<ApiResponse<T>> {
+    return this.executeRequest<T>(endpoint, { method: 'DELETE', params });
+  }
+}
+
+// Singleton instance
+export const apiGateway = new ApiGateway();
+
+// Factory for creating service-specific gateways
+export const createGateway = (config: Partial<GatewayConfig>) => new ApiGateway(config);
