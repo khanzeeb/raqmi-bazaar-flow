@@ -11,7 +11,7 @@ import {
 export default async function productRoutes(fastify: FastifyInstance, opts: FastifyPluginOptions) {
   // Get product stats
   fastify.get('/stats', {
-    handler: ProductController.getProductStats.bind(ProductController)
+    handler: ProductController.getProductStats
   });
 
   // Get low stock products
@@ -24,17 +24,12 @@ export default async function productRoutes(fastify: FastifyInstance, opts: Fast
         }
       }
     },
-    handler: ProductController.getLowStockProducts.bind(ProductController)
+    handler: ProductController.getLowStockProducts
   });
 
   // Get suppliers
   fastify.get('/suppliers', {
-    handler: ProductController.getSuppliers.bind(ProductController)
-  });
-
-  // Get categories
-  fastify.get('/categories', {
-    handler: ProductController.getCategories.bind(ProductController)
+    handler: ProductController.getSuppliers
   });
 
   // Get all products
@@ -42,7 +37,7 @@ export default async function productRoutes(fastify: FastifyInstance, opts: Fast
     schema: {
       querystring: ProductQuerySchema
     },
-    handler: ProductController.getProducts.bind(ProductController)
+    handler: ProductController.getProducts
   });
 
   // Get single product
@@ -50,7 +45,7 @@ export default async function productRoutes(fastify: FastifyInstance, opts: Fast
     schema: {
       params: IdParamSchema
     },
-    handler: ProductController.getProduct.bind(ProductController)
+    handler: ProductController.getProduct
   });
 
   // Create product
@@ -58,7 +53,7 @@ export default async function productRoutes(fastify: FastifyInstance, opts: Fast
     schema: {
       body: CreateProductSchema
     },
-    handler: ProductController.createProduct.bind(ProductController)
+    handler: ProductController.createProduct
   });
 
   // Update product
@@ -67,7 +62,7 @@ export default async function productRoutes(fastify: FastifyInstance, opts: Fast
       params: IdParamSchema,
       body: UpdateProductSchema
     },
-    handler: ProductController.updateProduct.bind(ProductController)
+    handler: ProductController.updateProduct
   });
 
   // Delete product
@@ -75,7 +70,7 @@ export default async function productRoutes(fastify: FastifyInstance, opts: Fast
     schema: {
       params: IdParamSchema
     },
-    handler: ProductController.deleteProduct.bind(ProductController)
+    handler: ProductController.deleteProduct
   });
 
   // Update stock
@@ -84,6 +79,6 @@ export default async function productRoutes(fastify: FastifyInstance, opts: Fast
       params: IdParamSchema,
       body: UpdateStockSchema
     },
-    handler: ProductController.updateStock.bind(ProductController)
+    handler: ProductController.updateStock
   });
 }
