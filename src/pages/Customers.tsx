@@ -9,13 +9,11 @@ import { CustomerStats } from "@/components/Customers/CustomerStats";
 import { CustomerTable } from "@/components/Customers/CustomerTable";
 import { useCustomersData, useCustomersFiltering, useCustomersActions, useCustomersStats } from "@/hooks/customers";
 import { Customer } from "@/types/customer.types";
+import { useRTL } from "@/hooks/useRTL";
 
-interface CustomersProps {
-  isArabic?: boolean;
-}
-
-export default function Customers({ isArabic = false }: CustomersProps) {
+export default function Customers() {
   const navigate = useNavigate();
+  const { isArabic, isRTL } = useRTL();
   const { customers, setCustomers } = useCustomersData();
   const { filters, filteredCustomers, setSearchQuery } = useCustomersFiltering(customers);
   const { addCustomer, updateCustomer, deleteCustomer } = useCustomersActions(customers, setCustomers);
@@ -51,13 +49,13 @@ export default function Customers({ isArabic = false }: CustomersProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className={`flex items-center justify-between ${isArabic ? 'rtl' : 'ltr'}`}>
-        <div className="flex items-center gap-3">
+    <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
+      <div className="flex items-center justify-between">
+        <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
             <Users className="h-5 w-5 text-primary" />
           </div>
-          <div className={isArabic ? 'text-right' : 'text-left'}>
+          <div>
             <h1 className="text-2xl font-bold">
               {isArabic ? "إدارة العملاء" : "Customer Management"}
             </h1>

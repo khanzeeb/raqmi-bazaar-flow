@@ -5,6 +5,7 @@ import { useProductsData, useProductsActions, useProductsStats, useProductsState
 import { ProductView } from '@/types/product.types';
 import { exportToCSV } from '@/lib/product/export';
 import { useToast } from '@/hooks/use-toast';
+import { useRTL } from '@/hooks/useRTL';
 
 // Components
 import { ProductHeader } from '@/components/Products/ProductHeader';
@@ -17,12 +18,9 @@ import { ProductViewDialog } from '@/components/Products/ProductViewDialog';
 import { ProductDeleteDialog } from '@/components/Products/ProductDeleteDialog';
 import { ProductEmptyState, ProductLoadingState, ProductErrorState } from '@/components/Products/ProductEmptyState';
 
-interface ProductsProps {
-  isArabic?: boolean;
-}
-
-export default function Products({ isArabic = false }: ProductsProps) {
+export default function Products() {
   const { toast } = useToast();
+  const { isArabic, isRTL } = useRTL();
 
   // Data hook
   const {
@@ -100,7 +98,7 @@ export default function Products({ isArabic = false }: ProductsProps) {
   // Render states
   if (loading && !hasProducts) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
         <ProductHeader onAdd={handleAdd} onExport={handleExport} loading={loading} isArabic={isArabic} />
         <ProductLoadingState isArabic={isArabic} />
       </div>
@@ -109,7 +107,7 @@ export default function Products({ isArabic = false }: ProductsProps) {
 
   if (error && !hasProducts) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
         <ProductHeader onAdd={handleAdd} onExport={handleExport} isArabic={isArabic} />
         <ProductErrorState error={error} isArabic={isArabic} />
       </div>
@@ -117,7 +115,7 @@ export default function Products({ isArabic = false }: ProductsProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
       <ProductHeader 
         onAdd={handleAdd} 
         onExport={handleExport} 

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useRTL } from "@/hooks/useRTL";
 import { BilingualLabel } from "@/components/common/BilingualLabel";
 import { QuotationDialog } from "@/components/Quotations/QuotationDialog";
 import { QuotationHistory } from "@/components/Quotations/QuotationHistory";
@@ -16,8 +16,7 @@ import {
 } from "@/hooks/quotations";
 
 const Quotations = () => {
-  const { language, isRTL } = useLanguage();
-  const isArabic = language === 'ar';
+  const { isArabic, isRTL } = useRTL();
 
   // Hooks for data, filtering, actions
   const { quotations, loading, updateStore, refresh } = useQuotationsData();
@@ -80,7 +79,7 @@ const Quotations = () => {
   }, [selectedQuotation, create, update]);
 
   return (
-    <div className={`p-6 max-w-7xl mx-auto ${isRTL ? 'text-right' : 'text-left'}`}>
+    <div className="p-6 max-w-7xl mx-auto" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground mb-2">

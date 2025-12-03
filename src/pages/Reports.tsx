@@ -8,14 +8,13 @@ import {
 } from 'recharts';
 import { Download, Filter, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useRTL } from "@/hooks/useRTL";
 import { useReportsData } from "@/hooks/reports";
 import { ReportFilters } from "@/components/Reports/ReportFilters";
 import { KPICards } from "@/components/Reports/KPICards";
 
 const Reports = () => {
-  const { language } = useLanguage();
-  const isArabic = language === 'ar';
+  const { isArabic, isRTL } = useRTL();
   const { toast } = useToast();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedReport, setSelectedReport] = useState('overview');
@@ -44,7 +43,7 @@ const Reports = () => {
   };
 
   return (
-    <div className={`p-6 max-w-7xl mx-auto ${isArabic ? 'rtl' : 'ltr'}`}>
+    <div className="p-6 max-w-7xl mx-auto" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground mb-2">
           {isArabic ? 'التقارير والتحليلات' : 'Reports & Analytics'}
@@ -56,7 +55,7 @@ const Reports = () => {
 
       {/* Controls */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="flex gap-2">
+        <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <select
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}
@@ -82,17 +81,17 @@ const Reports = () => {
           </select>
         </div>
         
-        <div className={`flex gap-2 ${isArabic ? 'sm:mr-auto' : 'sm:ml-auto'}`}>
+        <div className={`flex gap-2 ${isRTL ? 'sm:me-auto flex-row-reverse' : 'sm:ms-auto'}`}>
           <Button variant="outline" size="sm" onClick={handleFilter}>
-            <Filter className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
+            <Filter className={`w-4 h-4 ${isRTL ? 'ms-1' : 'me-1'}`} />
             {isArabic ? "تصفية" : "Filter"}
           </Button>
           <Button variant="outline" size="sm" onClick={handleDateCustomize}>
-            <Calendar className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
+            <Calendar className={`w-4 h-4 ${isRTL ? 'ms-1' : 'me-1'}`} />
             {isArabic ? "تخصيص التاريخ" : "Customize Date"}
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className={`w-4 h-4 ${isArabic ? 'ml-1' : 'mr-1'}`} />
+            <Download className={`w-4 h-4 ${isRTL ? 'ms-1' : 'me-1'}`} />
             {isArabic ? "تصدير" : "Export"}
           </Button>
         </div>
@@ -160,14 +159,14 @@ const Reports = () => {
           <CardContent>
             <div className="space-y-4">
               {topProductsData.map((product, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                <div key={index} className={`flex items-center justify-between p-3 border rounded-lg ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <div>
                     <p className="font-medium">{product.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {product.sales} {isArabic ? "قطعة" : "units"}
                     </p>
                   </div>
-                  <div className="text-right">
+                  <div className={isRTL ? 'text-start' : 'text-end'}>
                     <p className="font-semibold">
                       {product.revenue.toLocaleString()} {isArabic ? "ر.س" : "SAR"}
                     </p>
@@ -190,7 +189,7 @@ const Reports = () => {
             <div className="space-y-4">
               {expenseData.map((expense, index) => (
                 <div key={index} className="space-y-2">
-                  <div className="flex justify-between items-center">
+                  <div className={`flex justify-between items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <span className="text-sm font-medium">{expense.category}</span>
                     <span className="text-sm font-semibold">
                       {expense.amount.toLocaleString()} {isArabic ? "ر.س" : "SAR"}

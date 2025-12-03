@@ -1,6 +1,6 @@
 // Invoices Page - Refactored with modular components
 import React, { useState } from 'react';
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useRTL } from "@/hooks/useRTL";
 import { InvoiceDialog } from "@/components/Invoices/InvoiceDialog";
 import { InvoiceViewDialog } from "@/components/Invoices/InvoiceViewDialog";
 import { InvoicePDFDialog } from "@/components/Invoices/InvoicePDFDialog";
@@ -15,8 +15,7 @@ import { Invoice } from '@/types/invoice.types';
 import { BilingualLabel } from "@/components/common/BilingualLabel";
 
 const Invoices = () => {
-  const { language } = useLanguage();
-  const isArabic = language === 'ar';
+  const { isArabic, isRTL } = useRTL();
 
   // Hooks
   const { invoices, updateStore, refresh } = useInvoicesData();
@@ -33,7 +32,7 @@ const Invoices = () => {
   const [dialogInvoice, setDialogInvoice] = useState<Invoice | null>(null);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground mb-2">
           <BilingualLabel enLabel="Invoices" arLabel="الفواتير" showBoth={false} />

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useRTL } from "@/hooks/useRTL";
 import { useReturnsData, useReturnsFiltering, useReturnsStats, useReturnsActions } from "@/hooks/returns";
 import { ReturnsFilters } from "@/components/Returns/ReturnsFilters";
 import { ReturnsStatsCards } from "@/components/Returns/ReturnsStatsCards";
@@ -10,8 +10,7 @@ import { NewReturnDialog } from "@/components/Returns/NewReturnDialog";
 import { Return } from "@/types/return.types";
 
 export default function Returns() {
-  const { language } = useLanguage();
-  const isArabic = language === 'ar';
+  const { isArabic, isRTL } = useRTL();
   
   const { returns, setReturns } = useReturnsData();
   const { filters, filteredReturns, setSearchTerm, setStatusFilter } = useReturnsFiltering(returns);
@@ -72,7 +71,7 @@ export default function Returns() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground mb-2">
