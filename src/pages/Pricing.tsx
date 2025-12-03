@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useRTL } from "@/hooks/useRTL";
 import { useToast } from "@/hooks/use-toast";
 import { usePricingData, usePricingFiltering, usePricingActions, usePricingStats } from "@/hooks/pricing";
 import { PricingFilters } from "@/components/Pricing/PricingFilters";
@@ -10,8 +10,7 @@ import { PricingRuleStatsDialog } from "@/components/Pricing/PricingRuleStatsDia
 import { PricingRule } from "@/types/pricing.types";
 
 const Pricing = () => {
-  const { language } = useLanguage();
-  const isArabic = language === 'ar';
+  const { isArabic, isRTL } = useRTL();
   const { toast } = useToast();
   
   const { pricingRules, setPricingRules } = usePricingData(isArabic);
@@ -56,7 +55,7 @@ const Pricing = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground mb-2">
           {isArabic ? 'التسعير والخصومات' : 'Pricing & Discounts'}

@@ -1,6 +1,6 @@
 // Expenses Page - Refactored with modular components
 import React, { useState } from 'react';
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useRTL } from "@/hooks/useRTL";
 import { ExpenseDialog } from "@/components/Expenses/ExpenseDialog";
 import { ExpenseDetailsDialog } from "@/components/Expenses/ExpenseDetailsDialog";
 import { ExpenseCard } from "@/components/Expenses/ExpenseCard";
@@ -11,8 +11,7 @@ import { Expense } from '@/types/expense.types';
 import { BilingualLabel } from "@/components/common/BilingualLabel";
 
 const Expenses = () => {
-  const { language } = useLanguage();
-  const isArabic = language === 'ar';
+  const { isArabic, isRTL } = useRTL();
 
   // Hooks
   const { expenses, updateStore, refresh } = useExpensesData();
@@ -33,7 +32,7 @@ const Expenses = () => {
   };
 
   return (
-    <div className={`p-6 max-w-7xl mx-auto ${isArabic ? 'rtl' : 'ltr'}`}>
+    <div className="p-6 max-w-7xl mx-auto" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground mb-2">
           <BilingualLabel enLabel="Expenses" arLabel="المصروفات" showBoth={false} />

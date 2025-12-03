@@ -10,14 +10,15 @@ import {
   User, Bell, Shield, Globe, Palette, Database,
   Mail, Smartphone, Key, Download, Upload, Save, DollarSign
 } from "lucide-react";
+import { useRTL } from "@/hooks/useRTL";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useUserSettings, CURRENCIES, Currency } from "@/contexts/UserSettingsContext";
 import { useSettingsData } from "@/hooks/settings";
 
 const Settings = () => {
-  const { language, setLanguage } = useLanguage();
+  const { setLanguage } = useLanguage();
+  const { isArabic, isRTL, language } = useRTL();
   const { settings, updateSettings, formatCurrency } = useUserSettings();
-  const isArabic = language === 'ar';
   
   const { 
     companyInfo, 
@@ -29,7 +30,7 @@ const Settings = () => {
   } = useSettingsData();
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground mb-2">
           {isArabic ? 'الإعدادات' : 'Settings'}
@@ -41,27 +42,27 @@ const Settings = () => {
 
       <Tabs defaultValue="company" className="space-y-6">
         <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="company" className="flex items-center gap-2">
+          <TabsTrigger value="company" className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <User className="w-4 h-4" />
             {isArabic ? 'الشركة' : 'Company'}
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
+          <TabsTrigger value="notifications" className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Bell className="w-4 h-4" />
             {isArabic ? 'التنبيهات' : 'Notifications'}
           </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2">
+          <TabsTrigger value="security" className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Shield className="w-4 h-4" />
             {isArabic ? 'الأمان' : 'Security'}
           </TabsTrigger>
-          <TabsTrigger value="language" className="flex items-center gap-2">
+          <TabsTrigger value="language" className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Globe className="w-4 h-4" />
             {isArabic ? 'اللغة' : 'Language'}
           </TabsTrigger>
-          <TabsTrigger value="appearance" className="flex items-center gap-2">
+          <TabsTrigger value="appearance" className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Palette className="w-4 h-4" />
             {isArabic ? 'المظهر' : 'Appearance'}
           </TabsTrigger>
-          <TabsTrigger value="data" className="flex items-center gap-2">
+          <TabsTrigger value="data" className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Database className="w-4 h-4" />
             {isArabic ? 'البيانات' : 'Data'}
           </TabsTrigger>
@@ -148,9 +149,9 @@ const Settings = () => {
                 </div>
               </div>
 
-              <div className={`flex ${isArabic ? 'justify-start' : 'justify-end'}`}>
-                <Button>
-                  <Save className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
+              <div className={`flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                <Button className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <Save className="w-4 h-4" />
                   {isArabic ? 'حفظ التغييرات' : 'Save Changes'}
                 </Button>
               </div>
@@ -167,8 +168,8 @@ const Settings = () => {
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">{isArabic ? 'طرق التنبيه' : 'Notification Methods'}</h3>
                 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Mail className="w-4 h-4" />
                     <div>
                       <Label>{isArabic ? 'تنبيهات البريد الإلكتروني' : 'Email Notifications'}</Label>
@@ -183,8 +184,8 @@ const Settings = () => {
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Smartphone className="w-4 h-4" />
                     <div>
                       <Label>{isArabic ? 'تنبيهات الرسائل النصية' : 'SMS Notifications'}</Label>
@@ -199,8 +200,8 @@ const Settings = () => {
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Bell className="w-4 h-4" />
                     <div>
                       <Label>{isArabic ? 'تنبيهات المتصفح' : 'Browser Notifications'}</Label>
@@ -221,7 +222,7 @@ const Settings = () => {
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">{isArabic ? 'أنواع التنبيهات' : 'Notification Types'}</h3>
                 
-                <div className="flex items-center justify-between">
+                <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <Label>{isArabic ? 'تنبيهات المبيعات' : 'Sales Alerts'}</Label>
                   <Switch
                     checked={notifications.salesAlerts}
@@ -229,7 +230,7 @@ const Settings = () => {
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <Label>{isArabic ? 'تنبيهات نقص المخزون' : 'Low Stock Alerts'}</Label>
                   <Switch
                     checked={notifications.lowStockAlerts}
@@ -237,7 +238,7 @@ const Settings = () => {
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <Label>{isArabic ? 'تذكير المدفوعات' : 'Payment Reminders'}</Label>
                   <Switch
                     checked={notifications.paymentReminders}
@@ -246,9 +247,9 @@ const Settings = () => {
                 </div>
               </div>
 
-              <div className={`flex ${isArabic ? 'justify-start' : 'justify-end'}`}>
-                <Button>
-                  <Save className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
+              <div className={`flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                <Button className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <Save className="w-4 h-4" />
                   {isArabic ? 'حفظ التغييرات' : 'Save Changes'}
                 </Button>
               </div>
@@ -262,8 +263,8 @@ const Settings = () => {
               <CardTitle>{isArabic ? 'إعدادات الأمان' : 'Security Settings'}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <Key className="w-4 h-4" />
                   <div>
                     <Label>{isArabic ? 'المصادقة الثنائية' : 'Two-Factor Authentication'}</Label>
@@ -278,7 +279,7 @@ const Settings = () => {
                 />
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <Label>{isArabic ? 'تنبيهات تسجيل الدخول' : 'Login Notifications'}</Label>
                 <Switch
                   checked={security.loginNotifications}
@@ -307,9 +308,9 @@ const Settings = () => {
                 </div>
               </div>
 
-              <div className={`flex ${isArabic ? 'justify-start' : 'justify-end'}`}>
-                <Button>
-                  <Save className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
+              <div className={`flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                <Button className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <Save className="w-4 h-4" />
                   {isArabic ? 'حفظ التغييرات' : 'Save Changes'}
                 </Button>
               </div>
@@ -324,11 +325,11 @@ const Settings = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <h3 className="text-lg font-medium flex items-center gap-2">
+                <h3 className={`text-lg font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <Globe className="w-5 h-5" />
                   {isArabic ? 'اللغة' : 'Language'}
                 </h3>
-                <div className="flex items-center justify-between">
+                <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <div>
                     <Label>{isArabic ? 'اللغة المفضلة' : 'Preferred Language'}</Label>
                     <p className="text-sm text-muted-foreground">
@@ -357,7 +358,7 @@ const Settings = () => {
               <Separator />
 
               <div className="space-y-4">
-                <h3 className="text-lg font-medium flex items-center gap-2">
+                <h3 className={`text-lg font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <DollarSign className="w-5 h-5" />
                   {isArabic ? 'العملة' : 'Currency'}
                 </h3>
@@ -396,32 +397,17 @@ const Settings = () => {
         <TabsContent value="data" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>{isArabic ? 'إدارة البيانات' : 'Data Management'}</CardTitle>
+              <CardTitle>{isArabic ? 'النسخ الاحتياطي والاستعادة' : 'Backup & Restore'}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h4 className="font-medium">{isArabic ? 'تصدير البيانات' : 'Export Data'}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {isArabic ? 'تصدير جميع بيانات النظام' : 'Export all system data'}
-                  </p>
-                </div>
-                <Button variant="outline">
-                  <Download className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
-                  {isArabic ? 'تصدير' : 'Export'}
+              <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <Button variant="outline" className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <Download className="w-4 h-4" />
+                  {isArabic ? 'تصدير البيانات' : 'Export Data'}
                 </Button>
-              </div>
-
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h4 className="font-medium">{isArabic ? 'استيراد البيانات' : 'Import Data'}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {isArabic ? 'استيراد بيانات من ملف' : 'Import data from file'}
-                  </p>
-                </div>
-                <Button variant="outline">
-                  <Upload className={`w-4 h-4 ${isArabic ? 'ml-2' : 'mr-2'}`} />
-                  {isArabic ? 'استيراد' : 'Import'}
+                <Button variant="outline" className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <Upload className="w-4 h-4" />
+                  {isArabic ? 'استيراد البيانات' : 'Import Data'}
                 </Button>
               </div>
             </CardContent>

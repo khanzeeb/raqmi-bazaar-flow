@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, AlertTriangle, Archive, TrendingUp } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useRTL } from "@/hooks/useRTL";
 import { useToast } from "@/hooks/use-toast";
 import { useInventoryData, useInventoryFiltering, useInventoryStats } from "@/hooks/inventory";
 import { InventoryFilters } from "@/components/Inventory/InventoryFilters";
@@ -15,9 +15,8 @@ import { InventoryReportDialog } from "@/components/Inventory/InventoryReportDia
 import { InventoryItem } from "@/types/inventory.types";
 
 const Inventory = () => {
-  const { language } = useLanguage();
+  const { isArabic, isRTL } = useRTL();
   const { toast } = useToast();
-  const isArabic = language === 'ar';
   
   const { inventory, categories } = useInventoryData(isArabic);
   const { filters, filteredInventory, setSearchTerm, setSelectedCategory, setSelectedStatus } = useInventoryFiltering(inventory);
@@ -29,8 +28,6 @@ const Inventory = () => {
   const [reorderDialogOpen, setReorderDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-
-  // categories already provided by useInventoryData
 
   const handleEditItem = (item: InventoryItem) => {
     setSelectedItem(item);
@@ -74,7 +71,7 @@ const Inventory = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground mb-2">
           {isArabic ? 'إدارة المخزون' : 'Inventory Management'}
@@ -88,7 +85,7 @@ const Inventory = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
+            <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
                 <Package className="h-4 w-4 text-blue-500" />
               </div>
@@ -104,7 +101,7 @@ const Inventory = () => {
         
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
+            <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
                 <TrendingUp className="h-4 w-4 text-green-500" />
               </div>
@@ -120,7 +117,7 @@ const Inventory = () => {
         
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
+            <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <div className="w-8 h-8 bg-yellow-500/10 rounded-lg flex items-center justify-center">
                 <AlertTriangle className="h-4 w-4 text-yellow-500" />
               </div>
@@ -136,7 +133,7 @@ const Inventory = () => {
         
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
+            <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <div className="w-8 h-8 bg-red-500/10 rounded-lg flex items-center justify-center">
                 <Archive className="h-4 w-4 text-red-500" />
               </div>

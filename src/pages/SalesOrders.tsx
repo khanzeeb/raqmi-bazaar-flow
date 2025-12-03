@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useRTL } from "@/hooks/useRTL";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
 import { useToast } from "@/hooks/use-toast";
 import { useSalesOrdersData, useSalesOrdersFiltering, useSalesOrdersActions, useSalesOrdersStats } from "@/hooks/salesOrders";
@@ -8,11 +8,12 @@ import { SalesOrderCard } from "@/components/SalesOrders/SalesOrderCard";
 import { OrderDialog } from "@/components/SalesOrders/OrderDialog";
 import { ReturnDialog } from "@/components/SalesOrders/ReturnDialog";
 import { SalesOrder } from "@/types/salesOrder.types";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const SalesOrders = () => {
-  const { t, language, isRTL } = useLanguage();
+  const { t } = useLanguage();
+  const { isArabic, isRTL } = useRTL();
   const { formatCurrency, getCurrencySymbol } = useUserSettings();
-  const isArabic = language === 'ar';
   const { toast } = useToast();
   
   const { orders, setOrders } = useSalesOrdersData();
@@ -119,7 +120,7 @@ const SalesOrders = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground mb-2">
           {t('sales_orders')}

@@ -11,13 +11,12 @@ import {
 import { StatsCard } from "@/components/Dashboard/StatsCard";
 import { QuickActions } from "@/components/Dashboard/QuickActions";
 import { RecentActivity } from "@/components/Dashboard/RecentActivity";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useRTL } from "@/hooks/useRTL";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
 
 const Dashboard = () => {
-  const { language, isRTL } = useLanguage();
+  const { isArabic, isRTL } = useRTL();
   const { formatCurrency } = useUserSettings();
-  const isArabic = language === 'ar';
 
   const statsData = [
     {
@@ -71,9 +70,9 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className={`space-y-6 ${isRTL ? 'text-right' : 'text-left'}`}>
+    <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Page Header */}
-      <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
             {isArabic ? "لوحة التحكم" : "Dashboard"}
@@ -113,8 +112,8 @@ const Dashboard = () => {
       {/* Low Stock Alert */}
       <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
         <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <AlertTriangle className="h-5 w-5 icon-yellow" />
-          <div className={isRTL ? 'text-right' : 'text-left'}>
+          <AlertTriangle className="h-5 w-5 icon-yellow flex-shrink-0" />
+          <div className="flex-1">
             <h3 className="font-semibold text-foreground">
               {isArabic ? "تنبيه مخزون منخفض" : "Low Stock Alert"}
             </h3>
@@ -124,7 +123,7 @@ const Dashboard = () => {
                 : "5 products need restocking"}
             </p>
           </div>
-          <button className={`${isRTL ? 'mr-auto' : 'ml-auto'} text-sm font-medium text-warning hover:text-warning/80 transition-colors`}>
+          <button className="text-sm font-medium text-warning hover:text-warning/80 transition-colors whitespace-nowrap">
             {isArabic ? "عرض التفاصيل" : "View Details"}
           </button>
         </div>
