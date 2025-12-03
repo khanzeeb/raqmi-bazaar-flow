@@ -1,184 +1,156 @@
-import ProductRepository, { ProductFilters } from '../repositories/ProductRepository';
+// Product Service - Single Responsibility: Business logic only
+
 import { Decimal } from '@prisma/client/runtime/library';
+import ProductRepository from '../repositories/ProductRepository';
+import { ProductValidator, ValidationError } from '../validators/ProductValidator';
+import { CreateProductDTO, UpdateProductDTO } from '../dto/ProductDTO';
+import { IProductData, IProductFilters, IPaginatedResponse } from '../interfaces/IProduct';
+import { IProductService, IProductStats } from '../interfaces/IService';
 
-export interface CreateProductDTO {
-  name: string;
-  sku: string;
-  category?: string;
-  category_id?: string;
-  price: number;
-  cost: number;
-  stock?: number;
-  min_stock?: number;
-  max_stock?: number;
-  image?: string;
-  images?: string[];
-  description?: string;
-  short_description?: string;
-  status?: 'active' | 'inactive' | 'discontinued';
-  supplier?: string;
-  barcode?: string;
-  weight?: number;
-  dimensions?: { length: number; width: number; height: number };
-  tags?: string[];
-  variants?: any[];
-}
+class ProductService implements IProductService<IProductData, CreateProductDTO, UpdateProductDTO, IProductFilters> {
+  private validator: ProductValidator;
 
-export interface UpdateProductDTO extends Partial<CreateProductDTO> {}
-
-class ProductService {
-  async getById(id: string) {
-    const product = await ProductRepository.findById(id);
-    return product ? this.transformProduct(product) : null;
+  constructor() {
+    this.validator = new ProductValidator();
   }
 
-  async getAll(filters?: ProductFilters) {
-    const result = await ProductRepository.findAll(filters || {});
-    return {
-      ...result,
-      data: result.data.map(product => this.transformProduct(product))
-    };
+  /**
+   * Get product by ID
+   */
+  async getById(id: string): Promise<IProductData | null> {
+    return ProductRepository.findById(id);
   }
 
-  async create(data: CreateProductDTO) {
-    // Validation
-    if (data.price <= 0) {
-      throw new Error('Price must be greater than 0');
-    }
-    if (data.cost < 0) {
-      throw new Error('Cost cannot be negative');
-    }
+  /**
+   * Get all products with filters
+   */
+  async getAll(filters?: IProductFilters): Promise<IPaginatedResponse<IProductData>> {
+    return ProductRepository.findAll(filters || {});
+  }
 
+  /**
+   * Create new product
+   */
+  async create(data: CreateProductDTO): Promise<IProductData> {
+    // Validate
+    this.validator.validateCreate(data);
+
+    // Transform and create
     const { variants, ...productData } = data;
+    const transformedData = this.transformCreateData(productData);
+    const transformedVariants = variants?.map(v => this.transformVariantData(v));
 
-    const product = await ProductRepository.createWithVariants(
-      {
-        ...productData,
-        price: new Decimal(data.price),
-        cost: new Decimal(data.cost),
-        weight: data.weight ? new Decimal(data.weight) : null,
-        images: data.images || [],
-        dimensions: data.dimensions || null,
-        tags: data.tags || []
-      },
-      variants?.map(v => ({
-        ...v,
-        price: new Decimal(v.price),
-        cost: new Decimal(v.cost),
-        weight: v.weight ? new Decimal(v.weight) : null,
-        images: v.images || [],
-        dimensions: v.dimensions || null,
-        attributes: v.attributes || {}
-      }))
-    );
-
-    return this.transformProduct(product);
+    return ProductRepository.createWithVariants(transformedData, transformedVariants);
   }
 
-  async update(id: string, data: UpdateProductDTO) {
+  /**
+   * Update existing product
+   */
+  async update(id: string, data: UpdateProductDTO): Promise<IProductData | null> {
+    // Check exists
     const existing = await ProductRepository.findById(id);
-    if (!existing) {
-      return null;
-    }
+    if (!existing) return null;
 
-    // Validation
-    if (data.price !== undefined && data.price <= 0) {
-      throw new Error('Price must be greater than 0');
-    }
-    if (data.cost !== undefined && data.cost < 0) {
-      throw new Error('Cost cannot be negative');
-    }
+    // Validate
+    this.validator.validateUpdate(data);
 
+    // Transform and update
     const { variants, ...productData } = data;
+    const transformedData = this.transformUpdateData(productData);
+    const transformedVariants = variants?.map(v => this.transformVariantData(v));
 
-    const updateData: any = { ...productData };
-    if (data.price !== undefined) updateData.price = new Decimal(data.price);
-    if (data.cost !== undefined) updateData.cost = new Decimal(data.cost);
-    if (data.weight !== undefined) updateData.weight = data.weight ? new Decimal(data.weight) : null;
-
-    const product = await ProductRepository.updateWithVariants(
-      id,
-      updateData,
-      variants?.map(v => ({
-        ...v,
-        price: new Decimal(v.price),
-        cost: new Decimal(v.cost),
-        weight: v.weight ? new Decimal(v.weight) : null,
-        images: v.images || [],
-        dimensions: v.dimensions || null,
-        attributes: v.attributes || {}
-      }))
-    );
-
-    return product ? this.transformProduct(product) : null;
+    return ProductRepository.updateWithVariants(id, transformedData, transformedVariants);
   }
 
-  async delete(id: string) {
+  /**
+   * Delete product
+   */
+  async delete(id: string): Promise<boolean> {
     const existing = await ProductRepository.findById(id);
-    if (!existing) {
-      return false;
-    }
+    if (!existing) return false;
     return ProductRepository.delete(id);
   }
 
-  async updateStock(id: string, newStock: number, reason = '') {
-    if (newStock < 0) {
-      throw new Error('Stock cannot be negative');
-    }
-
-    const product = await ProductRepository.updateStock(id, newStock, reason);
-    return product ? this.transformProduct(product) : null;
+  /**
+   * Update product stock
+   */
+  async updateStock(id: string, newStock: number, reason = ''): Promise<IProductData | null> {
+    this.validator.validateStockUpdate({ stock: newStock, reason });
+    return ProductRepository.updateStock(id, newStock, reason);
   }
 
-  async getLowStockProducts(limit = 10) {
+  /**
+   * Get low stock products
+   */
+  async getLowStockProducts(limit = 10): Promise<IProductData[]> {
     const result = await ProductRepository.findAll({
       stockStatus: 'low-stock',
       limit
     });
-    return result.data.map(product => this.transformProduct(product));
+    return result.data;
   }
 
-  async getCategories() {
+  /**
+   * Get categories
+   */
+  async getCategories(): Promise<string[]> {
     return ProductRepository.getCategories();
   }
 
-  async getSuppliers() {
+  /**
+   * Get suppliers
+   */
+  async getSuppliers(): Promise<string[]> {
     return ProductRepository.getSuppliers();
   }
 
-  async getStats() {
-    const [total, inStock, lowStock, outOfStock] = await Promise.all([
+  /**
+   * Get product statistics
+   */
+  async getStats(): Promise<IProductStats> {
+    const [totalProducts, inStock, lowStock, outOfStock] = await Promise.all([
       ProductRepository.count({}),
       ProductRepository.count({ stockStatus: 'in-stock' }),
       ProductRepository.count({ stockStatus: 'low-stock' }),
       ProductRepository.count({ stockStatus: 'out-of-stock' })
     ]);
 
+    return { totalProducts, inStock, lowStock, outOfStock };
+  }
+
+  // Private transformation methods (DRY principle)
+
+  private transformCreateData(data: Omit<CreateProductDTO, 'variants'>) {
     return {
-      totalProducts: total,
-      inStock,
-      lowStock,
-      outOfStock
+      ...data,
+      price: new Decimal(data.price),
+      cost: new Decimal(data.cost),
+      weight: data.weight ? new Decimal(data.weight) : null,
+      images: data.images || [],
+      dimensions: data.dimensions || null,
+      tags: data.tags || []
     };
   }
 
-  private transformProduct(product: any) {
+  private transformUpdateData(data: Partial<Omit<UpdateProductDTO, 'variants'>>) {
+    const result: any = { ...data };
+    
+    if (data.price !== undefined) result.price = new Decimal(data.price);
+    if (data.cost !== undefined) result.cost = new Decimal(data.cost);
+    if (data.weight !== undefined) result.weight = data.weight ? new Decimal(data.weight) : null;
+    
+    return result;
+  }
+
+  private transformVariantData(variant: any) {
     return {
-      ...product,
-      price: product.price ? Number(product.price) : 0,
-      cost: product.cost ? Number(product.cost) : 0,
-      weight: product.weight ? Number(product.weight) : null,
-      category_info: product.category_rel ? {
-        id: product.category_rel.id,
-        name: product.category_rel.name,
-        slug: product.category_rel.slug
-      } : undefined,
-      variants: product.variants?.map((v: any) => ({
-        ...v,
-        price: v.price ? Number(v.price) : 0,
-        cost: v.cost ? Number(v.cost) : 0,
-        weight: v.weight ? Number(v.weight) : null
-      }))
+      ...variant,
+      price: new Decimal(variant.price),
+      cost: new Decimal(variant.cost),
+      weight: variant.weight ? new Decimal(variant.weight) : null,
+      images: variant.images || [],
+      dimensions: variant.dimensions || null,
+      attributes: variant.attributes || {}
     };
   }
 }
