@@ -139,7 +139,7 @@ export function AppSidebar({ isArabic = false }: AppSidebarProps) {
   };
 
   const getNavClasses = (path: string) => {
-    const baseClasses = `flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${isArabic ? 'flex-row-reverse' : ''}`;
+    const baseClasses = `flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${isArabic ? 'flex-row-reverse text-right' : 'text-left'}`;
     if (isActive(path)) {
       return `${baseClasses} bg-primary text-primary-foreground shadow-sm`;
     }
@@ -147,14 +147,14 @@ export function AppSidebar({ isArabic = false }: AppSidebarProps) {
   };
 
   return (
-    <Sidebar className={`${collapsed ? "w-16" : "w-64"} border-border ${isArabic ? 'border-l' : 'border-r'}`}>
+    <Sidebar className={`${collapsed ? "w-16" : "w-64"} border-r border-border`}>
       <SidebarHeader className="border-b border-border p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+        <div className={`flex items-center gap-3 ${isArabic ? 'flex-row-reverse' : ''}`}>
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
             <span className="text-primary-foreground font-bold text-sm">R</span>
           </div>
           {!collapsed && (
-            <div className="flex flex-col">
+            <div className={`flex flex-col ${isArabic ? 'items-end' : 'items-start'}`}>
               <h1 className="font-bold text-foreground">
                 {isArabic ? "متجر رقمي" : "RaqmiStore"}
               </h1>
@@ -168,7 +168,7 @@ export function AppSidebar({ isArabic = false }: AppSidebarProps) {
 
       <SidebarContent className="p-2">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground text-xs font-medium px-3 py-2">
+          <SidebarGroupLabel className={`text-muted-foreground text-xs font-medium px-3 py-2 ${isArabic ? 'text-right' : 'text-left'}`}>
             {isArabic ? "القائمة الرئيسية" : "Main Menu"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -177,9 +177,9 @@ export function AppSidebar({ isArabic = false }: AppSidebarProps) {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} className={getNavClasses(item.url)}>
-                      <item.icon className={`h-5 w-5 ${item.iconColor} ${isArabic ? 'ml-3' : ''}`} />
+                      <item.icon className={`h-5 w-5 flex-shrink-0 ${item.iconColor}`} />
                       {!collapsed && (
-                        <span className="font-medium">
+                        <span className="font-medium flex-1">
                           {isArabic ? item.titleAr : item.title}
                         </span>
                       )}
