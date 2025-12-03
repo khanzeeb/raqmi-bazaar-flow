@@ -39,11 +39,11 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <SidebarProvider>
-      <div className={`min-h-screen flex w-full bg-background ${isArabic ? 'rtl' : 'ltr'}`}>
-        {/* Sidebar always on the left */}
+      <div className="min-h-screen flex w-full bg-background">
+        {/* Sidebar always on the left - never affected by RTL */}
         <AppSidebar isArabic={isArabic} />
         
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className={`flex-1 flex flex-col min-w-0 ${isArabic ? 'rtl' : 'ltr'}`}>
           <AppHeader 
             isArabic={isArabic}
             onLanguageToggle={toggleLanguage}
