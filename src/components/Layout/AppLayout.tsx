@@ -39,7 +39,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <SidebarProvider>
-      <div className={`min-h-screen flex w-full bg-background ${isArabic ? 'flex-row-reverse' : ''}`} dir={isArabic ? 'rtl' : 'ltr'}>
+      <div className="min-h-screen flex w-full bg-background" dir={isArabic ? 'rtl' : 'ltr'}>
         {/* Sidebar moves to right side when Arabic is selected */}
         <AppSidebar isArabic={isArabic} />
         

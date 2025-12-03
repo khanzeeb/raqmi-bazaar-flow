@@ -147,7 +147,10 @@ export function AppSidebar({ isArabic = false }: AppSidebarProps) {
   };
 
   return (
-    <Sidebar className={`${collapsed ? "w-16" : "w-64"} ${isArabic ? 'border-l' : 'border-r'} border-border`}>
+    <Sidebar 
+      side={isArabic ? "right" : "left"}
+      className={`${collapsed ? "w-16" : "w-64"} ${isArabic ? 'border-l' : 'border-r'} border-border`}
+    >
       <SidebarHeader className="border-b border-border p-4">
         <div className={`flex items-center gap-3 ${isArabic ? 'flex-row-reverse' : ''}`}>
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
