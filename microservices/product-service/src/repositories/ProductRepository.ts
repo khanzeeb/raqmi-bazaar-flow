@@ -1,280 +1,211 @@
-import { Prisma, ProductStatus } from '@prisma/client';
+// Product Repository - Single Responsibility: Data access only
+
+import { Prisma } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 import prisma from '../config/prisma';
+import { ProductQueryBuilder } from '../query-builders/ProductQueryBuilder';
+import { ProductMapper } from '../mappers/ProductMapper';
+import { IProductData, IProductFilters, IPaginatedResponse } from '../interfaces/IProduct';
+import { IProductRepository } from '../interfaces/IRepository';
 
-export interface ProductFilters {
-  page?: number;
-  limit?: number;
-  search?: string;
-  category?: string;
-  category_id?: string;
-  status?: ProductStatus;
-  stockStatus?: 'in-stock' | 'low-stock' | 'out-of-stock';
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-  priceRange?: {
-    min: number;
-    max: number;
-  };
-  supplier?: string;
-}
+class ProductRepository implements IProductRepository<IProductData, IProductFilters> {
+  private queryBuilder: ProductQueryBuilder;
+  private mapper: ProductMapper;
 
-class ProductRepository {
-  async findById(id: string) {
-    return prisma.product.findUnique({
+  constructor() {
+    this.queryBuilder = new ProductQueryBuilder();
+    this.mapper = new ProductMapper();
+  }
+
+  /**
+   * Find product by ID
+   */
+  async findById(id: string): Promise<IProductData | null> {
+    const product = await prisma.product.findUnique({
       where: { id },
-      include: {
-        category_rel: true,
-        variants: {
-          orderBy: [{ sort_order: 'asc' }, { name: 'asc' }]
-        }
-      }
+      include: this.queryBuilder.withRelations()
     });
+    return product ? this.mapper.toProductData(product) : null;
   }
 
-  async findByIds(ids: string[]) {
-    return prisma.product.findMany({
+  /**
+   * Find products by IDs
+   */
+  async findByIds(ids: string[]): Promise<IProductData[]> {
+    const products = await prisma.product.findMany({
       where: { id: { in: ids } },
-      include: {
-        category_rel: true,
-        variants: true
-      }
+      include: this.queryBuilder.withRelations()
     });
+    return products.map(p => this.mapper.toProductData(p));
   }
 
-  async findAll(filters: ProductFilters) {
+  /**
+   * Find all products with filters
+   */
+  async findAll(filters: IProductFilters): Promise<IPaginatedResponse<IProductData>> {
     const page = filters.page || 1;
     const limit = filters.limit || 10;
-    const skip = (page - 1) * limit;
-
-    const where = this.buildWhereClause(filters);
-    const orderBy = this.buildOrderBy(filters);
-
-    const [data, total] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        include: {
-          category_rel: true,
-          variants: {
-            orderBy: [{ sort_order: 'asc' }, { name: 'asc' }]
-          }
-        },
-        orderBy,
-        skip,
-        take: limit
-      }),
-      prisma.product.count({ where })
-    ]);
-
-    return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit)
-    };
+    
+    return this.queryBuilder
+      .reset()
+      .executePaginated({ page, limit }, filters);
   }
 
-  async count(filters: ProductFilters) {
-    const where = this.buildWhereClause(filters);
-    return prisma.product.count({ where });
+  /**
+   * Count products with filters
+   */
+  async count(filters: IProductFilters): Promise<number> {
+    return this.queryBuilder
+      .reset()
+      .executeCount(filters);
   }
 
-  async create(data: Prisma.ProductCreateInput) {
-    return prisma.product.create({
+  /**
+   * Create product
+   */
+  async create(data: Prisma.ProductCreateInput): Promise<IProductData> {
+    const product = await prisma.product.create({
       data,
-      include: {
-        category_rel: true,
-        variants: true
-      }
+      include: this.queryBuilder.withRelations()
     });
+    return this.mapper.toProductData(product);
   }
 
-  async createWithVariants(productData: any, variants?: any[]) {
-    return prisma.$transaction(async (tx) => {
-      const product = await tx.product.create({
+  /**
+   * Create product with variants (transaction)
+   */
+  async createWithVariants(productData: any, variants?: any[]): Promise<IProductData> {
+    const product = await prisma.$transaction(async (tx) => {
+      return tx.product.create({
         data: {
           ...productData,
-          variants: variants && variants.length > 0 ? {
-            create: variants
-          } : undefined
+          variants: variants?.length ? { create: variants } : undefined
         },
-        include: {
-          category_rel: true,
-          variants: true
-        }
+        include: this.queryBuilder.withRelations()
       });
-
-      return product;
     });
+    return this.mapper.toProductData(product);
   }
 
-  async update(id: string, data: Prisma.ProductUpdateInput) {
-    return prisma.product.update({
-      where: { id },
-      data,
-      include: {
-        category_rel: true,
-        variants: true
-      }
-    });
-  }
-
-  async updateWithVariants(id: string, productData: any, variants?: any[]) {
-    return prisma.$transaction(async (tx) => {
-      // Update product
-      const product = await tx.product.update({
+  /**
+   * Update product
+   */
+  async update(id: string, data: Prisma.ProductUpdateInput): Promise<IProductData | null> {
+    try {
+      const product = await prisma.product.update({
         where: { id },
-        data: productData
+        data,
+        include: this.queryBuilder.withRelations()
       });
+      return this.mapper.toProductData(product);
+    } catch {
+      return null;
+    }
+  }
 
-      // Handle variants if provided
-      if (variants !== undefined) {
-        // Delete existing variants
-        await tx.productVariant.deleteMany({
-          where: { product_id: id }
+  /**
+   * Update product with variants (transaction)
+   */
+  async updateWithVariants(id: string, productData: any, variants?: any[]): Promise<IProductData | null> {
+    try {
+      const product = await prisma.$transaction(async (tx) => {
+        // Update product
+        await tx.product.update({
+          where: { id },
+          data: productData
         });
 
-        // Create new variants
-        if (variants.length > 0) {
-          await tx.productVariant.createMany({
-            data: variants.map(variant => ({
-              ...variant,
-              product_id: id
-            }))
-          });
+        // Handle variants if provided
+        if (variants !== undefined) {
+          await tx.productVariant.deleteMany({ where: { product_id: id } });
+          
+          if (variants.length > 0) {
+            await tx.productVariant.createMany({
+              data: variants.map(v => ({ ...v, product_id: id }))
+            });
+          }
         }
-      }
 
-      // Return updated product with variants
-      return tx.product.findUnique({
-        where: { id },
-        include: {
-          category_rel: true,
-          variants: true
-        }
+        return tx.product.findUnique({
+          where: { id },
+          include: this.queryBuilder.withRelations()
+        });
       });
-    });
+
+      return product ? this.mapper.toProductData(product) : null;
+    } catch {
+      return null;
+    }
   }
 
-  async delete(id: string) {
+  /**
+   * Delete product
+   */
+  async delete(id: string): Promise<boolean> {
     try {
-      await prisma.product.delete({
-        where: { id }
-      });
+      await prisma.product.delete({ where: { id } });
       return true;
     } catch {
       return false;
     }
   }
 
-  async updateStock(id: string, newStock: number, reason = '') {
-    return prisma.$transaction(async (tx) => {
-      const product = await tx.product.update({
-        where: { id },
-        data: { stock: newStock }
+  /**
+   * Update stock with movement tracking (transaction)
+   */
+  async updateStock(id: string, newStock: number, reason = ''): Promise<IProductData | null> {
+    try {
+      const product = await prisma.$transaction(async (tx) => {
+        await tx.product.update({
+          where: { id },
+          data: { stock: newStock }
+        });
+
+        await tx.stockMovement.create({
+          data: {
+            product_id: id,
+            type: 'adjustment',
+            quantity: newStock,
+            reason
+          }
+        });
+
+        return tx.product.findUnique({
+          where: { id },
+          include: this.queryBuilder.withRelations()
+        });
       });
 
-      await tx.stockMovement.create({
-        data: {
-          product_id: id,
-          type: 'adjustment',
-          quantity: newStock,
-          reason
-        }
-      });
-
-      return tx.product.findUnique({
-        where: { id },
-        include: {
-          category_rel: true,
-          variants: true
-        }
-      });
-    });
+      return product ? this.mapper.toProductData(product) : null;
+    } catch {
+      return null;
+    }
   }
 
-  async getCategories() {
+  /**
+   * Get distinct categories
+   */
+  async getCategories(): Promise<string[]> {
     const result = await prisma.product.findMany({
       where: { category: { not: null } },
       select: { category: true },
       distinct: ['category'],
       orderBy: { category: 'asc' }
     });
-
     return result.map(r => r.category).filter(Boolean) as string[];
   }
 
-  async getSuppliers() {
+  /**
+   * Get distinct suppliers
+   */
+  async getSuppliers(): Promise<string[]> {
     const result = await prisma.product.findMany({
       where: { supplier: { not: null } },
       select: { supplier: true },
       distinct: ['supplier'],
       orderBy: { supplier: 'asc' }
     });
-
     return result.map(r => r.supplier).filter(Boolean) as string[];
-  }
-
-  private buildWhereClause(filters: ProductFilters): Prisma.ProductWhereInput {
-    const where: Prisma.ProductWhereInput = {};
-
-    if (filters.search) {
-      where.OR = [
-        { name: { contains: filters.search, mode: 'insensitive' } },
-        { sku: { contains: filters.search, mode: 'insensitive' } },
-        { description: { contains: filters.search, mode: 'insensitive' } },
-        { category_rel: { name: { contains: filters.search, mode: 'insensitive' } } }
-      ];
-    }
-
-    if (filters.category_id) {
-      where.category_id = filters.category_id;
-    } else if (filters.category) {
-      where.category_rel = { name: filters.category };
-    }
-
-    if (filters.status) {
-      where.status = filters.status;
-    }
-
-    if (filters.stockStatus) {
-      switch (filters.stockStatus) {
-        case 'out-of-stock':
-          where.stock = { lte: 0 };
-          break;
-        case 'low-stock':
-          where.AND = [
-            { stock: { gt: 0 } },
-            { stock: { lte: prisma.product.fields.min_stock as any } }
-          ];
-          // Use raw query for complex comparison
-          where.stock = { gt: 0 };
-          break;
-        case 'in-stock':
-          where.stock = { gt: 0 };
-          break;
-      }
-    }
-
-    if (filters.priceRange) {
-      where.price = {
-        gte: filters.priceRange.min,
-        lte: filters.priceRange.max
-      };
-    }
-
-    if (filters.supplier) {
-      where.supplier = filters.supplier;
-    }
-
-    return where;
-  }
-
-  private buildOrderBy(filters: ProductFilters): Prisma.ProductOrderByWithRelationInput {
-    const sortBy = filters.sortBy || 'created_at';
-    const sortOrder = filters.sortOrder || 'desc';
-
-    return { [sortBy]: sortOrder };
   }
 }
 
