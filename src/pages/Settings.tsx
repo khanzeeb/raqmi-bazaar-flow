@@ -8,12 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { 
   User, Bell, Shield, Globe, Palette, Database,
-  Mail, Smartphone, Key, Download, Upload, Save, DollarSign
+  Mail, Smartphone, Key, Download, Upload, Save, DollarSign, FolderTree
 } from "lucide-react";
 import { useRTL } from "@/hooks/useRTL";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useUserSettings, CURRENCIES, Currency } from "@/contexts/UserSettingsContext";
 import { useSettingsData } from "@/hooks/settings";
+import { CategoryManagement } from "@/components/Settings/CategoryManagement";
 
 const Settings = () => {
   const { setLanguage } = useLanguage();
@@ -41,10 +42,14 @@ const Settings = () => {
       </div>
 
       <Tabs defaultValue="company" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="company" className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <User className="w-4 h-4" />
             {isArabic ? 'الشركة' : 'Company'}
+          </TabsTrigger>
+          <TabsTrigger value="categories" className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <FolderTree className="w-4 h-4" />
+            {isArabic ? 'الفئات' : 'Categories'}
           </TabsTrigger>
           <TabsTrigger value="notifications" className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Bell className="w-4 h-4" />
@@ -157,6 +162,10 @@ const Settings = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="categories" className="space-y-6">
+          <CategoryManagement />
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-6">

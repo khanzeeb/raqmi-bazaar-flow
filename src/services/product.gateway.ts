@@ -5,6 +5,107 @@ import { Product, CreateProductDTO, UpdateProductDTO, ProductFilters } from '@/t
 
 const API_BASE_URL = 'http://localhost:3001/api/products';
 
+// Static fallback data when backend is unavailable
+const STATIC_PRODUCTS: Product[] = [
+  {
+    id: '1',
+    name: 'MacBook Pro 14"',
+    nameAr: 'ماك بوك برو 14 بوصة',
+    sku: 'MBP-14-001',
+    category: 'Laptops',
+    category_id: '2',
+    price: 7499,
+    cost: 6000,
+    stock: 25,
+    min_stock: 5,
+    max_stock: 100,
+    status: 'active',
+    image: '/placeholder.svg',
+    description: 'Apple MacBook Pro with M3 Pro chip',
+    barcode: '1234567890123',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    name: 'iPhone 15 Pro',
+    nameAr: 'آيفون 15 برو',
+    sku: 'IPH-15P-001',
+    category: 'Smartphones',
+    category_id: '3',
+    price: 4199,
+    cost: 3200,
+    stock: 50,
+    min_stock: 10,
+    max_stock: 200,
+    status: 'active',
+    image: '/placeholder.svg',
+    description: 'Apple iPhone 15 Pro with A17 Pro chip',
+    barcode: '1234567890124',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '3',
+    name: 'Office Desk Chair',
+    nameAr: 'كرسي مكتب',
+    sku: 'CHR-OFF-001',
+    category: 'Office Chairs',
+    category_id: '5',
+    price: 899,
+    cost: 500,
+    stock: 15,
+    min_stock: 5,
+    max_stock: 50,
+    status: 'active',
+    image: '/placeholder.svg',
+    description: 'Ergonomic office chair with lumbar support',
+    barcode: '1234567890125',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '4',
+    name: 'Samsung Galaxy S24',
+    nameAr: 'سامسونج جالاكسي S24',
+    sku: 'SAM-S24-001',
+    category: 'Smartphones',
+    category_id: '3',
+    price: 3499,
+    cost: 2600,
+    stock: 3,
+    min_stock: 10,
+    max_stock: 150,
+    status: 'active',
+    image: '/placeholder.svg',
+    description: 'Samsung Galaxy S24 with AI features',
+    barcode: '1234567890126',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '5',
+    name: 'Dell XPS 15',
+    nameAr: 'ديل XPS 15',
+    sku: 'DEL-XPS-001',
+    category: 'Laptops',
+    category_id: '2',
+    price: 5999,
+    cost: 4500,
+    stock: 0,
+    min_stock: 5,
+    max_stock: 50,
+    status: 'active',
+    image: '/placeholder.svg',
+    description: 'Dell XPS 15 with Intel Core i9',
+    barcode: '1234567890127',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
+
+let localProducts = [...STATIC_PRODUCTS];
+
 // Product Gateway Interface (Dependency Inversion)
 export interface IProductGateway {
   getAll(params?: QueryParams & { filters?: ProductFilters }): Promise<ApiResponse<PaginatedResponse<Product>>>;
@@ -67,10 +168,45 @@ export const productGateway: IProductGateway = {
         },
       };
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.warn('API unavailable, using local data:', error);
+      
+      // Use local fallback data
+      let filtered = [...localProducts];
+      
+      // Apply search filter
+      if (params?.search) {
+        const search = params.search.toLowerCase();
+        filtered = filtered.filter(p => 
+          p.name.toLowerCase().includes(search) || 
+          p.sku.toLowerCase().includes(search) ||
+          p.category.toLowerCase().includes(search)
+        );
+      }
+      
+      // Apply filters
+      if (params?.filters) {
+        if (params.filters.category) {
+          filtered = filtered.filter(p => p.category === params.filters!.category);
+        }
+        if (params.filters.status) {
+          filtered = filtered.filter(p => p.status === params.filters!.status);
+        }
+      }
+      
+      const page = params?.page || 1;
+      const limit = params?.limit || 10;
+      const start = (page - 1) * limit;
+      const paginatedData = filtered.slice(start, start + limit);
+      
       return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch products',
+        success: true,
+        data: {
+          data: paginatedData,
+          total: filtered.length,
+          page,
+          limit,
+          totalPages: Math.ceil(filtered.length / limit),
+        },
       };
     }
   },
