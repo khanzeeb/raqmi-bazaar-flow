@@ -21,7 +21,7 @@ const Quotations = () => {
   // Hooks for data, filtering, actions
   const { quotations, loading, updateStore, refresh } = useQuotationsData();
   const { search, localFilters, filteredQuotations, updateSearch, updateLocalFilters } = useQuotationsFiltering(quotations);
-  const { create, update, remove, send, accept } = useQuotationsActions({ updateStore, isArabic });
+  const { create, update, remove, send, accept, convertToSale } = useQuotationsActions({ updateStore, isArabic });
   const stats = useQuotationsStats(quotations);
   const { print, download } = useQuotationExport({ isArabic });
 
@@ -48,26 +48,9 @@ const Quotations = () => {
     setIsHistoryOpen(true);
   }, []);
 
-  const handleConvertToSale = useCallback((quotationId: string) => {
-    const quotation = quotations.find(q => q.id === quotationId);
-    if (!quotation) return;
-
-    const saleOrderNumber = `SO-${String(Date.now()).slice(-3)}`;
-    const currentTime = new Date().toISOString();
-
-    updateStore(prev => prev.map(q => 
-      q.id === quotationId ? {
-        ...q,
-        convertedToSaleId: Date.now().toString(),
-        history: [...q.history, {
-          id: Date.now().toString(),
-          action: 'converted_to_sale' as const,
-          timestamp: currentTime,
-          notes: isArabic ? `تم التحويل إلى طلب بيع رقم: ${saleOrderNumber}` : `Converted to sales order: ${saleOrderNumber}`
-        }]
-      } : q
-    ));
-  }, [quotations, updateStore, isArabic]);
+  const handleConvertToSale = useCallback(async (quotationId: string) => {
+    await convertToSale(quotationId);
+  }, [convertToSale]);
 
   const handleSave = useCallback((quotationData: Omit<Quotation, 'id' | 'createdAt'>) => {
     if (selectedQuotation) {
