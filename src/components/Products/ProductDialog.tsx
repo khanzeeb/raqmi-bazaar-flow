@@ -17,10 +17,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Upload } from "lucide-react";
+import { X, Plus, Upload, ChevronDown, Check } from "lucide-react";
 import { ProductView } from "@/types/product.types";
 import { categoryGateway, Category } from "@/services/category.gateway";
+import { useToast } from "@/hooks/use-toast";
 
 // Form data type for dialog
 interface ProductFormData {
@@ -60,6 +66,7 @@ const unitsOfMeasure = [
 ];
 
 export function ProductDialog({ open, onOpenChange, product, onSave, isArabic = false }: ProductDialogProps) {
+  const { toast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [formData, setFormData] = useState<ProductFormData>({
@@ -78,6 +85,13 @@ export function ProductDialog({ open, onOpenChange, product, onSave, isArabic = 
     minStock: 5
   });
   const [newVariant, setNewVariant] = useState('');
+  
+  // Quick add category state
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickCategoryName, setQuickCategoryName] = useState('');
+  const [quickCategoryNameAr, setQuickCategoryNameAr] = useState('');
+  const [quickCategoryParent, setQuickCategoryParent] = useState<string>('');
+  const [savingCategory, setSavingCategory] = useState(false);
 
   // Fetch categories when dialog opens
   useEffect(() => {
@@ -93,6 +107,51 @@ export function ProductDialog({ open, onOpenChange, product, onSave, isArabic = 
       setCategories(response.data);
     }
     setLoadingCategories(false);
+  };
+
+  const handleQuickAddCategory = async () => {
+    if (!quickCategoryName.trim()) {
+      toast({
+        title: isArabic ? "خطأ" : "Error",
+        description: isArabic ? "اسم الفئة مطلوب" : "Category name is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSavingCategory(true);
+    const response = await categoryGateway.create({
+      name: quickCategoryName.trim(),
+      nameAr: quickCategoryNameAr.trim() || undefined,
+      parent_id: quickCategoryParent || undefined,
+      status: 'active'
+    });
+
+    if (response.success && response.data) {
+      await fetchCategories();
+      // Auto-select the newly created category
+      setFormData({
+        ...formData,
+        category_id: response.data.id,
+        category: response.data.name
+      });
+      // Reset quick add form
+      setQuickCategoryName('');
+      setQuickCategoryNameAr('');
+      setQuickCategoryParent('');
+      setShowQuickAdd(false);
+      toast({
+        title: isArabic ? "تم" : "Success",
+        description: isArabic ? "تم إضافة الفئة بنجاح" : "Category added successfully"
+      });
+    } else {
+      toast({
+        title: isArabic ? "خطأ" : "Error",
+        description: isArabic ? "فشل في إضافة الفئة" : "Failed to add category",
+        variant: "destructive"
+      });
+    }
+    setSavingCategory(false);
   };
 
   // Build flat list with hierarchy indication for display
@@ -226,36 +285,112 @@ export function ProductDialog({ open, onOpenChange, product, onSave, isArabic = 
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="category">
                 {isArabic ? "الفئة" : "Category"}
               </Label>
-              <Select
-                value={formData.category_id || formData.category}
-                onValueChange={(value) => {
-                  const selectedCategory = categories.find(c => c.id === value);
-                  setFormData({ 
-                    ...formData, 
-                    category_id: value,
-                    category: selectedCategory?.name || value 
-                  });
-                }}
-                disabled={loadingCategories}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingCategories ? (isArabic ? "جاري التحميل..." : "Loading...") : (isArabic ? "اختر الفئة" : "Select category")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {getCategoryOptions().map((option) => (
-                    <SelectItem key={option.id} value={option.id}>
-                      <span style={{ paddingLeft: `${option.level * 16}px` }}>
-                        {option.level > 0 && "└ "}
-                        {isArabic && option.nameAr ? option.nameAr : option.name}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  value={formData.category_id || formData.category}
+                  onValueChange={(value) => {
+                    const selectedCategory = categories.find(c => c.id === value);
+                    setFormData({ 
+                      ...formData, 
+                      category_id: value,
+                      category: selectedCategory?.name || value 
+                    });
+                  }}
+                  disabled={loadingCategories}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder={loadingCategories ? (isArabic ? "جاري التحميل..." : "Loading...") : (isArabic ? "اختر الفئة" : "Select category")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getCategoryOptions().map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        <span style={{ paddingLeft: `${option.level * 16}px` }}>
+                          {option.level > 0 && "└ "}
+                          {isArabic && option.nameAr ? option.nameAr : option.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowQuickAdd(!showQuickAdd)}
+                  title={isArabic ? "إضافة فئة جديدة" : "Add new category"}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Quick Add Category Form */}
+              <Collapsible open={showQuickAdd} onOpenChange={setShowQuickAdd}>
+                <CollapsibleContent className="space-y-3 pt-2 border rounded-lg p-3 bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">
+                      {isArabic ? "إضافة فئة سريعة" : "Quick Add Category"}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowQuickAdd(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      placeholder={isArabic ? "اسم الفئة (إنجليزي)" : "Category Name (EN)"}
+                      value={quickCategoryName}
+                      onChange={(e) => setQuickCategoryName(e.target.value)}
+                    />
+                    <Input
+                      placeholder={isArabic ? "اسم الفئة (عربي)" : "Category Name (AR)"}
+                      value={quickCategoryNameAr}
+                      onChange={(e) => setQuickCategoryNameAr(e.target.value)}
+                    />
+                  </div>
+                  <Select
+                    value={quickCategoryParent}
+                    onValueChange={setQuickCategoryParent}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={isArabic ? "فئة رئيسية (اختياري)" : "Parent Category (Optional)"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">
+                        {isArabic ? "بدون فئة رئيسية" : "No Parent (Main Category)"}
+                      </SelectItem>
+                      {categories.filter(c => !c.parent_id).map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {isArabic && cat.nameAr ? cat.nameAr : cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="w-full"
+                    onClick={handleQuickAddCategory}
+                    disabled={savingCategory || !quickCategoryName.trim()}
+                  >
+                    {savingCategory ? (
+                      isArabic ? "جاري الإضافة..." : "Adding..."
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4 mr-1" />
+                        {isArabic ? "إضافة الفئة" : "Add Category"}
+                      </>
+                    )}
+                  </Button>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
 
             <div>
