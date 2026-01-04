@@ -62,6 +62,8 @@ export interface QuotationFilters {
   status?: QuotationStatus;
   search?: string;
   dateRange?: { start: string; end: string };
+  page?: number;
+  limit?: number;
 }
 
 export interface QuotationStats {

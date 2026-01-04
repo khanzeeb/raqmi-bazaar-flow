@@ -1,57 +1,13 @@
 // useQuotationsData - Data fetching and state management
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Quotation, QuotationFilters, QuotationStatus } from '@/types/quotation.types';
+import { useState, useEffect, useCallback } from 'react';
+import { Quotation } from '@/types/quotation.types';
 import { useToast } from '@/hooks/use-toast';
+import { quotationGateway } from '@/services/quotation.gateway';
 
 interface UseQuotationsDataOptions {
   initialLimit?: number;
   autoFetch?: boolean;
 }
-
-// Dummy data
-const DUMMY_QUOTATIONS: Quotation[] = [
-  {
-    id: '1',
-    quotationNumber: 'QT-001',
-    customer: { name: 'أحمد محمد', phone: '+966501234567', email: 'ahmed@example.com', type: 'individual' },
-    items: [
-      { id: '1', name: 'جهاز كمبيوتر محمول', quantity: 1, price: 2500, total: 2500 },
-      { id: '2', name: 'ماوس لاسلكي', quantity: 2, price: 50, total: 100 }
-    ],
-    subtotal: 2600,
-    taxRate: 15,
-    taxAmount: 390,
-    discount: 100,
-    total: 2890,
-    validityDays: 30,
-    expiryDate: '2024-02-15',
-    status: 'sent',
-    createdAt: '2024-01-15',
-    notes: 'عرض خاص للعميل المميز',
-    history: [
-      { id: '1', action: 'created', timestamp: '2024-01-15T10:00:00Z' },
-      { id: '2', action: 'sent', timestamp: '2024-01-15T14:30:00Z', notes: 'تم الإرسال عبر الواتساب' }
-    ]
-  },
-  {
-    id: '2',
-    quotationNumber: 'QT-002',
-    customer: { name: 'شركة التقنية المتقدمة', phone: '+966112345678', type: 'business' },
-    items: [{ id: '3', name: 'طابعة ليزر', quantity: 5, price: 800, total: 4000 }],
-    subtotal: 4000,
-    taxRate: 15,
-    taxAmount: 600,
-    discount: 200,
-    total: 4400,
-    validityDays: 15,
-    expiryDate: '2024-02-01',
-    status: 'draft',
-    createdAt: '2024-01-16',
-    history: [{ id: '1', action: 'created', timestamp: '2024-01-16T09:00:00Z' }]
-  }
-];
-
-let quotationsStore = [...DUMMY_QUOTATIONS];
 
 export const useQuotationsData = (options: UseQuotationsDataOptions = {}) => {
   const { toast } = useToast();
@@ -65,12 +21,21 @@ export const useQuotationsData = (options: UseQuotationsDataOptions = {}) => {
     setLoading(true);
     setError(null);
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 150));
+    const response = await quotationGateway.getAll({ limit: initialLimit });
     
-    setQuotations([...quotationsStore]);
+    if (response.success && response.data) {
+      setQuotations(response.data.data);
+    } else {
+      setError(response.error || 'Failed to fetch quotations');
+      toast({
+        title: 'Error',
+        description: response.error || 'Failed to fetch quotations',
+        variant: 'destructive'
+      });
+    }
+    
     setLoading(false);
-  }, []);
+  }, [initialLimit, toast]);
 
   useEffect(() => {
     if (autoFetch) {
@@ -79,8 +44,7 @@ export const useQuotationsData = (options: UseQuotationsDataOptions = {}) => {
   }, [autoFetch]);
 
   const updateStore = useCallback((updater: (prev: Quotation[]) => Quotation[]) => {
-    quotationsStore = updater(quotationsStore);
-    setQuotations([...quotationsStore]);
+    setQuotations(prev => updater(prev));
   }, []);
 
   return {
