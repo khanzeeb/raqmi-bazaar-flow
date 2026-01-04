@@ -20,6 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, Upload } from "lucide-react";
 import { ProductView } from "@/types/product.types";
+import { categoryGateway, Category } from "@/services/category.gateway";
 
 // Form data type for dialog
 interface ProductFormData {
@@ -27,6 +28,7 @@ interface ProductFormData {
   nameAr: string;
   sku: string;
   category: string;
+  category_id?: string;
   price: number;
   stock: number;
   status: 'active' | 'inactive';
@@ -47,17 +49,6 @@ interface ProductDialogProps {
   isArabic?: boolean;
 }
 
-const categories = [
-  "Smartphones",
-  "Audio",
-  "Computers",
-  "Gaming",
-  "Accessories",
-  "Home & Garden",
-  "Fashion",
-  "Sports"
-];
-
 const unitsOfMeasure = [
   "piece",
   "kg",
@@ -69,11 +60,14 @@ const unitsOfMeasure = [
 ];
 
 export function ProductDialog({ open, onOpenChange, product, onSave, isArabic = false }: ProductDialogProps) {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     nameAr: '',
     sku: '',
     category: '',
+    category_id: '',
     price: 0,
     stock: 0,
     status: 'active',
@@ -84,6 +78,42 @@ export function ProductDialog({ open, onOpenChange, product, onSave, isArabic = 
     minStock: 5
   });
   const [newVariant, setNewVariant] = useState('');
+
+  // Fetch categories when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchCategories();
+    }
+  }, [open]);
+
+  const fetchCategories = async () => {
+    setLoadingCategories(true);
+    const response = await categoryGateway.getAll();
+    if (response.success && response.data) {
+      setCategories(response.data);
+    }
+    setLoadingCategories(false);
+  };
+
+  // Build flat list with hierarchy indication for display
+  const getCategoryOptions = () => {
+    const rootCategories = categories.filter(c => !c.parent_id);
+    const options: { id: string; name: string; nameAr?: string; level: number }[] = [];
+    
+    const addCategory = (category: Category, level: number) => {
+      options.push({ 
+        id: category.id, 
+        name: category.name, 
+        nameAr: category.nameAr,
+        level 
+      });
+      const children = categories.filter(c => c.parent_id === category.id);
+      children.forEach(child => addCategory(child, level + 1));
+    };
+    
+    rootCategories.forEach(cat => addCategory(cat, 0));
+    return options;
+  };
 
   useEffect(() => {
     if (product) {
@@ -201,16 +231,27 @@ export function ProductDialog({ open, onOpenChange, product, onSave, isArabic = 
                 {isArabic ? "الفئة" : "Category"}
               </Label>
               <Select
-                value={formData.category}
-                onValueChange={(value) => setFormData({ ...formData, category: value })}
+                value={formData.category_id || formData.category}
+                onValueChange={(value) => {
+                  const selectedCategory = categories.find(c => c.id === value);
+                  setFormData({ 
+                    ...formData, 
+                    category_id: value,
+                    category: selectedCategory?.name || value 
+                  });
+                }}
+                disabled={loadingCategories}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={isArabic ? "اختر الفئة" : "Select category"} />
+                  <SelectValue placeholder={loadingCategories ? (isArabic ? "جاري التحميل..." : "Loading...") : (isArabic ? "اختر الفئة" : "Select category")} />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
+                  {getCategoryOptions().map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      <span style={{ paddingLeft: `${option.level * 16}px` }}>
+                        {option.level > 0 && "└ "}
+                        {isArabic && option.nameAr ? option.nameAr : option.name}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
