@@ -218,4 +218,17 @@ export class QuotationController extends BaseController {
       next(error);
     }
   }
+
+  static async generateQuotationNumber(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const quotationNumber = await QuotationController.quotationService.generateQuotationNumber();
+
+      res.json({
+        success: true,
+        data: { quotationNumber }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

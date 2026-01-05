@@ -205,4 +205,15 @@ export class QuotationRepository extends BaseRepository<QuotationData, Quotation
     
     return `${prefix}-${String(nextNumber).padStart(5, '0')}`;
   }
+
+  async getQuotationCountForMonth(year: number, month: number): Promise<number> {
+    const prefix = `QT-${year}${String(month).padStart(2, '0')}`;
+    
+    const result = await this.db(this.tableName)
+      .where('quotation_number', 'like', `${prefix}%`)
+      .count('id as count')
+      .first();
+    
+    return parseInt(result?.count as string) || 0;
+  }
 }
