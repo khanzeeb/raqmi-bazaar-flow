@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Quotation } from '@/types/quotation.types';
 import { useToast } from '@/hooks/use-toast';
-import { quotationGateway } from '@/services/quotation.gateway';
+import { quotationGateway } from '../services/quotation.gateway';
 
 interface UseQuotationsDataOptions {
   initialLimit?: number;

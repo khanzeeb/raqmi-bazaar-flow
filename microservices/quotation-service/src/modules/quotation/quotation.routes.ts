@@ -24,6 +24,7 @@ router.get(
 router.get('/stats', QuotationController.getQuotationStats);
 router.get('/expired', QuotationController.getExpiredQuotations);
 router.get('/report', QuotationController.getQuotationReport);
+router.get('/generate-number', QuotationController.generateQuotationNumber);
 
 router.get(
   '/:id',

@@ -6,10 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Quotation } from "@/types/quotation.types";
 import { BilingualLabel } from "@/components/common/BilingualLabel";
+import { quotationGateway } from "../services/quotation.gateway";
 
 interface QuotationDialogProps {
   open: boolean;
@@ -29,6 +30,7 @@ export function QuotationDialog({
 }: QuotationDialogProps) {
   const { language } = useLanguage();
   const isArabic = language === 'ar';
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     quotationNumber: '',
     customer: { name: '', phone: '', email: '', type: 'individual' as 'individual' | 'business' },
@@ -43,6 +45,25 @@ export function QuotationDialog({
     status: 'draft' as 'draft' | 'sent' | 'accepted' | 'expired',
     notes: ''
   });
+
+  // Fetch quotation number from backend when creating new quotation
+  useEffect(() => {
+    const fetchQuotationNumber = async () => {
+      if (!quotation && open) {
+        setLoading(true);
+        const response = await quotationGateway.generateQuotationNumber();
+        if (response.success && response.data) {
+          setFormData(prev => ({
+            ...prev,
+            quotationNumber: response.data!.quotationNumber
+          }));
+        }
+        setLoading(false);
+      }
+    };
+
+    fetchQuotationNumber();
+  }, [quotation, open]);
 
   useEffect(() => {
     if (quotation) {
@@ -65,11 +86,13 @@ export function QuotationDialog({
         status: quotation.status,
         notes: quotation.notes || ''
       });
-    } else {
+    } else if (open) {
+      // Reset form for new quotation - quotation number will be fetched from API
       const today = new Date();
       const expiryDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
-      setFormData({
-        quotationNumber: `QT-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
+      setFormData(prev => ({
+        ...prev,
+        quotationNumber: prev.quotationNumber || '', // Keep if already fetched
         customer: { name: '', phone: '', email: '', type: 'individual' },
         items: [{ id: '1', name: '', quantity: 1, price: 0, total: 0 }],
         subtotal: 0,
@@ -81,7 +104,7 @@ export function QuotationDialog({
         expiryDate: expiryDate.toISOString().split('T')[0],
         status: 'draft',
         notes: ''
-      });
+      }));
     }
   }, [quotation, open]);
 
@@ -119,11 +142,10 @@ export function QuotationDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const currentDate = new Date().toISOString();
     const historyEntry = {
       id: Date.now().toString(),
       action: quotation ? 'sent' : 'created',
-      timestamp: currentDate
+      timestamp: new Date().toISOString()
     } as const;
     
     const quotationWithHistory = {
@@ -156,12 +178,19 @@ export function QuotationDialog({
               <Label htmlFor="quotationNumber">
                 <BilingualLabel enLabel="Quotation Number" arLabel="رقم العرض" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
               </Label>
-              <Input
-                id="quotationNumber"
-                value={formData.quotationNumber}
-                onChange={(e) => setFormData({ ...formData, quotationNumber: e.target.value })}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="quotationNumber"
+                  value={formData.quotationNumber}
+                  onChange={(e) => setFormData({ ...formData, quotationNumber: e.target.value })}
+                  required
+                  disabled={loading}
+                  placeholder={loading ? (isArabic ? 'جاري التحميل...' : 'Loading...') : ''}
+                />
+                {loading && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                )}
+              </div>
             </div>
             <div>
               <Label htmlFor="validityDays">
@@ -408,19 +437,27 @@ export function QuotationDialog({
               <div className="border-t pt-4">
                 <div className="space-y-2 max-w-xs ml-auto">
                   <div className="flex justify-between">
-                    <span><BilingualLabel enLabel="Subtotal:" arLabel="المجموع الفرعي:" showBoth={false} /></span>
+                    <span className="text-muted-foreground">
+                      <BilingualLabel enLabel="Subtotal" arLabel="المجموع الفرعي" showBoth={false} />
+                    </span>
                     <span>{formData.subtotal.toFixed(2)} {currencySymbol}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span><BilingualLabel enLabel="Discount:" arLabel="الخصم:" showBoth={false} /></span>
-                    <span>-{formData.discount.toFixed(2)} {currencySymbol}</span>
+                    <span className="text-muted-foreground">
+                      <BilingualLabel enLabel="Discount" arLabel="الخصم" showBoth={false} />
+                    </span>
+                    <span className="text-destructive">-{formData.discount.toFixed(2)} {currencySymbol}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span><BilingualLabel enLabel={`Tax (${formData.taxRate}%):`} arLabel={`الضريبة (${formData.taxRate}%):`} showBoth={false} /></span>
+                    <span className="text-muted-foreground">
+                      <BilingualLabel enLabel={`Tax (${formData.taxRate}%)`} arLabel={`الضريبة (${formData.taxRate}%)`} showBoth={false} />
+                    </span>
                     <span>{formData.taxAmount.toFixed(2)} {currencySymbol}</span>
                   </div>
                   <div className="flex justify-between font-bold text-lg border-t pt-2">
-                    <span><BilingualLabel enLabel="Total:" arLabel="المجموع الكلي:" showBoth={false} /></span>
+                    <span>
+                      <BilingualLabel enLabel="Total" arLabel="المجموع" showBoth={false} />
+                    </span>
                     <span>{formData.total.toFixed(2)} {currencySymbol}</span>
                   </div>
                 </div>
@@ -437,20 +474,17 @@ export function QuotationDialog({
               id="notes"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              placeholder={getText(isArabic, 'أضف ملاحظات هنا...', 'Add notes here...')}
               rows={3}
             />
           </div>
 
-          <div className="flex justify-end space-x-2 gap-2">
+          <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               <BilingualLabel enLabel="Cancel" arLabel="إلغاء" showBoth={false} />
             </Button>
-            <Button type="submit">
-              <BilingualLabel 
-                enLabel={quotation ? 'Update Quotation' : 'Save Quotation'} 
-                arLabel={quotation ? 'تحديث العرض' : 'حفظ العرض'}
-                showBoth={false}
-              />
+            <Button type="submit" disabled={loading}>
+              <BilingualLabel enLabel={quotation ? 'Update' : 'Save'} arLabel={quotation ? 'تحديث' : 'حفظ'} showBoth={false} />
             </Button>
           </div>
         </form>

@@ -202,6 +202,18 @@ export class QuotationService extends BaseService<QuotationData, CreateQuotation
     return processedCount;
   }
 
+  async generateQuotationNumber(): Promise<string> {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    
+    // Get count of quotations this month for sequence
+    const count = await (this.repository as QuotationRepository).getQuotationCountForMonth(year, parseInt(month));
+    const sequence = String(count + 1).padStart(4, '0');
+    
+    return `QT-${year}${month}-${sequence}`;
+  }
+
   private async getQuotationWithItems(id: string): Promise<any> {
     const quotation = await this.getById(id);
     const items = await this.quotationItemRepository.findByQuotationId(id);
