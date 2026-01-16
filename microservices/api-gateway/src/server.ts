@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
 import compression from 'compression';
 import dotenv from 'dotenv';
+import { monitoringRoutes } from './monitoring';
 
 dotenv.config();
 
@@ -76,6 +77,9 @@ app.use('/api/settings', createProxy(SETTINGS_SERVICE_URL, { '^/api/settings': '
 
 app.use('/api/customers', createProxy(CUSTOMER_SERVICE_URL, { '^/api/customers': '/api/customers' }));
 app.use('/api/suppliers', createProxy(CUSTOMER_SERVICE_URL, { '^/api/suppliers': '/api/suppliers' }));
+
+// Event Monitoring Dashboard API
+app.use('/api/monitoring', monitoringRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
