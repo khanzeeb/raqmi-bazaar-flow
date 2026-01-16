@@ -9,6 +9,7 @@ import saleRoutes from './routes/saleRoutes';
 import returnRoutes from './routes/returnRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import invoiceRoutes from './routes/invoiceRoutes';
+import inventoryRoutes from './routes/inventoryRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
 
@@ -30,6 +31,7 @@ app.use('/api/sales', saleRoutes);
 app.use('/api/returns', returnRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
