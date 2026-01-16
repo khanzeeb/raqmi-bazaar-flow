@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String          @id @default(uuid())
+  email           String          @unique @db.VarChar(255)
+  passwordHash    String          @map("password_hash")
+  name            String          @db.VarChar(255)
+  avatar          String?
+  phone           String?         @db.VarChar(50)
+  isActive        Boolean         @default(true) @map("is_active")
+  isEmailVerified Boolean         @default(false) @map("is_email_verified")
+  
+  // Security
+  failedLoginAttempts Int         @default(0) @map("failed_login_attempts")
+  lockedUntil     DateTime?       @map("locked_until")
+  lastLoginAt     DateTime?       @map("last_login_at")
+  lastLoginIp     String?         @map("last_login_ip")
+  
+  // Password reset
+  passwordResetToken   String?    @map("password_reset_token")
+  passwordResetExpires DateTime?  @map("password_reset_expires")
+  
+  // Email verification
+  emailVerificationToken String?  @map("email_verification_token")
+  
+  // Metadata
+  metadata        Json?
+  
+  refreshTokens   RefreshToken[]
+  sessions        Session[]
+  
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  @@index([email])
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token       String    @unique
+  expiresAt   DateTime  @map("expires_at")
+  isRevoked   Boolean   @default(false) @map("is_revoked")
+  deviceInfo  String?   @map("device_info")
+  ipAddress   String?   @map("ip_address")
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model Session {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken String    @map("access_token")
+  deviceInfo  String?   @map("device_info")
+  ipAddress   String?   @map("ip_address")
+  userAgent   String?   @map("user_agent")
+  isActive    Boolean   @default(true) @map("is_active")
+  expiresAt   DateTime  @map("expires_at")
+  lastActivityAt DateTime @default(now()) @map("last_activity_at")
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([accessToken])
+  @@map("sessions")
+}
+
+model PasswordHistory {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("password_history")
+}
