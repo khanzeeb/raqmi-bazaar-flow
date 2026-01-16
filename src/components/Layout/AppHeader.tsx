@@ -20,6 +20,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { OrganizationSwitcher, useOrganization, useRoleInfo } from "@/features/organization";
+import { Separator } from "@/components/ui/separator";
 
 interface AppHeaderProps {
   isArabic: boolean;
@@ -30,11 +32,13 @@ interface AppHeaderProps {
 
 export function AppHeader({ isArabic, onLanguageToggle, onThemeToggle, isDark }: AppHeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const { currentMembership } = useOrganization();
+  const { label: roleLabel } = useRoleInfo();
 
   return (
     <header className="h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex items-center justify-between h-full px-4">
-        {/* Left side - Sidebar trigger, logo and search */}
+        {/* Left side - Sidebar trigger, logo, org switcher, and search */}
         <div className="flex items-center gap-4">
           <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
           
@@ -49,8 +53,14 @@ export function AppHeader({ isArabic, onLanguageToggle, onThemeToggle, isDark }:
               {isArabic ? "متجر رقمي" : "RaqmiStore"}
             </span>
           </div>
+
+          {/* Organization Switcher */}
+          <Separator orientation="vertical" className="h-8 hidden md:block" />
+          <div className="hidden md:block">
+            <OrganizationSwitcher />
+          </div>
           
-          <div className="relative w-96 hidden md:block">
+          <div className="relative w-80 hidden lg:block">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               type="text"
@@ -65,7 +75,7 @@ export function AppHeader({ isArabic, onLanguageToggle, onThemeToggle, isDark }:
         {/* Right side - Actions and user menu */}
         <div className="flex items-center gap-3">
           {/* Quick stats */}
-          <div className="hidden lg:flex items-center gap-4 text-sm">
+          <div className="hidden xl:flex items-center gap-4 text-sm">
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">
                 {isArabic ? "مبيعات اليوم:" : "Today's Sales:"}
@@ -121,9 +131,11 @@ export function AppHeader({ isArabic, onLanguageToggle, onThemeToggle, isDark }:
                   <User className="h-4 w-4 text-primary-foreground" />
                 </div>
                 <div className="hidden md:flex flex-col items-start">
-                  <span className="text-sm font-medium">Ahmed Al-Rashid</span>
+                  <span className="text-sm font-medium">
+                    {currentMembership?.name || "Ahmed Al-Rashid"}
+                  </span>
                   <span className="text-xs text-muted-foreground">
-                    {isArabic ? "مدير المتجر" : "Store Manager"}
+                    {roleLabel ? (isArabic ? roleLabel.ar : roleLabel.en) : (isArabic ? "مدير المتجر" : "Store Manager")}
                   </span>
                 </div>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />

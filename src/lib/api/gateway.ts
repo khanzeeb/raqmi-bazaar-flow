@@ -1,8 +1,11 @@
 // API Gateway - Single entry point for all API requests
 // Implements centralized error handling, request/response transformation
+// Includes organization context headers for multi-tenant data access
 
 import { ApiResponse, ApiError, QueryParams } from '@/types/api';
 import { config } from '@/lib/config';
+
+const ORG_STORAGE_KEY = 'current_organization_id';
 
 export interface GatewayConfig {
   baseUrl: string;
@@ -26,6 +29,10 @@ interface RequestOptions {
   body?: unknown;
   params?: QueryParams;
   headers?: Record<string, string>;
+  /** Override the default organization ID for this request */
+  organizationId?: string;
+  /** Skip organization header (for auth endpoints) */
+  skipOrgHeader?: boolean;
 }
 
 const DEFAULT_CONFIG: GatewayConfig = {
@@ -37,9 +44,20 @@ const DEFAULT_CONFIG: GatewayConfig = {
 class ApiGateway {
   private config: GatewayConfig;
   private errorHandlers: Set<(error: GatewayError) => void> = new Set();
+  private authToken: string | null = null;
 
   constructor(config: Partial<GatewayConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
+  }
+
+  // Set authentication token
+  setAuthToken(token: string | null): void {
+    this.authToken = token;
+  }
+
+  // Get current organization ID from storage
+  private getCurrentOrgId(): string | null {
+    return localStorage.getItem(ORG_STORAGE_KEY);
   }
 
   // Register global error handler
@@ -88,14 +106,38 @@ class ApiGateway {
     return url.pathname + url.search;
   }
 
+  // Build headers with auth and organization context
+  private buildHeaders(options: RequestOptions): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    // Add authorization header if token exists
+    if (this.authToken) {
+      headers['Authorization'] = `Bearer ${this.authToken}`;
+    }
+
+    // Add organization context header
+    if (!options.skipOrgHeader) {
+      const orgId = options.organizationId || this.getCurrentOrgId();
+      if (orgId) {
+        headers['X-Organization-ID'] = orgId;
+      }
+    }
+
+    return headers;
+  }
+
   // Core request method with retry logic
   private async executeRequest<T>(
     endpoint: string,
     options: RequestOptions,
     attempt: number = 1
   ): Promise<ApiResponse<T>> {
-    const { method, body, params, headers } = options;
+    const { method, body, params } = options;
     const url = this.buildUrl(endpoint, params);
+    const headers = this.buildHeaders(options);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
@@ -106,15 +148,31 @@ class ApiGateway {
 
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          ...headers,
-        },
+        headers,
         body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
+
+      // Handle 401 Unauthorized - clear token and notify
+      if (response.status === 401) {
+        this.authToken = null;
+        const error = this.createError('UNAUTHORIZED', 'Session expired. Please log in again.', 401);
+        this.notifyError(error);
+        return { success: false, error: error.message };
+      }
+
+      // Handle 403 Forbidden - organization access denied
+      if (response.status === 403) {
+        const error = this.createError(
+          'FORBIDDEN',
+          'You do not have permission to access this resource.',
+          403
+        );
+        this.notifyError(error);
+        return { success: false, error: error.message };
+      }
 
       if (!response.ok) {
         const error = this.createError(
@@ -194,25 +252,48 @@ class ApiGateway {
     return new Promise(resolve => setTimeout(resolve, delay));
   }
 
-  // Public API methods
-  async get<T>(endpoint: string, params?: QueryParams): Promise<ApiResponse<T>> {
-    return this.executeRequest<T>(endpoint, { method: 'GET', params });
+  // Public API methods with organization context support
+  async get<T>(
+    endpoint: string,
+    params?: QueryParams,
+    options?: Pick<RequestOptions, 'organizationId' | 'skipOrgHeader' | 'headers'>
+  ): Promise<ApiResponse<T>> {
+    return this.executeRequest<T>(endpoint, { method: 'GET', params, ...options });
   }
 
-  async post<T>(endpoint: string, body?: unknown, params?: QueryParams): Promise<ApiResponse<T>> {
-    return this.executeRequest<T>(endpoint, { method: 'POST', body, params });
+  async post<T>(
+    endpoint: string,
+    body?: unknown,
+    params?: QueryParams,
+    options?: Pick<RequestOptions, 'organizationId' | 'skipOrgHeader' | 'headers'>
+  ): Promise<ApiResponse<T>> {
+    return this.executeRequest<T>(endpoint, { method: 'POST', body, params, ...options });
   }
 
-  async put<T>(endpoint: string, body?: unknown, params?: QueryParams): Promise<ApiResponse<T>> {
-    return this.executeRequest<T>(endpoint, { method: 'PUT', body, params });
+  async put<T>(
+    endpoint: string,
+    body?: unknown,
+    params?: QueryParams,
+    options?: Pick<RequestOptions, 'organizationId' | 'skipOrgHeader' | 'headers'>
+  ): Promise<ApiResponse<T>> {
+    return this.executeRequest<T>(endpoint, { method: 'PUT', body, params, ...options });
   }
 
-  async patch<T>(endpoint: string, body?: unknown, params?: QueryParams): Promise<ApiResponse<T>> {
-    return this.executeRequest<T>(endpoint, { method: 'PATCH', body, params });
+  async patch<T>(
+    endpoint: string,
+    body?: unknown,
+    params?: QueryParams,
+    options?: Pick<RequestOptions, 'organizationId' | 'skipOrgHeader' | 'headers'>
+  ): Promise<ApiResponse<T>> {
+    return this.executeRequest<T>(endpoint, { method: 'PATCH', body, params, ...options });
   }
 
-  async delete<T>(endpoint: string, params?: QueryParams): Promise<ApiResponse<T>> {
-    return this.executeRequest<T>(endpoint, { method: 'DELETE', params });
+  async delete<T>(
+    endpoint: string,
+    params?: QueryParams,
+    options?: Pick<RequestOptions, 'organizationId' | 'skipOrgHeader' | 'headers'>
+  ): Promise<ApiResponse<T>> {
+    return this.executeRequest<T>(endpoint, { method: 'DELETE', params, ...options });
   }
 }
 
