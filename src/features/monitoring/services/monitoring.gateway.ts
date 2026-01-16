@@ -1,10 +1,11 @@
 /**
  * Monitoring API Gateway
  * Handles communication with the API Gateway monitoring endpoints
- * Falls back to mock data when backend is unavailable
+ * Uses config-based toggle for mock vs real data
  */
 
 import { apiGateway } from '@/lib/api/gateway';
+import { config } from '@/lib/config';
 import type { 
   AggregatedDashboard, 
   ServiceHealth, 
@@ -21,15 +22,20 @@ import {
 
 const MONITORING_BASE = '/monitoring';
 
-// Check if we should use mock data (development without backend)
-const USE_MOCK_DATA = true; // Set to false when backend is available
-
 class MonitoringGateway {
+  /**
+   * Check if mock data should be used based on config
+   */
+  private get useMockData(): boolean {
+    return config.useMockData;
+  }
+
   /**
    * Get aggregated dashboard data
    */
   async getDashboard(): Promise<{ success: boolean; data?: AggregatedDashboard; error?: string }> {
-    if (USE_MOCK_DATA) {
+    if (this.useMockData) {
+      if (config.debug) console.log('[MonitoringGateway] Using mock dashboard data');
       return { success: true, data: generateMockDashboard() };
     }
     return apiGateway.get<AggregatedDashboard>(`${MONITORING_BASE}/dashboard`);
@@ -39,7 +45,7 @@ class MonitoringGateway {
    * Get health status of all services
    */
   async getServicesHealth(): Promise<{ success: boolean; data?: { services: ServiceHealth[] }; error?: string }> {
-    if (USE_MOCK_DATA) {
+    if (this.useMockData) {
       const dashboard = generateMockDashboard();
       return { success: true, data: { services: dashboard.services } };
     }
@@ -54,7 +60,7 @@ class MonitoringGateway {
     eventType?: string; 
     limit?: number 
   }): Promise<{ success: boolean; data?: { events: AggregatedEvent[] }; error?: string }> {
-    if (USE_MOCK_DATA) {
+    if (this.useMockData) {
       const dashboard = generateMockDashboard();
       let events = dashboard.recentEvents;
       if (params?.service) {
@@ -75,7 +81,7 @@ class MonitoringGateway {
    * Get event metrics grouped by type
    */
   async getEventMetrics(): Promise<{ success: boolean; data?: { metrics: EventMetrics[] }; error?: string }> {
-    if (USE_MOCK_DATA) {
+    if (this.useMockData) {
       return { success: true, data: { metrics: generateMockEventMetrics() } };
     }
     return apiGateway.get<{ metrics: EventMetrics[] }>(`${MONITORING_BASE}/events/metrics`);
@@ -85,7 +91,7 @@ class MonitoringGateway {
    * Get event flow graph data for visualization
    */
   async getEventFlow(): Promise<{ success: boolean; data?: EventFlowData; error?: string }> {
-    if (USE_MOCK_DATA) {
+    if (this.useMockData) {
       const dashboard = generateMockDashboard();
       return { success: true, data: dashboard.eventFlow };
     }
@@ -96,7 +102,7 @@ class MonitoringGateway {
    * Get Kafka connectivity status across all services
    */
   async getKafkaStatus(): Promise<{ success: boolean; data?: KafkaStatus; error?: string }> {
-    if (USE_MOCK_DATA) {
+    if (this.useMockData) {
       return { success: true, data: generateMockKafkaStatus() };
     }
     return apiGateway.get<KafkaStatus>(`${MONITORING_BASE}/kafka`);
@@ -106,7 +112,7 @@ class MonitoringGateway {
    * Get detailed metrics for a specific service
    */
   async getServiceDetails(serviceName: string): Promise<{ success: boolean; data?: ServiceHealth; error?: string }> {
-    if (USE_MOCK_DATA) {
+    if (this.useMockData) {
       const dashboard = generateMockDashboard();
       const service = dashboard.services.find(s => s.service === serviceName);
       if (service) {
