@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Minus, Search, Calculator, AlertTriangle } from "lucide-react";
+import { Plus, Minus, Search, Calculator, AlertTriangle, Clock, ShieldCheck } from "lucide-react";
 import { SalesOrder } from "@/types/salesOrder.types";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useStockCheck } from "@/features/sales/hooks/useStockCheck";
@@ -58,18 +58,33 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
   const { t, language } = useLanguage();
   const isArabic = language === 'ar';
   
-  // Stock check hook integration
+  // Stock check hook integration with reservation support
   const {
     stockStatus,
     isChecking: isCheckingStock,
+    isReserving,
     checkStock,
+    reserveStock,
+    releaseReservation,
     clearStatus: clearStockStatus,
     allItemsAvailable,
     getUnavailableItems,
+    hasActiveReservation,
+    reservationExpiresAt,
   } = useStockCheck({ 
     language: isArabic ? 'ar' : 'en',
-    showNotifications: true 
+    showNotifications: true,
+    enableReservation: true,
+    reservationTimeoutMinutes: 15,
   });
+
+  // Handle dialog close - release reservation
+  const handleDialogClose = useCallback((isOpen: boolean) => {
+    if (!isOpen && hasActiveReservation) {
+      releaseReservation();
+    }
+    onOpenChange(isOpen);
+  }, [hasActiveReservation, releaseReservation, onOpenChange]);
 
   const [formData, setFormData] = useState({
     customer: { name: '', phone: '', type: 'individual' as 'individual' | 'business' },
@@ -131,8 +146,8 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
     }
   }, [order]);
 
-  // Check stock when items change
-  const checkItemsStock = useCallback(async () => {
+  // Check stock and reserve when items change
+  const checkAndReserveStock = useCallback(async () => {
     if (formData.items.length === 0) {
       clearStockStatus();
       return;
@@ -143,14 +158,20 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
       quantity: item.quantity,
     }));
     
-    await checkStock(stockItems);
-  }, [formData.items, checkStock, clearStockStatus]);
+    // First check stock
+    const stockResult = await checkStock(stockItems);
+    
+    // If all items available, create optimistic reservation
+    if (stockResult?.available) {
+      await reserveStock(stockItems);
+    }
+  }, [formData.items, checkStock, reserveStock, clearStockStatus]);
 
-  // Trigger stock check when items change
+  // Trigger stock check and reservation when items change
   useEffect(() => {
     const timer = setTimeout(() => {
-      checkItemsStock();
-    }, 500); // Debounce 500ms
+      checkAndReserveStock();
+    }, 800); // Debounce 800ms for reservation
     
     return () => clearTimeout(timer);
   }, [formData.items]);
@@ -271,7 +292,7 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -485,6 +506,49 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
 
           {/* Order Summary */}
           <div className="space-y-6">
+            {/* Reservation Status Card */}
+            {formData.items.length > 0 && (
+              <Card className={hasActiveReservation ? 'border-green-500/50 bg-green-50/50 dark:bg-green-950/20' : ''}>
+                <CardContent className="py-3">
+                  <div className="flex items-center gap-2">
+                    {isReserving ? (
+                      <>
+                        <Clock className="w-4 h-4 animate-pulse text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          {isArabic ? 'جاري حجز المخزون...' : 'Reserving stock...'}
+                        </span>
+                      </>
+                    ) : hasActiveReservation ? (
+                      <>
+                        <ShieldCheck className="w-4 h-4 text-green-600" />
+                        <div className="flex-1">
+                          <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                            {isArabic ? 'المخزون محجوز' : 'Stock Reserved'}
+                          </span>
+                          {reservationExpiresAt && (
+                            <p className="text-xs text-muted-foreground">
+                              {isArabic ? 'ينتهي في: ' : 'Expires: '}
+                              {reservationExpiresAt.toLocaleTimeString(isArabic ? 'ar-SA' : 'en-US', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </p>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          {isArabic ? 'المخزون غير محجوز' : 'Stock not reserved'}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">{isArabic ? "ملخص الطلب" : "Order Summary"}</CardTitle>
