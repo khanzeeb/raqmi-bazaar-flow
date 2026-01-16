@@ -12,7 +12,8 @@ import {
   Warehouse, 
   Settings,
   Home,
-  RotateCcw
+  RotateCcw,
+  Activity
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -113,6 +114,13 @@ const navigationItems = [
     url: "/inventory", 
     icon: Warehouse,
     iconColor: "icon-orange"
+  },
+  { 
+    title: "Monitoring", 
+    titleAr: "المراقبة",
+    url: "/monitoring", 
+    icon: Activity,
+    iconColor: "icon-cyan"
   },
   { 
     title: "Settings", 
