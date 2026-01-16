@@ -125,6 +125,21 @@ class ApiGateway {
         return { success: false, error: error.message };
       }
 
+      // Some environments return HTML (index.html / error pages) for unknown /api routes.
+      // Guard JSON parsing to avoid "Unexpected token <" errors.
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await response.text();
+        const error = this.createError(
+          'INVALID_RESPONSE',
+          'Received non-JSON response from API',
+          502,
+          { contentType, preview: text.slice(0, 200) }
+        );
+        this.notifyError(error);
+        return { success: false, error: error.message };
+      }
+
       const data = await response.json();
       return { success: true, data };
     } catch (err) {
