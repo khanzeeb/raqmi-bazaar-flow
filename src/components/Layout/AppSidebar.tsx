@@ -13,7 +13,8 @@ import {
   Settings,
   Home,
   RotateCcw,
-  Activity
+  Activity,
+  Building2
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -121,6 +122,13 @@ const navigationItems = [
     url: "/monitoring", 
     icon: Activity,
     iconColor: "icon-cyan"
+  },
+  { 
+    title: "Organization", 
+    titleAr: "المنظمة",
+    url: "/organization-settings", 
+    icon: Building2,
+    iconColor: "icon-purple"
   },
   { 
     title: "Settings", 
