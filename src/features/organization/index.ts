@@ -20,3 +20,6 @@ export {
 // Components
 export { OrganizationSwitcher } from './components/OrganizationSwitcher';
 export { PermissionGate, withPermission, useCanAccess } from './components/PermissionGate';
+
+// Settings Components
+export * from './components/settings';
