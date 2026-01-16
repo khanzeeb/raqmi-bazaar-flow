@@ -2,6 +2,7 @@
 // Implements centralized error handling, request/response transformation
 
 import { ApiResponse, ApiError, QueryParams } from '@/types/api';
+import { config } from '@/lib/config';
 
 export interface GatewayConfig {
   baseUrl: string;
@@ -28,7 +29,7 @@ interface RequestOptions {
 }
 
 const DEFAULT_CONFIG: GatewayConfig = {
-  baseUrl: '/api',
+  baseUrl: config.apiGatewayUrl || '/api',
   timeout: 10000,
   retries: 1,
 };
