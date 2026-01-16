@@ -1,9 +1,15 @@
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useRTL } from "@/hooks/useRTL";
 import { AppRole, Permission, ROLE_PERMISSIONS, ROLE_HIERARCHY } from '../../types';
-import { Shield, Check, X, Crown, UserCog, Briefcase, User, Eye } from 'lucide-react';
+import { useOrganization } from '../../contexts/OrganizationContext';
+import { PermissionGate } from '../PermissionGate';
+import { Shield, Check, X, Crown, UserCog, Briefcase, User, Eye, Pencil, Save, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const ROLE_INFO: Record<AppRole, { 
   icon: React.ComponentType<{ className?: string }>;
@@ -146,13 +152,79 @@ const PERMISSION_GROUPS: {
   },
 ];
 
+// Roles that can be edited (owner permissions are fixed)
+const EDITABLE_ROLES: AppRole[] = ['admin', 'manager', 'member', 'viewer'];
 const ROLES_ORDER: AppRole[] = ['owner', 'admin', 'manager', 'member', 'viewer'];
+
+// Permissions that are owner-only and cannot be granted to other roles
+const OWNER_ONLY_PERMISSIONS: Permission[] = ['org:manage', 'org:billing'];
 
 export function OrganizationRolesTab() {
   const { isArabic } = useRTL();
+  const { hasPermission: userHasPermission } = useOrganization();
+  
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editedPermissions, setEditedPermissions] = useState<Record<AppRole, Permission[]>>(() => 
+    JSON.parse(JSON.stringify(ROLE_PERMISSIONS))
+  );
+  const [isSaving, setIsSaving] = useState(false);
+
+  const canEdit = userHasPermission('org:manage');
 
   const hasPermission = (role: AppRole, permission: Permission): boolean => {
-    return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+    const permissions = isEditMode ? editedPermissions : ROLE_PERMISSIONS;
+    return permissions[role]?.includes(permission) ?? false;
+  };
+
+  const togglePermission = (role: AppRole, permission: Permission) => {
+    // Owner permissions are fixed
+    if (role === 'owner') return;
+    
+    // Owner-only permissions cannot be granted to other roles
+    if (OWNER_ONLY_PERMISSIONS.includes(permission)) return;
+
+    setEditedPermissions(prev => {
+      const rolePermissions = [...(prev[role] || [])];
+      const index = rolePermissions.indexOf(permission);
+      
+      if (index > -1) {
+        rolePermissions.splice(index, 1);
+      } else {
+        rolePermissions.push(permission);
+      }
+      
+      return {
+        ...prev,
+        [role]: rolePermissions
+      };
+    });
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Simulate API call - in production this would save to backend
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Update the global ROLE_PERMISSIONS (in production, this would be fetched from backend)
+      Object.assign(ROLE_PERMISSIONS, editedPermissions);
+      
+      toast.success(isArabic ? 'تم حفظ الصلاحيات بنجاح' : 'Permissions saved successfully');
+      setIsEditMode(false);
+    } catch (error) {
+      toast.error(isArabic ? 'فشل حفظ الصلاحيات' : 'Failed to save permissions');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditedPermissions(JSON.parse(JSON.stringify(ROLE_PERMISSIONS)));
+    setIsEditMode(false);
+  };
+
+  const handleReset = () => {
+    setEditedPermissions(JSON.parse(JSON.stringify(ROLE_PERMISSIONS)));
   };
 
   return (
@@ -162,7 +234,8 @@ export function OrganizationRolesTab() {
         {ROLES_ORDER.map((role) => {
           const info = ROLE_INFO[role];
           const Icon = info.icon;
-          const permissionCount = ROLE_PERMISSIONS[role]?.length || 0;
+          const permissions = isEditMode ? editedPermissions : ROLE_PERMISSIONS;
+          const permissionCount = permissions[role]?.length || 0;
           
           return (
             <Card key={role} className="relative overflow-hidden">
@@ -193,15 +266,68 @@ export function OrganizationRolesTab() {
       {/* Permissions Matrix */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            {isArabic ? 'مصفوفة الصلاحيات' : 'Permissions Matrix'}
-          </CardTitle>
-          <CardDescription>
-            {isArabic 
-              ? 'عرض تفصيلي للصلاحيات المتاحة لكل دور'
-              : 'Detailed view of permissions available for each role'}
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                {isArabic ? 'مصفوفة الصلاحيات' : 'Permissions Matrix'}
+              </CardTitle>
+              <CardDescription>
+                {isArabic 
+                  ? isEditMode 
+                    ? 'انقر على المفاتيح لتعديل الصلاحيات' 
+                    : 'عرض تفصيلي للصلاحيات المتاحة لكل دور'
+                  : isEditMode 
+                    ? 'Click the toggles to modify permissions'
+                    : 'Detailed view of permissions available for each role'}
+              </CardDescription>
+            </div>
+            
+            <PermissionGate permission="org:manage">
+              <div className="flex items-center gap-2">
+                {isEditMode ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleReset}
+                      disabled={isSaving}
+                    >
+                      <RotateCcw className="h-4 w-4 me-1" />
+                      {isArabic ? 'إعادة تعيين' : 'Reset'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancel}
+                      disabled={isSaving}
+                    >
+                      {isArabic ? 'إلغاء' : 'Cancel'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleSave}
+                      disabled={isSaving}
+                    >
+                      <Save className="h-4 w-4 me-1" />
+                      {isSaving 
+                        ? (isArabic ? 'جاري الحفظ...' : 'Saving...') 
+                        : (isArabic ? 'حفظ' : 'Save')}
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditMode(true)}
+                  >
+                    <Pencil className="h-4 w-4 me-1" />
+                    {isArabic ? 'تعديل الصلاحيات' : 'Edit Permissions'}
+                  </Button>
+                )}
+              </div>
+            </PermissionGate>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -216,6 +342,11 @@ export function OrganizationRolesTab() {
                       <Badge variant="outline" className={cn("font-medium", ROLE_INFO[role].color)}>
                         {isArabic ? ROLE_INFO[role].label.ar : ROLE_INFO[role].label.en}
                       </Badge>
+                      {role === 'owner' && isEditMode && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {isArabic ? '(ثابت)' : '(Fixed)'}
+                        </p>
+                      )}
                     </th>
                   ))}
                 </tr>
@@ -231,35 +362,71 @@ export function OrganizationRolesTab() {
                         {isArabic ? group.name.ar : group.name.en}
                       </td>
                     </tr>
-                    {group.permissions.map((permission) => (
-                      <tr key={permission.key} className="hover:bg-muted/20">
-                        <td className="p-3 border-b text-sm">
-                          {isArabic ? permission.label.ar : permission.label.en}
-                        </td>
-                        {ROLES_ORDER.map((role) => (
-                          <td key={`${permission.key}-${role}`} className="p-3 border-b text-center">
-                            {hasPermission(role, permission.key) ? (
-                              <div className="flex justify-center">
-                                <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                                  <Check className="h-4 w-4 text-emerald-600" />
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex justify-center">
-                                <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
-                                  <X className="h-3 w-3 text-muted-foreground" />
-                                </div>
-                              </div>
-                            )}
+                    {group.permissions.map((permission) => {
+                      const isOwnerOnly = OWNER_ONLY_PERMISSIONS.includes(permission.key);
+                      
+                      return (
+                        <tr key={permission.key} className="hover:bg-muted/20">
+                          <td className="p-3 border-b text-sm">
+                            <div className="flex items-center gap-2">
+                              {isArabic ? permission.label.ar : permission.label.en}
+                              {isOwnerOnly && isEditMode && (
+                                <Badge variant="outline" className="text-xs">
+                                  {isArabic ? 'المالك فقط' : 'Owner only'}
+                                </Badge>
+                              )}
+                            </div>
                           </td>
-                        ))}
-                      </tr>
-                    ))}
+                          {ROLES_ORDER.map((role) => {
+                            const has = hasPermission(role, permission.key);
+                            const isEditable = isEditMode && 
+                              role !== 'owner' && 
+                              !OWNER_ONLY_PERMISSIONS.includes(permission.key);
+                            
+                            return (
+                              <td key={`${permission.key}-${role}`} className="p-3 border-b text-center">
+                                {isEditable ? (
+                                  <div className="flex justify-center">
+                                    <Switch
+                                      checked={has}
+                                      onCheckedChange={() => togglePermission(role, permission.key)}
+                                      className="data-[state=checked]:bg-emerald-500"
+                                    />
+                                  </div>
+                                ) : has ? (
+                                  <div className="flex justify-center">
+                                    <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                                      <Check className="h-4 w-4 text-emerald-600" />
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex justify-center">
+                                    <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                                      <X className="h-3 w-3 text-muted-foreground" />
+                                    </div>
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
                   </>
                 ))}
               </tbody>
             </table>
           </div>
+          
+          {isEditMode && (
+            <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+              <p className="text-sm text-amber-700 dark:text-amber-400">
+                {isArabic 
+                  ? '⚠️ ملاحظة: صلاحيات المالك ثابتة ولا يمكن تعديلها. صلاحيات "إدارة المنظمة" و"إدارة الفواتير" متاحة للمالك فقط.'
+                  : '⚠️ Note: Owner permissions are fixed and cannot be modified. "Manage Organization" and "Manage Billing" permissions are owner-only.'}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
