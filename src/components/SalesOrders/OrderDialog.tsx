@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,9 +13,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Minus, Search, Calculator } from "lucide-react";
+import { Plus, Minus, Search, Calculator, AlertTriangle } from "lucide-react";
 import { SalesOrder } from "@/types/salesOrder.types";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useStockCheck } from "@/features/sales/hooks/useStockCheck";
+import { StockIndicator } from "./StockIndicator";
 
 interface OrderDialogProps {
   open: boolean;
@@ -55,6 +57,20 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
 }) => {
   const { t, language } = useLanguage();
   const isArabic = language === 'ar';
+  
+  // Stock check hook integration
+  const {
+    stockStatus,
+    isChecking: isCheckingStock,
+    checkStock,
+    clearStatus: clearStockStatus,
+    allItemsAvailable,
+    getUnavailableItems,
+  } = useStockCheck({ 
+    language: isArabic ? 'ar' : 'en',
+    showNotifications: true 
+  });
+
   const [formData, setFormData] = useState({
     customer: { name: '', phone: '', type: 'individual' as 'individual' | 'business' },
     items: [] as Array<{
@@ -114,6 +130,30 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
       setSelectedCustomer('');
     }
   }, [order]);
+
+  // Check stock when items change
+  const checkItemsStock = useCallback(async () => {
+    if (formData.items.length === 0) {
+      clearStockStatus();
+      return;
+    }
+    
+    const stockItems = formData.items.map(item => ({
+      product_id: item.id,
+      quantity: item.quantity,
+    }));
+    
+    await checkStock(stockItems);
+  }, [formData.items, checkStock, clearStockStatus]);
+
+  // Trigger stock check when items change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      checkItemsStock();
+    }, 500); // Debounce 500ms
+    
+    return () => clearTimeout(timer);
+  }, [formData.items]);
 
   const calculateTotals = (items: typeof formData.items, discount: number, taxRate: number) => {
     const subtotal = items.reduce((sum, item) => sum + item.total, 0);
@@ -194,7 +234,7 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (formData.items.length === 0) {
       alert(isArabic ? 'يرجى إضافة منتجات للطلب' : 'Please add products to order');
       return;
@@ -202,6 +242,25 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
     if (!formData.customer.name) {
       alert(isArabic ? 'يرجى اختيار العميل' : 'Please select customer');
       return;
+    }
+    
+    // Check stock availability before saving
+    const stockItems = formData.items.map(item => ({
+      product_id: item.id,
+      quantity: item.quantity,
+    }));
+    
+    const stockResult = await checkStock(stockItems);
+    
+    if (stockResult && !stockResult.available) {
+      const unavailable = stockResult.items.filter(i => !i.is_available);
+      const message = isArabic 
+        ? `المخزون غير كافٍ لـ ${unavailable.length} منتج(ات). هل تريد المتابعة؟`
+        : `Insufficient stock for ${unavailable.length} product(s). Continue anyway?`;
+      
+      if (!window.confirm(message)) {
+        return;
+      }
     }
     
     onSave(formData);
@@ -328,66 +387,96 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {formData.items.map((item, index) => (
-                      <div key={item.id} className="border rounded-md p-3">
-                        <div className="grid grid-cols-12 gap-3 items-center">
-                          <div className="col-span-4">
-                            <p className="font-medium">{item.name}</p>
-                          </div>
-                          <div className="col-span-2">
-                            <div className="flex items-center">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                className="h-8 w-8 p-0"
-                              >
-                                <Minus className="w-3 h-3" />
-                              </Button>
+                    {/* Stock warning banner */}
+                    {!allItemsAvailable && formData.items.length > 0 && (
+                      <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md text-destructive">
+                        <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-sm">
+                          {isArabic 
+                            ? `${getUnavailableItems().length} منتج(ات) غير متوفرة بالمخزون الكافي`
+                            : `${getUnavailableItems().length} product(s) have insufficient stock`}
+                        </span>
+                      </div>
+                    )}
+                    {formData.items.map((item) => {
+                      const itemStock = stockStatus[item.id];
+                      const isAvailable = itemStock ? itemStock.is_available : null;
+                      
+                      return (
+                        <div 
+                          key={item.id} 
+                          className={`border rounded-md p-3 ${
+                            isAvailable === false ? 'border-destructive/50 bg-destructive/5' : ''
+                          }`}
+                        >
+                          <div className="grid grid-cols-12 gap-3 items-center">
+                            <div className="col-span-4">
+                              <div className="flex flex-col gap-1">
+                                <p className="font-medium">{item.name}</p>
+                                <StockIndicator
+                                  isChecking={isCheckingStock}
+                                  isAvailable={isAvailable}
+                                  availableQuantity={itemStock?.available_quantity}
+                                  requestedQuantity={item.quantity}
+                                  language={isArabic ? 'ar' : 'en'}
+                                />
+                              </div>
+                            </div>
+                            <div className="col-span-2">
+                              <div className="flex items-center">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </Button>
+                                <Input
+                                  value={item.quantity}
+                                  onChange={(e) => updateQuantity(item.id, Number(e.target.value) || 0)}
+                                  className="mx-1 h-8 text-center"
+                                  type="number"
+                                  min="0"
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="col-span-3">
                               <Input
-                                value={item.quantity}
-                                onChange={(e) => updateQuantity(item.id, Number(e.target.value) || 0)}
-                                className="mx-1 h-8 text-center"
+                                value={item.price}
+                                onChange={(e) => updatePrice(item.id, Number(e.target.value) || 0)}
+                                className="h-8"
                                 type="number"
-                                min="0"
+                                step="0.01"
                               />
+                            </div>
+                            <div className="col-span-2">
+                              <p className="font-medium text-right">
+                                {item.total.toLocaleString()} ر.س
+                              </p>
+                            </div>
+                            <div className="col-span-1">
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                className="h-8 w-8 p-0"
+                                onClick={() => updateQuantity(item.id, 0)}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                               >
-                                <Plus className="w-3 h-3" />
+                                ×
                               </Button>
                             </div>
                           </div>
-                          <div className="col-span-3">
-                            <Input
-                              value={item.price}
-                              onChange={(e) => updatePrice(item.id, Number(e.target.value) || 0)}
-                              className="h-8"
-                              type="number"
-                              step="0.01"
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <p className="font-medium text-right">
-                              {item.total.toLocaleString()} ر.س
-                            </p>
-                          </div>
-                          <div className="col-span-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateQuantity(item.id, 0)}
-                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                            >
-                              ×
-                            </Button>
-                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
