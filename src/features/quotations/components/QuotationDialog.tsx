@@ -176,7 +176,7 @@ export function QuotationDialog({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="quotationNumber">
-                <BilingualLabel enLabel="Quotation Number" arLabel="رقم العرض" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+                <BilingualLabel enLabel="Quotation Number" arLabel="رقم العرض" showBoth={false} />
               </Label>
               <div className="relative">
                 <Input
@@ -194,7 +194,7 @@ export function QuotationDialog({
             </div>
             <div>
               <Label htmlFor="validityDays">
-                <BilingualLabel enLabel="Validity (Days)" arLabel="مدة الصلاحية (بالأيام)" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+                <BilingualLabel enLabel="Validity (Days)" arLabel="مدة الصلاحية (بالأيام)" showBoth={false} />
               </Label>
               <Input
                 id="validityDays"
@@ -219,14 +219,14 @@ export function QuotationDialog({
           <Card>
             <CardHeader>
               <CardTitle>
-                <BilingualLabel enLabel="Customer Information" arLabel="معلومات العميل" showBoth={true} primaryClassName="text-base" secondaryClassName="text-xs" />
+                <BilingualLabel enLabel="Customer Information" arLabel="معلومات العميل" showBoth={false} />
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="customerName">
-                    <BilingualLabel enLabel="Customer Name" arLabel="اسم العميل" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+                    <BilingualLabel enLabel="Customer Name" arLabel="اسم العميل" showBoth={false} />
                   </Label>
                   <Input
                     id="customerName"
@@ -240,7 +240,7 @@ export function QuotationDialog({
                 </div>
                 <div>
                   <Label htmlFor="customerType">
-                    <BilingualLabel enLabel="Customer Type" arLabel="نوع العميل" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+                    <BilingualLabel enLabel="Customer Type" arLabel="نوع العميل" showBoth={false} />
                   </Label>
                   <Select
                     value={formData.customer.type}
@@ -255,8 +255,8 @@ export function QuotationDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="individual">{getText(isArabic, 'فردي', 'Individual')} / {getText(!isArabic, 'فردي', 'Individual')}</SelectItem>
-                      <SelectItem value="business">{getText(isArabic, 'شركة', 'Business')} / {getText(!isArabic, 'شركة', 'Business')}</SelectItem>
+                      <SelectItem value="individual">{getText(isArabic, 'فردي', 'Individual')}</SelectItem>
+                      <SelectItem value="business">{getText(isArabic, 'شركة', 'Business')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -264,7 +264,7 @@ export function QuotationDialog({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="customerPhone">
-                    <BilingualLabel enLabel="Phone" arLabel="الهاتف" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+                    <BilingualLabel enLabel="Phone" arLabel="الهاتف" showBoth={false} />
                   </Label>
                   <Input
                     id="customerPhone"
@@ -278,7 +278,7 @@ export function QuotationDialog({
                 </div>
                 <div>
                   <Label htmlFor="customerEmail">
-                    <BilingualLabel enLabel="Email" arLabel="البريد الإلكتروني" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+                    <BilingualLabel enLabel="Email" arLabel="البريد الإلكتروني" showBoth={false} />
                   </Label>
                   <Input
                     id="customerEmail"
@@ -299,7 +299,7 @@ export function QuotationDialog({
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>
-                  <BilingualLabel enLabel="Items" arLabel="العناصر" showBoth={true} primaryClassName="text-base" secondaryClassName="text-xs" />
+                  <BilingualLabel enLabel="Items" arLabel="العناصر" showBoth={false} />
                 </CardTitle>
                 <Button type="button" onClick={addItem} size="sm">
                   <Plus className="w-4 h-4 mr-1" />
@@ -313,7 +313,7 @@ export function QuotationDialog({
                   <div key={item.id} className="grid grid-cols-12 gap-2 items-end">
                     <div className="col-span-5">
                       <Label>
-                        <BilingualLabel enLabel="Product Name" arLabel="اسم المنتج" showBoth={true} primaryClassName="text-xs" secondaryClassName="text-[9px]" />
+                        <BilingualLabel enLabel="Product Name" arLabel="اسم المنتج" showBoth={false} />
                       </Label>
                       <Input
                         value={item.name}
@@ -323,7 +323,7 @@ export function QuotationDialog({
                     </div>
                     <div className="col-span-2">
                       <Label>
-                        <BilingualLabel enLabel="Quantity" arLabel="الكمية" showBoth={true} primaryClassName="text-xs" secondaryClassName="text-[9px]" />
+                        <BilingualLabel enLabel="Quantity" arLabel="الكمية" showBoth={false} />
                       </Label>
                       <Input
                         type="number"
@@ -335,7 +335,7 @@ export function QuotationDialog({
                     </div>
                     <div className="col-span-2">
                       <Label>
-                        <BilingualLabel enLabel="Price" arLabel="السعر" showBoth={true} primaryClassName="text-xs" secondaryClassName="text-[9px]" />
+                        <BilingualLabel enLabel="Price" arLabel="السعر" showBoth={false} />
                       </Label>
                       <Input
                         type="number"
@@ -348,7 +348,7 @@ export function QuotationDialog({
                     </div>
                     <div className="col-span-2">
                       <Label>
-                        <BilingualLabel enLabel="Total" arLabel="المجموع" showBoth={true} primaryClassName="text-xs" secondaryClassName="text-[9px]" />
+                        <BilingualLabel enLabel="Total" arLabel="المجموع" showBoth={false} />
                       </Label>
                       <Input value={item.total.toFixed(2)} readOnly />
                     </div>
@@ -373,14 +373,14 @@ export function QuotationDialog({
           <Card>
             <CardHeader>
               <CardTitle>
-                <BilingualLabel enLabel="Pricing" arLabel="التسعير" showBoth={true} primaryClassName="text-base" secondaryClassName="text-xs" />
+                <BilingualLabel enLabel="Pricing" arLabel="التسعير" showBoth={false} />
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="discount">
-                    <BilingualLabel enLabel="Discount" arLabel="الخصم" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+                    <BilingualLabel enLabel="Discount" arLabel="الخصم" showBoth={false} />
                   </Label>
                   <Input
                     id="discount"
@@ -397,7 +397,7 @@ export function QuotationDialog({
                 </div>
                 <div>
                   <Label htmlFor="taxRate">
-                    <BilingualLabel enLabel="Tax Rate (%)" arLabel="معدل الضريبة (%)" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+                    <BilingualLabel enLabel="Tax Rate (%)" arLabel="معدل الضريبة (%)" showBoth={false} />
                   </Label>
                   <Input
                     id="taxRate"
@@ -415,7 +415,7 @@ export function QuotationDialog({
                 </div>
                 <div>
                   <Label htmlFor="status">
-                    <BilingualLabel enLabel="Status" arLabel="حالة العرض" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+                    <BilingualLabel enLabel="Status" arLabel="حالة العرض" showBoth={false} />
                   </Label>
                   <Select
                     value={formData.status}
@@ -425,10 +425,10 @@ export function QuotationDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="draft">{getText(isArabic, 'مسودة', 'Draft')} / {getText(!isArabic, 'مسودة', 'Draft')}</SelectItem>
-                      <SelectItem value="sent">{getText(isArabic, 'مرسل', 'Sent')} / {getText(!isArabic, 'مرسل', 'Sent')}</SelectItem>
-                      <SelectItem value="accepted">{getText(isArabic, 'مقبول', 'Accepted')} / {getText(!isArabic, 'مقبول', 'Accepted')}</SelectItem>
-                      <SelectItem value="expired">{getText(isArabic, 'منتهي الصلاحية', 'Expired')} / {getText(!isArabic, 'منتهي الصلاحية', 'Expired')}</SelectItem>
+                      <SelectItem value="draft">{getText(isArabic, 'مسودة', 'Draft')}</SelectItem>
+                      <SelectItem value="sent">{getText(isArabic, 'مرسل', 'Sent')}</SelectItem>
+                      <SelectItem value="accepted">{getText(isArabic, 'مقبول', 'Accepted')}</SelectItem>
+                      <SelectItem value="expired">{getText(isArabic, 'منتهي الصلاحية', 'Expired')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -468,7 +468,7 @@ export function QuotationDialog({
           {/* Notes */}
           <div>
             <Label htmlFor="notes">
-              <BilingualLabel enLabel="Notes" arLabel="ملاحظات" showBoth={true} primaryClassName="text-sm" secondaryClassName="text-[10px]" />
+              <BilingualLabel enLabel="Notes" arLabel="ملاحظات" showBoth={false} />
             </Label>
             <Textarea
               id="notes"
