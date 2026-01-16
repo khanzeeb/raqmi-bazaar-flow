@@ -8,6 +8,7 @@ import productRoutes from './routes/productRoutes';
 import productCategoryRoutes from './routes/productCategoryRoutes';
 import productVariantRoutes from './routes/productVariantRoutes';
 import { errorHandler } from './plugins/errorHandler';
+import { productEventService } from './events';
 
 dotenv.config();
 
@@ -34,18 +35,46 @@ app.register(productRoutes, { prefix: '/api/products' });
 app.register(productCategoryRoutes, { prefix: '/api/categories' });
 app.register(productVariantRoutes, { prefix: '/api/products' });
 
-// Health check
+// Health check with event status
 app.get('/health', async () => ({
   service: 'product-service',
   status: 'OK',
-  timestamp: new Date().toISOString()
+  timestamp: new Date().toISOString(),
+  events: {
+    subscriptions: productEventService.listSubscriptions().length,
+  }
 }));
+
+// Event subscriptions endpoint
+app.get('/events', async () => ({
+  service: 'product-service',
+  subscriptions: productEventService.listSubscriptions(),
+  history: productEventService.getEventEmitter().getEventHistory(undefined, 50),
+}));
+
+// Initialize event services
+const initializeEventServices = () => {
+  productEventService.initialize();
+  console.log('[product-service] Event services initialized');
+};
+
+// Graceful shutdown
+const shutdown = async () => {
+  console.log('[product-service] Shutting down...');
+  productEventService.destroy();
+  await app.close();
+  process.exit(0);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 
 // Start server
 const start = async () => {
   try {
     await app.listen({ port: PORT, host: '0.0.0.0' });
     console.log(`Product Service running on port ${PORT}`);
+    initializeEventServices();
   } catch (err) {
     app.log.error(err);
     process.exit(1);
