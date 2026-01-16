@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Organization Core
+model Organization {
+  id              String              @id @default(uuid())
+  name            String              @db.VarChar(255)
+  slug            String              @unique @db.VarChar(100)
+  logo            String?
+  industry        String?             @db.VarChar(100)
+  taxNumber       String?             @map("tax_number") @db.VarChar(50)
+  currency        String              @default("USD") @db.VarChar(3)
+  timezone        String              @default("UTC") @db.VarChar(50)
+  language        String              @default("en") @db.VarChar(5)
+  isActive        Boolean             @default(true) @map("is_active")
+  
+  // Address fields
+  addressStreet   String?             @map("address_street")
+  addressCity     String?             @map("address_city")
+  addressState    String?             @map("address_state")
+  addressCountry  String?             @map("address_country") @db.VarChar(2)
+  addressPostal   String?             @map("address_postal") @db.VarChar(20)
+  
+  // Settings
+  defaultTaxRate  Decimal             @default(0) @map("default_tax_rate") @db.Decimal(5, 2)
+  invoicePrefix   String              @default("INV-") @map("invoice_prefix") @db.VarChar(20)
+  quotationPrefix String              @default("QT-") @map("quotation_prefix") @db.VarChar(20)
+  expensePrefix   String              @default("EXP-") @map("expense_prefix") @db.VarChar(20)
+  purchasePrefix  String              @default("PO-") @map("purchase_prefix") @db.VarChar(20)
+  fiscalYearStart Int                 @default(1) @map("fiscal_year_start")
+  
+  metadata        Json?
+  
+  // Relations
+  members         OrganizationMember[]
+  invites         OrganizationInvite[]
+  roles           OrganizationRole[]
+  subscription    Subscription?
+  billingHistory  BillingHistory[]
+  
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  @@map("organizations")
+}
+
+// Role definitions per organization
+model OrganizationRole {
+  id              String              @id @default(uuid())
+  organizationId  String              @map("organization_id")
+  organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name            String              @db.VarChar(50)
+  displayName     String              @map("display_name") @db.VarChar(100)
+  displayNameAr   String?             @map("display_name_ar") @db.VarChar(100)
+  description     String?
+  descriptionAr   String?             @map("description_ar")
+  hierarchyLevel  Int                 @default(0) @map("hierarchy_level")
+  isSystem        Boolean             @default(false) @map("is_system")
+  permissions     Json                @default("[]")
+  
+  members         OrganizationMember[]
+  
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  @@unique([organizationId, name])
+  @@map("organization_roles")
+}
+
+// Members (users in organizations)
+model OrganizationMember {
+  id              String              @id @default(uuid())
+  organizationId  String              @map("organization_id")
+  organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId          String              @map("user_id")
+  roleId          String              @map("role_id")
+  role            OrganizationRole    @relation(fields: [roleId], references: [id])
+  
+  email           String              @db.VarChar(255)
+  name            String              @db.VarChar(255)
+  avatar          String?
+  isActive        Boolean             @default(true) @map("is_active")
+  invitedBy       String?             @map("invited_by")
+  
+  joinedAt        DateTime            @default(now()) @map("joined_at")
+  lastActiveAt    DateTime?           @map("last_active_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  @@unique([organizationId, userId])
+  @@map("organization_members")
+}
+
+// Invitations
+model OrganizationInvite {
+  id              String              @id @default(uuid())
+  organizationId  String              @map("organization_id")
+  organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email           String              @db.VarChar(255)
+  roleName        String              @map("role_name") @db.VarChar(50)
+  invitedBy       String              @map("invited_by")
+  invitedByName   String?             @map("invited_by_name") @db.VarChar(255)
+  token           String              @unique
+  status          InviteStatus        @default(PENDING)
+  expiresAt       DateTime            @map("expires_at")
+  acceptedAt      DateTime?           @map("accepted_at")
+  
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  @@index([email, status])
+  @@map("organization_invites")
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+// Subscription/Billing
+model Subscription {
+  id              String              @id @default(uuid())
+  organizationId  String              @unique @map("organization_id")
+  organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  planId          String              @map("plan_id") @db.VarChar(50)
+  planName        String              @map("plan_name") @db.VarChar(100)
+  status          SubscriptionStatus  @default(ACTIVE)
+  
+  billingCycle    BillingCycle        @default(MONTHLY) @map("billing_cycle")
+  amount          Decimal             @db.Decimal(10, 2)
+  currency        String              @default("USD") @db.VarChar(3)
+  
+  currentPeriodStart DateTime         @map("current_period_start")
+  currentPeriodEnd   DateTime         @map("current_period_end")
+  
+  // Usage limits
+  maxUsers        Int                 @default(5) @map("max_users")
+  maxStorage      Int                 @default(5120) @map("max_storage") // MB
+  
+  // Current usage
+  usedUsers       Int                 @default(1) @map("used_users")
+  usedStorage     Int                 @default(0) @map("used_storage") // MB
+  
+  externalId      String?             @map("external_id") @db.VarChar(255) // Stripe subscription ID, etc.
+  metadata        Json?
+  
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELLED
+  PAUSED
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+// Billing History
+model BillingHistory {
+  id              String              @id @default(uuid())
+  organizationId  String              @map("organization_id")
+  organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  invoiceNumber   String              @map("invoice_number") @db.VarChar(50)
+  description     String
+  amount          Decimal             @db.Decimal(10, 2)
+  currency        String              @default("USD") @db.VarChar(3)
+  status          PaymentStatus       @default(PENDING)
+  
+  periodStart     DateTime            @map("period_start")
+  periodEnd       DateTime            @map("period_end")
+  paidAt          DateTime?           @map("paid_at")
+  
+  externalId      String?             @map("external_id") @db.VarChar(255) // Stripe invoice ID
+  invoiceUrl      String?             @map("invoice_url")
+  
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  @@map("billing_history")
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
