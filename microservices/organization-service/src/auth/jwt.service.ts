@@ -6,6 +6,7 @@ export interface JwtPayload {
   email: string;
   name?: string;
   avatar?: string;
+  type?: 'access' | 'refresh';
   iat: number;
   exp: number;
 }
@@ -18,16 +19,17 @@ export interface DecodedToken {
 
 @Injectable()
 export class JwtService {
-  private readonly secret: string;
+  private readonly accessSecret: string;
   private readonly issuer: string;
 
   constructor() {
-    this.secret = process.env.JWT_SECRET || 'your-super-secret-key-change-in-production';
+    // Use the same secret as auth-service for JWT validation
+    this.accessSecret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'your-access-secret-change-in-production';
     this.issuer = process.env.JWT_ISSUER || 'auth-service';
   }
 
   /**
-   * Verify and decode a JWT token
+   * Verify and decode a JWT access token
    */
   async verifyToken(token: string): Promise<JwtPayload> {
     try {
@@ -50,6 +52,11 @@ export class JwtService {
       const payload = JSON.parse(
         Buffer.from(this.base64UrlDecode(payloadB64)).toString('utf-8')
       ) as JwtPayload;
+
+      // Verify token type if present (must be access token)
+      if (payload.type && payload.type !== 'access') {
+        throw new UnauthorizedException('Invalid token type');
+      }
 
       // Verify expiration
       if (payload.exp && Date.now() >= payload.exp * 1000) {
@@ -84,7 +91,7 @@ export class JwtService {
   }
 
   /**
-   * Generate a JWT token (for testing purposes)
+   * Generate a JWT token (for testing purposes only)
    */
   generateToken(payload: Omit<JwtPayload, 'iat' | 'exp'>, expiresIn: number = 3600): string {
     const header = { alg: 'HS256', typ: 'JWT' };
@@ -92,6 +99,7 @@ export class JwtService {
 
     const fullPayload: JwtPayload = {
       ...payload,
+      type: 'access',
       iat: now,
       exp: now + expiresIn,
     };
@@ -105,7 +113,7 @@ export class JwtService {
   }
 
   private createSignature(headerB64: string, payloadB64: string): string {
-    const hmac = crypto.createHmac('sha256', this.secret);
+    const hmac = crypto.createHmac('sha256', this.accessSecret);
     hmac.update(`${headerB64}.${payloadB64}`);
     return hmac.digest('base64');
   }
