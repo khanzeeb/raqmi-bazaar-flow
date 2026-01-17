@@ -10,15 +10,25 @@ import { PurchaseStats } from "@/components/Purchases/PurchaseStats";
 import { usePurchasesData, usePurchasesFiltering, usePurchasesActions, usePurchasesStats } from '@/hooks/purchases';
 import { Purchase } from '@/types/purchase.types';
 import { BilingualLabel } from "@/components/common/BilingualLabel";
+import { Loader2 } from "lucide-react";
 
 const Purchases = () => {
   const { isArabic, isRTL } = useRTL();
 
   // Hooks
-  const { purchases, updateStore, refresh } = usePurchasesData();
+  const { purchases, loading, updateStore, refresh } = usePurchasesData();
   const { search, localFilters, filteredPurchases, updateSearch, updateLocalFilters } = usePurchasesFiltering(purchases);
-  const { create, update, markReceived, addPayment, addToInventory } = usePurchasesActions({ updateStore, isArabic, onSuccess: refresh });
+  const { create, update, markReceived, addPayment, addToInventory, isSubmitting } = usePurchasesActions({ updateStore, isArabic, onSuccess: refresh });
   const stats = usePurchasesStats(purchases);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   // Local UI state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
