@@ -12,7 +12,11 @@ export { CustomerTable } from './components/CustomerTable';
 export { useCustomersData } from './hooks/useCustomersData';
 export { useCustomersActions } from './hooks/useCustomersActions';
 export { useCustomersFiltering } from './hooks/useCustomersFiltering';
-export { useCustomersStats } from './hooks/useCustomersStats';
+export { useCustomersStats, useCustomersStatsFromServer } from './hooks/useCustomersStats';
+
+// Services
+export { customerGateway } from './services/customer.gateway';
+export type { ICustomerGateway } from './services/customer.gateway';
 
 // Types
 export type {
