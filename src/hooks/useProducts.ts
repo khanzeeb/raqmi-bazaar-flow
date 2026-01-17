@@ -1,6 +1,7 @@
+// useProducts - Consolidated hook using real product gateway
 import { useState, useEffect, useCallback } from 'react';
-import { productApiService } from '@/services/api/product.service';
-import { Product, CreateProductRequest, UpdateProductRequest, ProductFilters } from '@/types/product';
+import { productGateway } from '@/services/product.gateway';
+import { Product, CreateProductDTO, UpdateProductDTO, ProductFilters, ProductStats } from '@/types/product.types';
 import { QueryParams, PaginatedResponse } from '@/types/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -9,10 +10,13 @@ interface UseProductsOptions {
   initialLimit?: number;
   initialFilters?: ProductFilters;
   initialSearch?: string;
+  autoFetch?: boolean;
 }
 
 export const useProducts = (options: UseProductsOptions = {}) => {
   const { toast } = useToast();
+  const { autoFetch = true } = options;
+  
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,13 +28,14 @@ export const useProducts = (options: UseProductsOptions = {}) => {
   });
   const [filters, setFilters] = useState<ProductFilters>(options.initialFilters || {});
   const [search, setSearch] = useState(options.initialSearch || '');
+  const [stats, setStats] = useState<ProductStats | null>(null);
 
   const fetchProducts = useCallback(async (params?: QueryParams & { filters?: ProductFilters }) => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await productApiService.getProducts({
+      const response = await productGateway.getAll({
         page: pagination.page,
         limit: pagination.limit,
         search,
@@ -67,10 +72,17 @@ export const useProducts = (options: UseProductsOptions = {}) => {
     }
   }, [pagination.page, pagination.limit, search, filters, toast]);
 
-  const createProduct = useCallback(async (productData: CreateProductRequest): Promise<boolean> => {
+  const fetchStats = useCallback(async () => {
+    const response = await productGateway.getStats();
+    if (response.success && response.data) {
+      setStats(response.data);
+    }
+  }, []);
+
+  const createProduct = useCallback(async (productData: CreateProductDTO): Promise<boolean> => {
     setLoading(true);
     try {
-      const response = await productApiService.createProduct(productData);
+      const response = await productGateway.create(productData);
       
       if (response.success) {
         toast({
@@ -78,6 +90,7 @@ export const useProducts = (options: UseProductsOptions = {}) => {
           description: response.message || 'Product created successfully',
         });
         await fetchProducts(); // Refresh the list
+        await fetchStats();
         return true;
       } else {
         toast({
@@ -98,12 +111,12 @@ export const useProducts = (options: UseProductsOptions = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [fetchProducts, toast]);
+  }, [fetchProducts, fetchStats, toast]);
 
-  const updateProduct = useCallback(async (productData: UpdateProductRequest): Promise<boolean> => {
+  const updateProduct = useCallback(async (productData: UpdateProductDTO): Promise<boolean> => {
     setLoading(true);
     try {
-      const response = await productApiService.updateProduct(productData);
+      const response = await productGateway.update(productData);
       
       if (response.success) {
         toast({
@@ -111,6 +124,7 @@ export const useProducts = (options: UseProductsOptions = {}) => {
           description: response.message || 'Product updated successfully',
         });
         await fetchProducts(); // Refresh the list
+        await fetchStats();
         return true;
       } else {
         toast({
@@ -131,12 +145,12 @@ export const useProducts = (options: UseProductsOptions = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [fetchProducts, toast]);
+  }, [fetchProducts, fetchStats, toast]);
 
   const deleteProduct = useCallback(async (id: string): Promise<boolean> => {
     setLoading(true);
     try {
-      const response = await productApiService.deleteProduct(id);
+      const response = await productGateway.delete(id);
       
       if (response.success) {
         toast({
@@ -144,6 +158,7 @@ export const useProducts = (options: UseProductsOptions = {}) => {
           description: response.message || 'Product deleted successfully',
         });
         await fetchProducts(); // Refresh the list
+        await fetchStats();
         return true;
       } else {
         toast({
@@ -164,11 +179,45 @@ export const useProducts = (options: UseProductsOptions = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [fetchProducts, toast]);
+  }, [fetchProducts, fetchStats, toast]);
+
+  const updateStock = useCallback(async (id: string, stock: number, reason?: string): Promise<boolean> => {
+    setLoading(true);
+    try {
+      const response = await productGateway.updateStock(id, { stock, reason });
+      
+      if (response.success) {
+        toast({
+          title: 'Success',
+          description: response.message || 'Stock updated successfully',
+        });
+        await fetchProducts();
+        await fetchStats();
+        return true;
+      } else {
+        toast({
+          title: 'Error',
+          description: response.error || 'Failed to update stock',
+          variant: 'destructive',
+        });
+        return false;
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update stock';
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchProducts, fetchStats, toast]);
 
   const getProduct = useCallback(async (id: string): Promise<Product | null> => {
     try {
-      const response = await productApiService.getProduct(id);
+      const response = await productGateway.getById(id);
       
       if (response.success && response.data) {
         return response.data;
@@ -191,14 +240,26 @@ export const useProducts = (options: UseProductsOptions = {}) => {
     }
   }, [toast]);
 
+  const getLowStockProducts = useCallback(async (limit = 10): Promise<Product[]> => {
+    try {
+      const response = await productGateway.getLowStock(limit);
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  }, []);
+
   const updateSearch = useCallback((newSearch: string) => {
     setSearch(newSearch);
-    setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page
+    setPagination(prev => ({ ...prev, page: 1 }));
   }, []);
 
   const updateFilters = useCallback((newFilters: ProductFilters) => {
     setFilters(newFilters);
-    setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page
+    setPagination(prev => ({ ...prev, page: 1 }));
   }, []);
 
   const updatePage = useCallback((newPage: number) => {
@@ -211,8 +272,11 @@ export const useProducts = (options: UseProductsOptions = {}) => {
 
   // Initial fetch
   useEffect(() => {
-    fetchProducts();
-  }, [pagination.page, pagination.limit, search, filters]);
+    if (autoFetch) {
+      fetchProducts();
+      fetchStats();
+    }
+  }, [pagination.page, pagination.limit, search, filters, autoFetch]);
 
   return {
     // Data
@@ -222,13 +286,17 @@ export const useProducts = (options: UseProductsOptions = {}) => {
     pagination,
     filters,
     search,
+    stats,
     
     // Actions
     fetchProducts,
+    fetchStats,
     createProduct,
     updateProduct,
     deleteProduct,
+    updateStock,
     getProduct,
+    getLowStockProducts,
     
     // Filters and pagination
     updateSearch,
@@ -241,3 +309,5 @@ export const useProducts = (options: UseProductsOptions = {}) => {
     isEmpty: !loading && products.length === 0,
   };
 };
+
+export default useProducts;

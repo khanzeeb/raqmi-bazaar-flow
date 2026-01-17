@@ -1,9 +1,26 @@
-// Product Gateway - API layer for products (Interface Segregation)
+// Product Gateway - Consolidated API layer for products
+// Uses real backend when available, falls back to mock data in preview
 
 import { ApiResponse, PaginatedResponse, QueryParams } from '@/types/api';
-import { Product, CreateProductDTO, UpdateProductDTO, ProductFilters } from '@/types/product.types';
+import { Product, CreateProductDTO, UpdateProductDTO, ProductFilters, ProductStats } from '@/types/product.types';
+import { config } from '@/lib/config';
 
-const API_BASE_URL = 'http://localhost:3001/api/products';
+// API URLs - Uses config for environment-aware routing
+const getProductApiUrl = () => {
+  // In development with backend running, use direct URL
+  if (!config.useMockData && config.environment === 'development') {
+    return 'http://localhost:3001/api/products';
+  }
+  // Otherwise use API gateway
+  return `${config.apiGatewayUrl}/products`;
+};
+
+const getCategoryApiUrl = () => {
+  if (!config.useMockData && config.environment === 'development') {
+    return 'http://localhost:3001/api/categories';
+  }
+  return `${config.apiGatewayUrl}/categories`;
+};
 
 // Static fallback data when backend is unavailable
 const STATIC_PRODUCTS: Product[] = [
@@ -104,16 +121,46 @@ const STATIC_PRODUCTS: Product[] = [
   },
 ];
 
-let localProducts = [...STATIC_PRODUCTS];
+// Category type
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  image?: string;
+  parent_id?: string;
+  children?: Category[];
+  sort_order?: number;
+  status: 'active' | 'inactive';
+}
+
+// Update stock request
+export interface UpdateStockRequest {
+  stock: number;
+  reason?: string;
+}
 
 // Product Gateway Interface (Dependency Inversion)
 export interface IProductGateway {
+  // Product CRUD
   getAll(params?: QueryParams & { filters?: ProductFilters }): Promise<ApiResponse<PaginatedResponse<Product>>>;
   getById(id: string): Promise<ApiResponse<Product>>;
   create(data: CreateProductDTO): Promise<ApiResponse<Product>>;
   update(data: UpdateProductDTO): Promise<ApiResponse<Product>>;
   delete(id: string): Promise<ApiResponse<boolean>>;
-  getCategories(): Promise<ApiResponse<string[]>>;
+  
+  // Stock management
+  updateStock(id: string, data: UpdateStockRequest): Promise<ApiResponse<Product>>;
+  getLowStock(limit?: number): Promise<ApiResponse<Product[]>>;
+  
+  // Statistics
+  getStats(): Promise<ApiResponse<ProductStats>>;
+  
+  // Categories
+  getCategories(): Promise<ApiResponse<Category[]>>;
+  getCategoryTree(): Promise<ApiResponse<Category[]>>;
+  
+  // Suppliers
   getSuppliers(): Promise<ApiResponse<string[]>>;
 }
 
@@ -144,12 +191,22 @@ const buildQueryString = (params?: QueryParams & { filters?: ProductFilters }): 
   return queryString ? `?${queryString}` : '';
 };
 
+// Helper to calculate stats from products
+const calculateMockStats = (products: Product[]): ProductStats => {
+  return {
+    total: products.length,
+    inStock: products.filter(p => p.stock > p.min_stock).length,
+    lowStock: products.filter(p => p.stock > 0 && p.stock <= p.min_stock).length,
+    outOfStock: products.filter(p => p.stock === 0).length,
+  };
+};
+
 // Product Gateway Implementation
 export const productGateway: IProductGateway = {
   async getAll(params) {
     try {
       const queryString = buildQueryString(params);
-      const response = await fetch(`${API_BASE_URL}${queryString}`);
+      const response = await fetch(`${getProductApiUrl()}${queryString}`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -168,10 +225,10 @@ export const productGateway: IProductGateway = {
         },
       };
     } catch (error) {
-      console.warn('API unavailable, using local data:', error);
+      console.warn('API unavailable, using mock data:', error);
       
       // Use local fallback data
-      let filtered = [...localProducts];
+      let filtered = [...STATIC_PRODUCTS];
       
       // Apply search filter
       if (params?.search) {
@@ -190,6 +247,14 @@ export const productGateway: IProductGateway = {
         }
         if (params.filters.status) {
           filtered = filtered.filter(p => p.status === params.filters!.status);
+        }
+        if (params.filters.stockStatus) {
+          filtered = filtered.filter(p => {
+            if (params.filters!.stockStatus === 'in-stock') return p.stock > p.min_stock;
+            if (params.filters!.stockStatus === 'low-stock') return p.stock > 0 && p.stock <= p.min_stock;
+            if (params.filters!.stockStatus === 'out-of-stock') return p.stock === 0;
+            return true;
+          });
         }
       }
       
@@ -213,7 +278,7 @@ export const productGateway: IProductGateway = {
 
   async getById(id) {
     try {
-      const response = await fetch(`${API_BASE_URL}/${id}`);
+      const response = await fetch(`${getProductApiUrl()}/${id}`);
       
       if (!response.ok) {
         if (response.status === 404) {
@@ -223,19 +288,20 @@ export const productGateway: IProductGateway = {
       }
       
       const data = await response.json();
-      return { success: true, data };
+      return { success: true, data: data.data || data };
     } catch (error) {
-      console.error('Error fetching product:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch product',
-      };
+      console.warn('API unavailable, using mock data');
+      const product = STATIC_PRODUCTS.find(p => p.id === id);
+      if (product) {
+        return { success: true, data: product };
+      }
+      return { success: false, error: 'Product not found' };
     }
   },
 
   async create(data) {
     try {
-      const response = await fetch(API_BASE_URL, {
+      const response = await fetch(getProductApiUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -247,7 +313,7 @@ export const productGateway: IProductGateway = {
       }
       
       const result = await response.json();
-      return { success: true, data: result, message: 'Product created successfully' };
+      return { success: true, data: result.data || result, message: 'Product created successfully' };
     } catch (error) {
       console.error('Error creating product:', error);
       return {
@@ -260,7 +326,7 @@ export const productGateway: IProductGateway = {
   async update(data) {
     try {
       const { id, ...updateData } = data;
-      const response = await fetch(`${API_BASE_URL}/${id}`, {
+      const response = await fetch(`${getProductApiUrl()}/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData),
@@ -275,7 +341,7 @@ export const productGateway: IProductGateway = {
       }
       
       const result = await response.json();
-      return { success: true, data: result, message: 'Product updated successfully' };
+      return { success: true, data: result.data || result, message: 'Product updated successfully' };
     } catch (error) {
       console.error('Error updating product:', error);
       return {
@@ -287,7 +353,7 @@ export const productGateway: IProductGateway = {
 
   async delete(id) {
     try {
-      const response = await fetch(`${API_BASE_URL}/${id}`, {
+      const response = await fetch(`${getProductApiUrl()}/${id}`, {
         method: 'DELETE',
       });
       
@@ -308,32 +374,38 @@ export const productGateway: IProductGateway = {
     }
   },
 
-  async getCategories() {
+  async updateStock(id, data) {
     try {
-      // Categories endpoint - adjust if your backend has a different path
-      const response = await fetch(`${API_BASE_URL}?limit=1000`);
+      const response = await fetch(`${getProductApiUrl()}/${id}/stock`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
       
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        if (response.status === 404) {
+          return { success: false, error: 'Product not found' };
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      const products = data.data || data;
-      const categories = [...new Set(products.map((p: Product) => p.category).filter(Boolean))] as string[];
-      
-      return { success: true, data: categories };
+      const result = await response.json();
+      return { success: true, data: result.data || result, message: 'Stock updated successfully' };
     } catch (error) {
-      console.error('Error fetching categories:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch categories',
-      };
+      console.warn('API unavailable, using mock update');
+      const product = STATIC_PRODUCTS.find(p => p.id === id);
+      if (product) {
+        product.stock = data.stock;
+        return { success: true, data: product, message: 'Stock updated successfully' };
+      }
+      return { success: false, error: 'Product not found' };
     }
   },
 
-  async getSuppliers() {
+  async getLowStock(limit = 10) {
     try {
-      const response = await fetch(`${API_BASE_URL}/suppliers`);
+      const response = await fetch(`${getProductApiUrl()}/low-stock?limit=${limit}`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -342,11 +414,114 @@ export const productGateway: IProductGateway = {
       const data = await response.json();
       return { success: true, data: data.data || data };
     } catch (error) {
-      console.error('Error fetching suppliers:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch suppliers',
+      console.warn('API unavailable, using mock data');
+      const lowStockProducts = STATIC_PRODUCTS
+        .filter(p => p.stock > 0 && p.stock <= p.min_stock)
+        .slice(0, limit);
+      return { success: true, data: lowStockProducts };
+    }
+  },
+
+  async getStats() {
+    try {
+      const response = await fetch(`${getProductApiUrl()}/stats`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      // Map backend response to frontend interface
+      return { 
+        success: true, 
+        data: {
+          total: data.totalProducts || data.total || 0,
+          inStock: data.inStock || 0,
+          lowStock: data.lowStock || 0,
+          outOfStock: data.outOfStock || 0,
+        }
       };
+    } catch (error) {
+      console.warn('API unavailable, calculating from mock data');
+      return { success: true, data: calculateMockStats(STATIC_PRODUCTS) };
+    }
+  },
+
+  async getCategories() {
+    try {
+      const response = await fetch(getCategoryApiUrl());
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return { success: true, data: data.data || data };
+    } catch (error) {
+      console.warn('API unavailable, extracting categories from mock products');
+      const categories: Category[] = [
+        { id: '1', name: 'Electronics', slug: 'electronics', status: 'active' },
+        { id: '2', name: 'Laptops', slug: 'laptops', parent_id: '1', status: 'active' },
+        { id: '3', name: 'Smartphones', slug: 'smartphones', parent_id: '1', status: 'active' },
+        { id: '4', name: 'Furniture', slug: 'furniture', status: 'active' },
+        { id: '5', name: 'Office Chairs', slug: 'office-chairs', parent_id: '4', status: 'active' },
+      ];
+      return { success: true, data: categories };
+    }
+  },
+
+  async getCategoryTree() {
+    try {
+      const response = await fetch(`${getCategoryApiUrl()}/tree`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return { success: true, data: data.data || data };
+    } catch (error) {
+      console.warn('API unavailable, building tree from mock categories');
+      const tree: Category[] = [
+        { 
+          id: '1', 
+          name: 'Electronics', 
+          slug: 'electronics', 
+          status: 'active',
+          children: [
+            { id: '2', name: 'Laptops', slug: 'laptops', parent_id: '1', status: 'active' },
+            { id: '3', name: 'Smartphones', slug: 'smartphones', parent_id: '1', status: 'active' },
+          ]
+        },
+        { 
+          id: '4', 
+          name: 'Furniture', 
+          slug: 'furniture', 
+          status: 'active',
+          children: [
+            { id: '5', name: 'Office Chairs', slug: 'office-chairs', parent_id: '4', status: 'active' },
+          ]
+        },
+      ];
+      return { success: true, data: tree };
+    }
+  },
+
+  async getSuppliers() {
+    try {
+      const response = await fetch(`${getProductApiUrl()}/suppliers`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return { success: true, data: data.data || data };
+    } catch (error) {
+      console.warn('API unavailable, using mock suppliers');
+      return { success: true, data: ['Apple', 'Samsung', 'Dell', 'IKEA'] };
     }
   },
 };
+
+export default productGateway;
