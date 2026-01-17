@@ -47,6 +47,28 @@ export interface RefreshTokenResponse {
   expiresIn: number;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+export interface VerifyEmailRequest {
+  token: string;
+}
+
+export interface ResendVerificationRequest {
+  email: string;
+}
+
+export interface SuccessResponse {
+  success: boolean;
+  message: string;
+}
+
 export interface AuthContextValue {
   user: User | null;
   session: AuthSession | null;

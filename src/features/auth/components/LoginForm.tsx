@@ -131,12 +131,17 @@ export function LoginForm() {
             )}
           </Button>
           
-          <p className="text-sm text-center text-muted-foreground">
-            Don't have an account?{' '}
-            <Link to="/auth/register" className="text-primary hover:underline font-medium">
-              Create one
+          <div className="flex items-center justify-between text-sm w-full">
+            <Link to="/auth/forgot-password" className="text-muted-foreground hover:text-primary">
+              Forgot password?
             </Link>
-          </p>
+            <span className="text-muted-foreground">
+              Don't have an account?{' '}
+              <Link to="/auth/register" className="text-primary hover:underline font-medium">
+                Create one
+              </Link>
+            </span>
+          </div>
         </CardFooter>
       </form>
     </Card>

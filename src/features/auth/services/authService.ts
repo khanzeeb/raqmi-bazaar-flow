@@ -8,6 +8,11 @@ import type {
   AuthResponse,
   RefreshTokenResponse,
   User,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+  VerifyEmailRequest,
+  ResendVerificationRequest,
+  SuccessResponse,
 } from '../types';
 
 // Mock data for development/preview
@@ -36,7 +41,6 @@ class AuthService {
   async register(data: RegisterRequest): Promise<AuthResponse> {
     if (config.useMockData) {
       await this.simulateDelay();
-      // Simulate validation
       if (!data.email || !data.password || !data.name) {
         throw new Error('All fields are required');
       }
@@ -44,7 +48,7 @@ class AuthService {
         throw new Error('Password must be at least 8 characters');
       }
       return {
-        user: { ...MOCK_USER, email: data.email, name: data.name },
+        user: { ...MOCK_USER, email: data.email, name: data.name, emailVerified: false },
         tokens: MOCK_TOKENS,
       };
     }
@@ -69,10 +73,6 @@ class AuthService {
   async login(data: LoginRequest): Promise<AuthResponse> {
     if (config.useMockData) {
       await this.simulateDelay();
-      // Simulate validation
-      if (data.email !== 'demo@raqmi.com' && data.password !== 'demo123') {
-        // Allow any credentials in mock mode for easier testing
-      }
       return {
         user: MOCK_USER,
         tokens: MOCK_TOKENS,
@@ -146,13 +146,108 @@ class AuthService {
     }
 
     const response = await apiGateway.get<User>(
-      `${this.baseUrl}/profile`,
+      `${this.baseUrl}/me`,
       undefined,
       { skipOrgHeader: true }
     );
 
     if (!response.success) {
       throw new Error(response.error || 'Failed to fetch profile');
+    }
+
+    return response.data!;
+  }
+
+  /**
+   * Request password reset email
+   */
+  async forgotPassword(data: ForgotPasswordRequest): Promise<SuccessResponse> {
+    if (config.useMockData) {
+      await this.simulateDelay();
+      return { success: true, message: 'If the email exists, a reset link has been sent' };
+    }
+
+    const response = await apiGateway.post<SuccessResponse>(
+      `${this.baseUrl}/forgot-password`,
+      data,
+      undefined,
+      { skipOrgHeader: true }
+    );
+
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to send reset email');
+    }
+
+    return response.data!;
+  }
+
+  /**
+   * Reset password with token
+   */
+  async resetPassword(data: ResetPasswordRequest): Promise<SuccessResponse> {
+    if (config.useMockData) {
+      await this.simulateDelay();
+      if (data.newPassword.length < 8) {
+        throw new Error('Password must be at least 8 characters');
+      }
+      return { success: true, message: 'Password reset successfully' };
+    }
+
+    const response = await apiGateway.post<SuccessResponse>(
+      `${this.baseUrl}/reset-password`,
+      data,
+      undefined,
+      { skipOrgHeader: true }
+    );
+
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to reset password');
+    }
+
+    return response.data!;
+  }
+
+  /**
+   * Verify email with token
+   */
+  async verifyEmail(data: VerifyEmailRequest): Promise<SuccessResponse> {
+    if (config.useMockData) {
+      await this.simulateDelay();
+      return { success: true, message: 'Email verified successfully' };
+    }
+
+    const response = await apiGateway.post<SuccessResponse>(
+      `${this.baseUrl}/verify-email`,
+      data,
+      undefined,
+      { skipOrgHeader: true }
+    );
+
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to verify email');
+    }
+
+    return response.data!;
+  }
+
+  /**
+   * Resend verification email
+   */
+  async resendVerification(data: ResendVerificationRequest): Promise<SuccessResponse> {
+    if (config.useMockData) {
+      await this.simulateDelay();
+      return { success: true, message: 'If the email exists and is not verified, a verification link has been sent' };
+    }
+
+    const response = await apiGateway.post<SuccessResponse>(
+      `${this.baseUrl}/resend-verification`,
+      data,
+      undefined,
+      { skipOrgHeader: true }
+    );
+
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to resend verification email');
     }
 
     return response.data!;

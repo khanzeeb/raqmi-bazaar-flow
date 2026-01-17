@@ -1,15 +1,27 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { LoginForm, RegisterForm, useAuth } from '@/features/auth';
+import {
+  LoginForm,
+  RegisterForm,
+  ForgotPasswordForm,
+  ResetPasswordForm,
+  EmailVerification,
+  ResendVerificationForm,
+  useAuth,
+} from '@/features/auth';
 
 export default function Auth() {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect authenticated users to home
+  // Redirect authenticated users to home (except for email verification)
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      navigate('/', { replace: true });
+      // Allow email verification even when logged in
+      const path = window.location.pathname;
+      if (!path.includes('verify-email')) {
+        navigate('/', { replace: true });
+      }
     }
   }, [isAuthenticated, isLoading, navigate]);
 
@@ -29,6 +41,10 @@ export default function Auth() {
           <Route index element={<Navigate to="login" replace />} />
           <Route path="login" element={<LoginForm />} />
           <Route path="register" element={<RegisterForm />} />
+          <Route path="forgot-password" element={<ForgotPasswordForm />} />
+          <Route path="reset-password" element={<ResetPasswordForm />} />
+          <Route path="verify-email" element={<EmailVerification />} />
+          <Route path="resend-verification" element={<ResendVerificationForm />} />
         </Routes>
       </div>
     </div>
