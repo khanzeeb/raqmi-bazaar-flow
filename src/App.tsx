@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/Layout/AppLayout";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { UserSettingsProvider } from "@/contexts/UserSettingsContext";
+import { AuthProvider, ProtectedRoute } from "@/features/auth";
 import { OrganizationProvider } from "@/features/organization";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
@@ -23,6 +24,7 @@ import Invoices from "./pages/Invoices";
 import Returns from "./pages/Returns";
 import Monitoring from "./pages/Monitoring";
 import OrganizationSettings from "./pages/OrganizationSettings";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,34 +34,48 @@ const App = () => (
     <TooltipProvider>
       <LanguageProvider>
         <UserSettingsProvider>
-          <OrganizationProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppLayout>
+          <BrowserRouter>
+            <AuthProvider>
+              <OrganizationProvider>
+                <Toaster />
+                <Sonner />
                 <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/products" element={<Products />} />
-                  <Route path="/customers" element={<Customers />} />
-                  <Route path="/sales-orders" element={<SalesOrders />} />
-                  <Route path="/quotations" element={<Quotations />} />
-                  <Route path="/purchases" element={<Purchases />} />
-                  <Route path="/expenses" element={<Expenses />} />
-                  <Route path="/reports" element={<Reports />} />
-                  <Route path="/payments" element={<Payments />} />
-                  <Route path="/inventory" element={<Inventory />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/pricing" element={<Pricing />} />
-                  <Route path="/invoices" element={<Invoices />} />
-                  <Route path="/returns" element={<Returns />} />
-                  <Route path="/monitoring" element={<Monitoring />} />
-                  <Route path="/organization-settings" element={<OrganizationSettings />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
+                  {/* Public routes */}
+                  <Route path="/auth/*" element={<Auth />} />
+                  
+                  {/* Protected routes */}
+                  <Route
+                    path="/*"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <Routes>
+                            <Route path="/" element={<Index />} />
+                            <Route path="/products" element={<Products />} />
+                            <Route path="/customers" element={<Customers />} />
+                            <Route path="/sales-orders" element={<SalesOrders />} />
+                            <Route path="/quotations" element={<Quotations />} />
+                            <Route path="/purchases" element={<Purchases />} />
+                            <Route path="/expenses" element={<Expenses />} />
+                            <Route path="/reports" element={<Reports />} />
+                            <Route path="/payments" element={<Payments />} />
+                            <Route path="/inventory" element={<Inventory />} />
+                            <Route path="/settings" element={<Settings />} />
+                            <Route path="/pricing" element={<Pricing />} />
+                            <Route path="/invoices" element={<Invoices />} />
+                            <Route path="/returns" element={<Returns />} />
+                            <Route path="/monitoring" element={<Monitoring />} />
+                            <Route path="/organization-settings" element={<OrganizationSettings />} />
+                            <Route path="*" element={<NotFound />} />
+                          </Routes>
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
                 </Routes>
-              </AppLayout>
-            </BrowserRouter>
-          </OrganizationProvider>
+              </OrganizationProvider>
+            </AuthProvider>
+          </BrowserRouter>
         </UserSettingsProvider>
       </LanguageProvider>
     </TooltipProvider>
