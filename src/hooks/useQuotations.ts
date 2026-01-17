@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
-import { quotationService, Quotation, QuotationFilters, QuotationStats, CreateQuotationData, UpdateQuotationData } from '@/services/api/quotation.service';
+// Legacy hook - re-exports from modular feature structure for backward compatibility
+import { useState, useEffect, useCallback } from 'react';
+import { quotationGateway } from '@/features/quotations/services/quotation.gateway';
+import { Quotation, QuotationFilters, QuotationStats, CreateQuotationDTO } from '@/types/quotation.types';
 import { toast } from 'sonner';
 
 export function useQuotations(filters?: QuotationFilters) {
@@ -13,12 +15,12 @@ export function useQuotations(filters?: QuotationFilters) {
     totalPages: 0
   });
 
-  const fetchQuotations = async () => {
+  const fetchQuotations = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await quotationService.getQuotations(filters);
+      const response = await quotationGateway.getAll(filters);
       
       if (response.success && response.data) {
         setQuotations(response.data.data);
@@ -38,18 +40,18 @@ export function useQuotations(filters?: QuotationFilters) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [JSON.stringify(filters)]);
 
   useEffect(() => {
     fetchQuotations();
-  }, [JSON.stringify(filters)]);
+  }, [fetchQuotations]);
 
-  const createQuotation = async (data: CreateQuotationData): Promise<Quotation | null> => {
+  const createQuotation = async (data: CreateQuotationDTO): Promise<Quotation | null> => {
     try {
-      const response = await quotationService.createQuotation(data);
+      const response = await quotationGateway.create(data);
       
       if (response.success && response.data) {
-        await fetchQuotations(); // Refresh the list
+        await fetchQuotations();
         toast.success('Quotation created successfully');
         return response.data;
       } else {
@@ -62,12 +64,12 @@ export function useQuotations(filters?: QuotationFilters) {
     }
   };
 
-  const updateQuotation = async (id: number, data: UpdateQuotationData): Promise<Quotation | null> => {
+  const updateQuotation = async (id: string, data: Partial<CreateQuotationDTO>): Promise<Quotation | null> => {
     try {
-      const response = await quotationService.updateQuotation(id, data);
+      const response = await quotationGateway.update(id, data);
       
       if (response.success && response.data) {
-        await fetchQuotations(); // Refresh the list
+        await fetchQuotations();
         toast.success('Quotation updated successfully');
         return response.data;
       } else {
@@ -80,12 +82,12 @@ export function useQuotations(filters?: QuotationFilters) {
     }
   };
 
-  const deleteQuotation = async (id: number): Promise<boolean> => {
+  const deleteQuotation = async (id: string): Promise<boolean> => {
     try {
-      const response = await quotationService.deleteQuotation(id);
+      const response = await quotationGateway.delete(id);
       
       if (response.success) {
-        await fetchQuotations(); // Refresh the list
+        await fetchQuotations();
         toast.success('Quotation deleted successfully');
         return true;
       } else {
@@ -98,12 +100,12 @@ export function useQuotations(filters?: QuotationFilters) {
     }
   };
 
-  const sendQuotation = async (id: number): Promise<boolean> => {
+  const sendQuotation = async (id: string): Promise<boolean> => {
     try {
-      const response = await quotationService.sendQuotation(id);
+      const response = await quotationGateway.send(id);
       
       if (response.success) {
-        await fetchQuotations(); // Refresh the list
+        await fetchQuotations();
         toast.success('Quotation sent successfully');
         return true;
       } else {
@@ -116,12 +118,12 @@ export function useQuotations(filters?: QuotationFilters) {
     }
   };
 
-  const acceptQuotation = async (id: number): Promise<boolean> => {
+  const acceptQuotation = async (id: string): Promise<boolean> => {
     try {
-      const response = await quotationService.acceptQuotation(id);
+      const response = await quotationGateway.accept(id);
       
       if (response.success) {
-        await fetchQuotations(); // Refresh the list
+        await fetchQuotations();
         toast.success('Quotation accepted successfully');
         return true;
       } else {
@@ -134,12 +136,12 @@ export function useQuotations(filters?: QuotationFilters) {
     }
   };
 
-  const declineQuotation = async (id: number, reason?: string): Promise<boolean> => {
+  const declineQuotation = async (id: string, reason?: string): Promise<boolean> => {
     try {
-      const response = await quotationService.declineQuotation(id, reason);
+      const response = await quotationGateway.decline(id, reason);
       
       if (response.success) {
-        await fetchQuotations(); // Refresh the list
+        await fetchQuotations();
         toast.success('Quotation declined successfully');
         return true;
       } else {
@@ -152,12 +154,12 @@ export function useQuotations(filters?: QuotationFilters) {
     }
   };
 
-  const convertToSale = async (id: number): Promise<boolean> => {
+  const convertToSale = async (id: string): Promise<boolean> => {
     try {
-      const response = await quotationService.convertToSale(id);
+      const response = await quotationGateway.convertToSale(id);
       
       if (response.success) {
-        await fetchQuotations(); // Refresh the list
+        await fetchQuotations();
         toast.success('Quotation converted to sale successfully');
         return true;
       } else {
@@ -186,17 +188,17 @@ export function useQuotations(filters?: QuotationFilters) {
   };
 }
 
-export function useQuotationStats(filters?: { date_from?: string; date_to?: string }) {
+export function useQuotationStats(filters?: { dateFrom?: string; dateTo?: string }) {
   const [stats, setStats] = useState<QuotationStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await quotationService.getStats(filters);
+      const response = await quotationGateway.getStats(filters);
       
       if (response.success && response.data) {
         setStats(response.data);
@@ -209,11 +211,11 @@ export function useQuotationStats(filters?: { date_from?: string; date_to?: stri
     } finally {
       setLoading(false);
     }
-  };
+  }, [JSON.stringify(filters)]);
 
   useEffect(() => {
     fetchStats();
-  }, [JSON.stringify(filters)]);
+  }, [fetchStats]);
 
   return {
     stats,
@@ -222,3 +224,6 @@ export function useQuotationStats(filters?: { date_from?: string; date_to?: stri
     fetchStats
   };
 }
+
+// Re-export types for backward compatibility
+export type { Quotation, QuotationFilters, QuotationStats, CreateQuotationDTO } from '@/types/quotation.types';

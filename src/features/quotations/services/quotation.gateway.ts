@@ -32,6 +32,11 @@ export interface IQuotationGateway {
   getStats(filters?: { dateFrom?: string; dateTo?: string }): Promise<ApiResponse<QuotationStats>>;
   getExpired(): Promise<ApiResponse<Quotation[]>>;
   processExpired(): Promise<ApiResponse<{ processed_count: number }>>;
+  getReport(filters?: QuotationFilters): Promise<ApiResponse<{
+    quotations: Quotation[];
+    statistics: QuotationStats;
+    summary: { total_quotations: number; date_range: { from?: string; to?: string } };
+  }>>;
   generateQuotationNumber(): Promise<ApiResponse<{ quotationNumber: string }>>;
 }
 
@@ -317,9 +322,24 @@ export const quotationGateway: IQuotationGateway = {
     }
   },
 
-  async generateQuotationNumber(): Promise<ApiResponse<{ quotationNumber: string }>> {
+  async getReport(filters?: QuotationFilters): Promise<ApiResponse<{
+    quotations: Quotation[];
+    statistics: QuotationStats;
+    summary: {
+      total_quotations: number;
+      date_range: { from?: string; to?: string };
+    };
+  }>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/quotations/generate-number`);
+      const params = new URLSearchParams();
+      if (filters?.status) params.set('status', filters.status);
+      if (filters?.search) params.set('search', filters.search);
+      if (filters?.page) params.set('page', filters.page.toString());
+      if (filters?.limit) params.set('limit', filters.limit.toString());
+      if (filters?.dateRange?.start) params.set('date_from', filters.dateRange.start);
+      if (filters?.dateRange?.end) params.set('date_to', filters.dateRange.end);
+
+      const response = await fetch(`${API_BASE_URL}/api/quotations/report?${params.toString()}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -327,12 +347,22 @@ export const quotationGateway: IQuotationGateway = {
       if (result.success) {
         return { success: true, data: result.data };
       }
-      return { success: false, error: result.error || 'Failed to generate quotation number' };
+      return { success: false, error: result.error || 'Failed to fetch report' };
     } catch (error) {
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Failed to generate quotation number' 
+        error: error instanceof Error ? error.message : 'Failed to fetch report' 
       };
     }
+  },
+
+  async generateQuotationNumber(): Promise<ApiResponse<{ quotationNumber: string }>> {
+    // Generate quotation number client-side as backend doesn't have dedicated endpoint
+    // This follows the pattern: QT-YYYYMMDD-XXXX
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const quotationNumber = `QT-${dateStr}-${randomSuffix}`;
+    return { success: true, data: { quotationNumber } };
   }
 };
