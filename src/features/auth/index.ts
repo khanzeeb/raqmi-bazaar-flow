@@ -13,3 +13,7 @@ export { authService } from './services/authService';
 export { LoginForm } from './components/LoginForm';
 export { RegisterForm } from './components/RegisterForm';
 export { ProtectedRoute } from './components/ProtectedRoute';
+export { ForgotPasswordForm } from './components/ForgotPasswordForm';
+export { ResetPasswordForm } from './components/ResetPasswordForm';
+export { EmailVerification } from './components/EmailVerification';
+export { ResendVerificationForm } from './components/ResendVerificationForm';
