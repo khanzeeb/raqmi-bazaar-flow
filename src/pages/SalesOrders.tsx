@@ -9,6 +9,7 @@ import { OrderDialog } from "@/components/SalesOrders/OrderDialog";
 import { ReturnDialog } from "@/components/SalesOrders/ReturnDialog";
 import { SalesOrder } from "@/types/salesOrder.types";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { Loader2 } from "lucide-react";
 
 const SalesOrders = () => {
   const { t } = useLanguage();
@@ -16,9 +17,14 @@ const SalesOrders = () => {
   const { formatCurrency, getCurrencySymbol } = useUserSettings();
   const { toast } = useToast();
   
-  const { orders, setOrders } = useSalesOrdersData();
+  const { orders, setOrders, loading, error, refresh, updateStore } = useSalesOrdersData();
   const { filters, filteredOrders, setSearchTerm, setSelectedStatus } = useSalesOrdersFiltering(orders);
-  const { saveOrder, printOrder, downloadOrder } = useSalesOrdersActions(orders, setOrders, isArabic);
+  const { saveOrder, deleteOrder, cancelOrder, addPayment, printOrder, downloadOrder } = useSalesOrdersActions(
+    orders, 
+    setOrders, 
+    isArabic, 
+    { updateStore }
+  );
   const stats = useSalesOrdersStats(orders);
   
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
@@ -35,89 +41,39 @@ const SalesOrders = () => {
     setIsOrderDialogOpen(true);
   };
 
-  const handleSaveOrder = (orderData: Partial<SalesOrder>) => {
-    saveOrder(orderData, selectedOrder);
-    setSelectedOrder(null);
-    setIsOrderDialogOpen(false);
-  };
-
-  const handlePrintOrder = (order: SalesOrder) => {
-    const printContent = `
-      <html>
-        <head>
-          <title>${isArabic ? 'طلب بيع' : 'Sales Order'} - ${order.orderNumber}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; direction: ${isArabic ? 'rtl' : 'ltr'}; }
-            .header { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
-            .section { margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: ${isArabic ? 'right' : 'left'}; }
-            th { background-color: #f5f5f5; }
-            .total { font-weight: bold; font-size: 1.2em; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>${isArabic ? 'طلب بيع' : 'Sales Order'}</h1>
-            <p><strong>${isArabic ? 'رقم الطلب:' : 'Order Number:'}</strong> ${order.orderNumber}</p>
-            <p><strong>${isArabic ? 'التاريخ:' : 'Date:'}</strong> ${order.createdAt}</p>
-          </div>
-          <div class="section">
-            <h3>${isArabic ? 'معلومات العميل' : 'Customer Information'}</h3>
-            <p><strong>${isArabic ? 'الاسم:' : 'Name:'}</strong> ${order.customer.name}</p>
-            <p><strong>${isArabic ? 'الهاتف:' : 'Phone:'}</strong> ${order.customer.phone}</p>
-          </div>
-          <div class="section">
-            <h3>${isArabic ? 'العناصر' : 'Items'}</h3>
-            <table>
-              <thead><tr><th>${isArabic ? 'المنتج' : 'Product'}</th><th>${isArabic ? 'الكمية' : 'Qty'}</th><th>${isArabic ? 'السعر' : 'Price'}</th><th>${isArabic ? 'المجموع' : 'Total'}</th></tr></thead>
-              <tbody>${order.items.map(item => `<tr><td>${item.name}</td><td>${item.quantity}</td><td>${item.price}</td><td>${item.total}</td></tr>`).join('')}</tbody>
-            </table>
-          </div>
-          <div class="section total">
-            <p>${isArabic ? 'المجموع الكلي:' : 'Total:'} ${order.total} ${isArabic ? 'ر.س' : 'SAR'}</p>
-          </div>
-        </body>
-      </html>
-    `;
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
+  const handleSaveOrder = async (orderData: Partial<SalesOrder>) => {
+    const success = await saveOrder(orderData, selectedOrder);
+    if (success) {
+      setSelectedOrder(null);
+      setIsOrderDialogOpen(false);
     }
   };
 
-  const handleDownloadOrder = (order: SalesOrder) => {
-    const csvContent = [
-      ['Order', order.orderNumber],
-      ['Customer', order.customer.name],
-      ['Date', order.createdAt],
-      ['Total', order.total],
-      '',
-      ['Product', 'Qty', 'Price', 'Total'],
-      ...order.items.map(item => [item.name, item.quantity, item.price, item.total])
-    ].map(row => Array.isArray(row) ? row.join(',') : row).join('\n');
+  const handlePrintOrder = (order: SalesOrder) => {
+    printOrder(order);
+  };
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `sales-order-${order.orderNumber}.csv`;
-    link.click();
-    
-    toast({
-      title: isArabic ? "تم تحميل الطلب" : "Order downloaded",
-      description: isArabic ? "تم تحميل طلب البيع كملف CSV" : "Sales order has been downloaded as CSV file",
-    });
+  const handleDownloadOrder = (order: SalesOrder) => {
+    downloadOrder(order);
   };
 
   const handleReturnOrder = (order: SalesOrder) => {
     setSelectedOrder(order);
     setIsReturnDialogOpen(true);
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto flex items-center justify-center min-h-[400px]" dir={isRTL ? 'rtl' : 'ltr'}>
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">{isArabic ? 'جارٍ تحميل الطلبات...' : 'Loading orders...'}</p>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div className="p-6 max-w-7xl mx-auto" dir={isRTL ? 'rtl' : 'ltr'}>
