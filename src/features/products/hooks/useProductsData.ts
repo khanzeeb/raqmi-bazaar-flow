@@ -1,9 +1,9 @@
 // useProductsData - Data fetching and state management
+// Uses the consolidated product gateway
+
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { productGateway } from '@/services/product.gateway';
-import { ProductView, ProductFilters } from '@/types/product.types';
-import { toProductViews } from '@/lib/product/transformers';
-import { filterProducts } from '@/lib/product/filters';
+import { Product, ProductFilters, ProductStats, ProductView } from '@/types/product.types';
 import { errorHandler } from '@/lib/api/error-handler';
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,11 +20,26 @@ interface Pagination {
   totalPages: number;
 }
 
+// Transform Product to ProductView
+const toProductView = (product: Product): ProductView => ({
+  id: product.id,
+  name: product.name,
+  nameAr: product.nameAr || product.name,
+  sku: product.sku,
+  category: product.category,
+  price: product.price,
+  stock: product.stock,
+  status: product.status,
+  image: product.image,
+  variants: product.variants?.map(v => v.name),
+  barcode: product.barcode,
+});
+
 export const useProductsData = (options: UseProductsDataOptions = {}) => {
   const { toast } = useToast();
   const { initialPage = 1, initialLimit = 50, autoFetch = true } = options;
 
-  const [products, setProducts] = useState<ProductView[]>([]);
+  const [rawProducts, setRawProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<Pagination>({
@@ -36,11 +51,32 @@ export const useProductsData = (options: UseProductsDataOptions = {}) => {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<ProductFilters>({});
   const [localFilters, setLocalFilters] = useState({ status: 'all', stockStatus: 'all' });
+  const [stats, setStats] = useState<ProductStats | null>(null);
 
-  const filteredProducts = useMemo(
-    () => filterProducts(products, localFilters),
-    [products, localFilters]
-  );
+  // Transform to ProductView
+  const allProducts = useMemo(() => rawProducts.map(toProductView), [rawProducts]);
+
+  // Apply local filters for quick UI filtering without API calls
+  const products = useMemo(() => {
+    let result = [...allProducts];
+    
+    if (localFilters.status !== 'all') {
+      result = result.filter(p => p.status === localFilters.status);
+    }
+    
+    if (localFilters.stockStatus !== 'all') {
+      result = result.filter(p => {
+        const product = rawProducts.find(rp => rp.id === p.id);
+        if (!product) return true;
+        if (localFilters.stockStatus === 'in-stock') return product.stock > product.min_stock;
+        if (localFilters.stockStatus === 'low-stock') return product.stock > 0 && product.stock <= product.min_stock;
+        if (localFilters.stockStatus === 'out-of-stock') return product.stock === 0;
+        return true;
+      });
+    }
+    
+    return result;
+  }, [allProducts, localFilters, rawProducts]);
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -54,7 +90,7 @@ export const useProductsData = (options: UseProductsDataOptions = {}) => {
     });
 
     if (response.success && response.data) {
-      setProducts(toProductViews(response.data.data));
+      setRawProducts(response.data.data);
       setPagination({
         page: response.data.page,
         limit: response.data.limit,
@@ -70,6 +106,13 @@ export const useProductsData = (options: UseProductsDataOptions = {}) => {
     
     setLoading(false);
   }, [pagination.page, pagination.limit, search, filters, toast]);
+
+  const fetchStats = useCallback(async () => {
+    const response = await productGateway.getStats();
+    if (response.success && response.data) {
+      setStats(response.data);
+    }
+  }, []);
 
   const updateSearch = useCallback((value: string) => {
     setSearch(value);
@@ -92,22 +135,27 @@ export const useProductsData = (options: UseProductsDataOptions = {}) => {
   useEffect(() => {
     if (autoFetch) {
       fetch();
+      fetchStats();
     }
-  }, [pagination.page, pagination.limit, search, filters]);
+  }, [pagination.page, pagination.limit, search, filters, autoFetch]);
 
   return {
-    products: filteredProducts,
-    allProducts: products,
+    products,
+    allProducts,
     loading,
     error,
     pagination,
     search,
     filters,
     localFilters,
+    stats,
     updateSearch,
     updateFilters,
     updateLocalFilters,
     updatePagination,
     refresh: fetch,
+    refreshStats: fetchStats,
   };
 };
+
+export default useProductsData;

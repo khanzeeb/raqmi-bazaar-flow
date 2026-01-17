@@ -1,6 +1,6 @@
 // useProductsState - Computed state flags
 import { useMemo } from 'react';
-import { ProductView } from '@/types/product.types';
+import { ProductView, Product } from '@/types/product.types';
 
 interface ProductsStateResult {
   hasProducts: boolean;
@@ -8,7 +8,7 @@ interface ProductsStateResult {
 }
 
 export const useProductsState = (
-  products: ProductView[],
+  products: ProductView[] | Product[],
   loading: boolean = false
 ): ProductsStateResult => {
   return useMemo(() => ({
@@ -16,3 +16,5 @@ export const useProductsState = (
     isEmpty: !loading && products.length === 0,
   }), [products, loading]);
 };
+
+export default useProductsState;

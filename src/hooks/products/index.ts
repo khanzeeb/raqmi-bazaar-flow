@@ -1,5 +1,5 @@
 // Products hooks barrel export
-export { useProductsData } from './useProductsData';
-export { useProductsActions } from './useProductsActions';
-export { useProductsStats } from './useProductsStats';
-export { useProductsState } from './useProductsState';
+export { useProductsData } from '@/features/products/hooks/useProductsData';
+export { useProductsActions } from '@/features/products/hooks/useProductsActions';
+export { useProductsStats } from '@/features/products/hooks/useProductsStats';
+export { useProductsState } from '@/features/products/hooks/useProductsState';
