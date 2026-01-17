@@ -1,4 +1,5 @@
-export * from './useCustomersData';
-export * from './useCustomersFiltering';
-export * from './useCustomersActions';
-export * from './useCustomersStats';
+// Customer Hooks - Backward Compatibility Re-exports
+export { useCustomersData } from './useCustomersData';
+export { useCustomersActions } from './useCustomersActions';
+export { useCustomersFiltering } from './useCustomersFiltering';
+export { useCustomersStats, useCustomersStatsFromServer } from './useCustomersStats';
