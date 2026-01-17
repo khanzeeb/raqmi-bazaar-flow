@@ -1,4 +1,5 @@
-export * from './useSalesOrdersData';
-export * from './useSalesOrdersFiltering';
-export * from './useSalesOrdersActions';
-export * from './useSalesOrdersStats';
+// Sales Orders Hooks - Barrel Export
+export { useSalesOrdersData } from './useSalesOrdersData';
+export { useSalesOrdersFiltering } from './useSalesOrdersFiltering';
+export { useSalesOrdersActions } from './useSalesOrdersActions';
+export { useSalesOrdersStats, useSalesOrdersStatsFromServer } from './useSalesOrdersStats';

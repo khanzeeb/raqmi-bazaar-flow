@@ -1,45 +1,71 @@
-import { useState } from 'react';
+// useSalesOrdersData - Data fetching and state management with backend integration
+import { useState, useEffect, useCallback } from 'react';
 import { SalesOrder } from '@/types/salesOrder.types';
+import { salesOrderGateway } from '@/features/sales/services/salesOrder.gateway';
+import { useToast } from '@/hooks/use-toast';
 
-export const useSalesOrdersData = () => {
-  const [orders, setOrders] = useState<SalesOrder[]>([
-    {
-      id: '1',
-      orderNumber: 'SO-001',
-      customer: { name: 'أحمد محمد', phone: '+966501234567', type: 'individual' },
-      items: [
-        { id: '1', name: 'جهاز كمبيوتر محمول', quantity: 1, price: 2500, total: 2500 },
-        { id: '2', name: 'ماوس لاسلكي', quantity: 2, price: 50, total: 100 }
-      ],
-      subtotal: 2600,
-      taxRate: 15,
-      taxAmount: 390,
-      discount: 100,
-      total: 2890,
-      paymentMode: 'cash',
-      paymentStatus: 'paid',
-      paidAmount: 2890,
-      status: 'completed',
-      createdAt: '2024-01-15',
-      notes: 'تسليم سريع'
-    },
-    {
-      id: '2',
-      orderNumber: 'SO-002',
-      customer: { name: 'شركة التقنية المتقدمة', phone: '+966112345678', type: 'business' },
-      items: [{ id: '3', name: 'طابعة ليزر', quantity: 3, price: 800, total: 2400 }],
-      subtotal: 2400,
-      taxRate: 15,
-      taxAmount: 360,
-      discount: 0,
-      total: 2760,
-      paymentMode: 'credit',
-      paymentStatus: 'partial',
-      paidAmount: 1500,
-      status: 'pending',
-      createdAt: '2024-01-16'
+interface UseSalesOrdersDataOptions {
+  initialLimit?: number;
+  autoFetch?: boolean;
+}
+
+export const useSalesOrdersData = (options: UseSalesOrdersDataOptions = {}) => {
+  const { toast } = useToast();
+  const { initialLimit = 50, autoFetch = true } = options;
+
+  const [orders, setOrders] = useState<SalesOrder[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: initialLimit,
+    totalPages: 0
+  });
+
+  const fetchOrders = useCallback(async (page = 1) => {
+    setLoading(true);
+    setError(null);
+
+    const response = await salesOrderGateway.getAll({ page, limit: initialLimit });
+
+    if (response.success && response.data) {
+      setOrders(response.data.data);
+      setPagination({
+        total: response.data.total,
+        page: response.data.page,
+        limit: response.data.limit,
+        totalPages: response.data.totalPages
+      });
+    } else {
+      setError(response.error || 'Failed to fetch orders');
+      toast({
+        title: 'Error',
+        description: response.error || 'Failed to fetch sales orders',
+        variant: 'destructive'
+      });
     }
-  ]);
 
-  return { orders, setOrders };
+    setLoading(false);
+  }, [initialLimit, toast]);
+
+  useEffect(() => {
+    if (autoFetch) {
+      fetchOrders();
+    }
+  }, [autoFetch]);
+
+  const updateStore = useCallback((updater: (prev: SalesOrder[]) => SalesOrder[]) => {
+    setOrders(prev => updater(prev));
+  }, []);
+
+  return {
+    orders,
+    setOrders,
+    loading,
+    error,
+    pagination,
+    refresh: fetchOrders,
+    updateStore
+  };
 };
