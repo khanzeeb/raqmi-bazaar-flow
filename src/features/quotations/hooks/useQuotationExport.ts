@@ -1,8 +1,10 @@
-// useQuotationExport - Print and download functionality
-import { useCallback } from 'react';
+// useQuotationExport - Print, download, and PDF export functionality
+import { useCallback, useState } from 'react';
 import { Quotation } from '@/types/quotation.types';
 import { useToast } from '@/hooks/use-toast';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
+import { QuotationPDFService } from '../services/quotation-pdf.service';
+import { PDFExportOptions, DEFAULT_EXPORT_OPTIONS } from '../types/pdf-templates';
 
 interface UseQuotationExportOptions {
   isArabic?: boolean;
@@ -12,6 +14,8 @@ export const useQuotationExport = (options: UseQuotationExportOptions = {}) => {
   const { toast } = useToast();
   const { getCurrencySymbol } = useUserSettings();
   const { isArabic = false } = options;
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
 
   const print = useCallback((quotation: Quotation) => {
     const currencySymbol = getCurrencySymbol();
@@ -97,7 +101,7 @@ export const useQuotationExport = (options: UseQuotationExportOptions = {}) => {
     }
   }, [isArabic, getCurrencySymbol]);
 
-  const download = useCallback((quotation: Quotation) => {
+  const downloadCSV = useCallback((quotation: Quotation) => {
     const csvContent = [
       [isArabic ? 'عرض سعر' : 'Quotation', quotation.quotationNumber].join(','),
       [isArabic ? 'العميل' : 'Customer', quotation.customer.name].join(','),
@@ -132,5 +136,53 @@ export const useQuotationExport = (options: UseQuotationExportOptions = {}) => {
     });
   }, [isArabic, toast]);
 
-  return { print, download };
+  const downloadPDF = useCallback((quotation: Quotation, customOptions?: Partial<PDFExportOptions>) => {
+    try {
+      const pdfOptions: PDFExportOptions = {
+        ...DEFAULT_EXPORT_OPTIONS,
+        language: isArabic ? 'ar' : 'en',
+        ...customOptions
+      };
+      
+      const service = new QuotationPDFService(quotation, pdfOptions);
+      service.download();
+      
+      toast({
+        title: isArabic ? "تم تحميل PDF" : "PDF Downloaded",
+        description: isArabic 
+          ? `تم تحميل عرض السعر ${quotation.quotationNumber}`
+          : `Quotation ${quotation.quotationNumber} downloaded as PDF`,
+      });
+    } catch (error) {
+      toast({
+        title: isArabic ? 'خطأ' : 'Error',
+        description: isArabic ? 'فشل في تحميل PDF' : 'Failed to download PDF',
+        variant: 'destructive'
+      });
+    }
+  }, [isArabic, toast]);
+
+  const openPdfDialog = useCallback((quotation: Quotation) => {
+    setSelectedQuotation(quotation);
+    setPdfDialogOpen(true);
+  }, []);
+
+  const closePdfDialog = useCallback(() => {
+    setPdfDialogOpen(false);
+    setSelectedQuotation(null);
+  }, []);
+
+  // Legacy alias for backward compatibility
+  const download = downloadCSV;
+
+  return { 
+    print, 
+    download, 
+    downloadCSV, 
+    downloadPDF,
+    openPdfDialog,
+    closePdfDialog,
+    pdfDialogOpen,
+    selectedQuotation
+  };
 };
