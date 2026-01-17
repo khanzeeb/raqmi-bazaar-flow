@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Bell, 
   Search, 
@@ -9,19 +11,26 @@ import {
   Moon, 
   Sun, 
   User,
-  ChevronDown
+  ChevronDown,
+  Settings,
+  LogOut,
+  Shield,
+  Building2
 } from "lucide-react";
 import raqmiLogo from "@/assets/raqmi-logo.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { OrganizationSwitcher, useOrganization, useRoleInfo } from "@/features/organization";
+import { useAuth } from "@/features/auth";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 interface AppHeaderProps {
   isArabic: boolean;
@@ -32,8 +41,45 @@ interface AppHeaderProps {
 
 export function AppHeader({ isArabic, onLanguageToggle, onThemeToggle, isDark }: AppHeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const { currentMembership } = useOrganization();
+  const navigate = useNavigate();
+  const { user, logout, isLoading } = useAuth();
+  const { currentMembership, currentOrganization } = useOrganization();
   const { label: roleLabel } = useRoleInfo();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: isArabic ? "تم تسجيل الخروج" : "Signed out",
+        description: isArabic 
+          ? "تم تسجيل خروجك بنجاح. نراك قريباً!" 
+          : "You have been successfully signed out. See you soon!",
+      });
+      navigate("/auth/login");
+    } catch (error) {
+      toast({
+        title: isArabic ? "خطأ" : "Error",
+        description: isArabic 
+          ? "حدث خطأ أثناء تسجيل الخروج" 
+          : "An error occurred while signing out",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Get user initials for avatar fallback
+  const getUserInitials = () => {
+    const name = user?.name || currentMembership?.name || "User";
+    const parts = name.split(" ");
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  const displayName = user?.name || currentMembership?.name || "User";
+  const displayEmail = user?.email || currentMembership?.email || "";
 
   return (
     <header className="h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -127,12 +173,15 @@ export function AppHeader({ isArabic, onLanguageToggle, onThemeToggle, isDark }:
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 px-3">
-                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                  <User className="h-4 w-4 text-primary-foreground" />
-                </div>
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user?.avatar} alt={displayName} />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
+                    {getUserInitials()}
+                  </AvatarFallback>
+                </Avatar>
                 <div className="hidden md:flex flex-col items-start">
                   <span className="text-sm font-medium">
-                    {currentMembership?.name || "Ahmed Al-Rashid"}
+                    {displayName}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {roleLabel ? (isArabic ? roleLabel.ar : roleLabel.en) : (isArabic ? "مدير المتجر" : "Store Manager")}
@@ -141,18 +190,83 @@ export function AppHeader({ isArabic, onLanguageToggle, onThemeToggle, isDark }:
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-64 z-50 bg-popover border border-border shadow-lg">
+              {/* User info header */}
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex items-center gap-3 py-1">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={user?.avatar} alt={displayName} />
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{displayName}</p>
+                    <p className="text-xs leading-none text-muted-foreground truncate max-w-[160px]">
+                      {displayEmail}
+                    </p>
+                  </div>
+                </div>
+              </DropdownMenuLabel>
+              
+              {/* Current organization info */}
+              {currentOrganization && (
+                <>
+                  <DropdownMenuSeparator />
+                  <div className="px-2 py-2">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Building2 className="h-3 w-3" />
+                      <span className="truncate">{currentOrganization.name}</span>
+                    </div>
+                    {roleLabel && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                        <Shield className="h-3 w-3" />
+                        <span>{isArabic ? roleLabel.ar : roleLabel.en}</span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+              
+              <DropdownMenuSeparator />
+              
+              {/* Menu items */}
+              <DropdownMenuItem 
+                onClick={() => navigate("/settings")}
+                className="cursor-pointer"
+              >
                 <User className="mr-2 h-4 w-4" />
                 {isArabic ? "الملف الشخصي" : "Profile"}
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell className="mr-2 h-4 w-4" />
-                {isArabic ? "الإشعارات" : "Notifications"}
+              
+              <DropdownMenuItem 
+                onClick={() => navigate("/settings")}
+                className="cursor-pointer"
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                {isArabic ? "الإعدادات" : "Settings"}
               </DropdownMenuItem>
+              
+              <DropdownMenuItem 
+                onClick={() => navigate("/organization-settings")}
+                className="cursor-pointer"
+              >
+                <Building2 className="mr-2 h-4 w-4" />
+                {isArabic ? "إعدادات المنظمة" : "Organization Settings"}
+              </DropdownMenuItem>
+              
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
-                {isArabic ? "تسجيل الخروج" : "Sign out"}
+              
+              <DropdownMenuItem 
+                onClick={handleLogout}
+                disabled={isLoading}
+                className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                {isLoading 
+                  ? (isArabic ? "جاري الخروج..." : "Signing out...") 
+                  : (isArabic ? "تسجيل الخروج" : "Sign out")
+                }
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
