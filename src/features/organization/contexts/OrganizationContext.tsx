@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { apiGateway } from '@/lib/api/gateway';
+import { config } from '@/lib/config';
+import { useAuth } from '@/features/auth';
 import {
   Organization,
   OrganizationMember,
@@ -72,39 +75,6 @@ const MOCK_ORGANIZATIONS: Organization[] = [
   },
 ];
 
-const MOCK_MEMBERSHIPS: Record<string, OrganizationMember> = {
-  'org-1': {
-    id: 'mem-1',
-    userId: 'user-1',
-    organizationId: 'org-1',
-    role: 'owner',
-    email: 'ahmed@raqmi.com',
-    name: 'Ahmed Al-Rashid',
-    isActive: true,
-    joinedAt: '2024-01-01T00:00:00Z',
-  },
-  'org-2': {
-    id: 'mem-2',
-    userId: 'user-1',
-    organizationId: 'org-2',
-    role: 'admin',
-    email: 'ahmed@raqmi.com',
-    name: 'Ahmed Al-Rashid',
-    isActive: true,
-    joinedAt: '2024-02-15T00:00:00Z',
-  },
-  'org-3': {
-    id: 'mem-3',
-    userId: 'user-1',
-    organizationId: 'org-3',
-    role: 'member',
-    email: 'ahmed@raqmi.com',
-    name: 'Ahmed Al-Rashid',
-    isActive: true,
-    joinedAt: '2024-03-01T00:00:00Z',
-  },
-};
-
 const OrganizationContext = createContext<OrganizationContextValue | undefined>(undefined);
 
 interface OrganizationProviderProps {
@@ -112,34 +82,93 @@ interface OrganizationProviderProps {
 }
 
 export function OrganizationProvider({ children }: OrganizationProviderProps) {
+  const { user, isAuthenticated } = useAuth();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
   const [currentMembership, setCurrentMembership] = useState<OrganizationMember | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load organizations on mount
+  // Generate mock memberships based on authenticated user
+  const getMockMembership = useCallback((orgId: string): OrganizationMember | null => {
+    if (!user) return null;
+    
+    const roleMap: Record<string, AppRole> = {
+      'org-1': 'owner',
+      'org-2': 'admin',
+      'org-3': 'member',
+    };
+
+    return {
+      id: `mem-${orgId}`,
+      userId: user.id,
+      organizationId: orgId,
+      role: roleMap[orgId] || 'member',
+      email: user.email,
+      name: user.name,
+      isActive: true,
+      joinedAt: '2024-01-01T00:00:00Z',
+    };
+  }, [user]);
+
+  // Load organizations when user is authenticated
   useEffect(() => {
     const loadOrganizations = async () => {
+      // Don't load if not authenticated
+      if (!isAuthenticated || !user) {
+        setOrganizations([]);
+        setCurrentOrganization(null);
+        setCurrentMembership(null);
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
         setError(null);
         
-        // TODO: Replace with actual API call
-        // const response = await organizationService.getMyOrganizations();
-        await new Promise(resolve => setTimeout(resolve, 300)); // Simulate API delay
-        
-        setOrganizations(MOCK_ORGANIZATIONS);
-        
-        // Restore last selected organization
-        const savedOrgId = localStorage.getItem(STORAGE_KEY);
-        const defaultOrg = savedOrgId 
-          ? MOCK_ORGANIZATIONS.find(o => o.id === savedOrgId) || MOCK_ORGANIZATIONS[0]
-          : MOCK_ORGANIZATIONS[0];
-        
-        if (defaultOrg) {
-          setCurrentOrganization(defaultOrg);
-          setCurrentMembership(MOCK_MEMBERSHIPS[defaultOrg.id] || null);
+        if (config.useMockData) {
+          // Use mock data
+          await new Promise(resolve => setTimeout(resolve, 300));
+          setOrganizations(MOCK_ORGANIZATIONS);
+          
+          // Restore last selected organization
+          const savedOrgId = localStorage.getItem(STORAGE_KEY);
+          const defaultOrg = savedOrgId 
+            ? MOCK_ORGANIZATIONS.find(o => o.id === savedOrgId) || MOCK_ORGANIZATIONS[0]
+            : MOCK_ORGANIZATIONS[0];
+          
+          if (defaultOrg) {
+            setCurrentOrganization(defaultOrg);
+            setCurrentMembership(getMockMembership(defaultOrg.id));
+          }
+        } else {
+          // Fetch from organization-service
+          const response = await apiGateway.get<{ organizations: Organization[] }>(
+            '/organizations/my',
+            undefined,
+            { skipOrgHeader: true }
+          );
+          
+          if (response.success && response.data) {
+            setOrganizations(response.data.organizations);
+            
+            const savedOrgId = localStorage.getItem(STORAGE_KEY);
+            const defaultOrg = savedOrgId 
+              ? response.data.organizations.find(o => o.id === savedOrgId) || response.data.organizations[0]
+              : response.data.organizations[0];
+            
+            if (defaultOrg) {
+              setCurrentOrganization(defaultOrg);
+              // Fetch membership for this org
+              const memberResponse = await apiGateway.get<OrganizationMember>(
+                `/organizations/${defaultOrg.id}/membership`
+              );
+              if (memberResponse.success && memberResponse.data) {
+                setCurrentMembership(memberResponse.data);
+              }
+            }
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load organizations');
@@ -149,7 +178,7 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
     };
     
     loadOrganizations();
-  }, []);
+  }, [isAuthenticated, user, getMockMembership]);
 
   const switchOrganization = useCallback(async (orgId: string) => {
     try {
@@ -161,17 +190,29 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
         throw new Error('Organization not found');
       }
       
-      // TODO: Replace with actual API call to validate access and get membership
-      // const membership = await organizationService.getMembership(orgId);
-      await new Promise(resolve => setTimeout(resolve, 200)); // Simulate API delay
-      
-      const membership = MOCK_MEMBERSHIPS[orgId];
-      if (!membership) {
-        throw new Error('You do not have access to this organization');
+      if (config.useMockData) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        const membership = getMockMembership(orgId);
+        if (!membership) {
+          throw new Error('You do not have access to this organization');
+        }
+        
+        setCurrentOrganization(org);
+        setCurrentMembership(membership);
+      } else {
+        // Fetch membership from API
+        const memberResponse = await apiGateway.get<OrganizationMember>(
+          `/organizations/${orgId}/membership`
+        );
+        
+        if (!memberResponse.success || !memberResponse.data) {
+          throw new Error('You do not have access to this organization');
+        }
+        
+        setCurrentOrganization(org);
+        setCurrentMembership(memberResponse.data);
       }
       
-      setCurrentOrganization(org);
-      setCurrentMembership(membership);
       localStorage.setItem(STORAGE_KEY, orgId);
       
       // Trigger a custom event for other parts of the app to react
@@ -182,22 +223,35 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [organizations]);
+  }, [organizations, getMockMembership]);
 
   const refreshOrganizations = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
     try {
       setIsLoading(true);
       setError(null);
       
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 300));
-      setOrganizations(MOCK_ORGANIZATIONS);
+      if (config.useMockData) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setOrganizations(MOCK_ORGANIZATIONS);
+      } else {
+        const response = await apiGateway.get<{ organizations: Organization[] }>(
+          '/organizations/my',
+          undefined,
+          { skipOrgHeader: true }
+        );
+        
+        if (response.success && response.data) {
+          setOrganizations(response.data.organizations);
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to refresh organizations');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const hasPermission = useCallback((permission: Permission): boolean => {
     if (!currentMembership) return false;
