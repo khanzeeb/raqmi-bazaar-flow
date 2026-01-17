@@ -24,6 +24,7 @@ import Invoices from "./pages/Invoices";
 import Returns from "./pages/Returns";
 import Monitoring from "./pages/Monitoring";
 import OrganizationSettings from "./pages/OrganizationSettings";
+import Notifications from "./pages/Notifications";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -65,6 +66,7 @@ const App = () => (
                             <Route path="/invoices" element={<Invoices />} />
                             <Route path="/returns" element={<Returns />} />
                             <Route path="/monitoring" element={<Monitoring />} />
+                            <Route path="/notifications" element={<Notifications />} />
                             <Route path="/organization-settings" element={<OrganizationSettings />} />
                             <Route path="*" element={<NotFound />} />
                           </Routes>
