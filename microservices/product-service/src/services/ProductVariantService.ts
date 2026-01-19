@@ -1,5 +1,9 @@
-import ProductVariantRepository, { VariantFilters } from '../repositories/ProductVariantRepository';
+// Product Variant Service - Business logic for product variants
+import { ProductVariant } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+import { BaseService, IBaseRepository } from '../common/BaseService';
+import ProductVariantRepository, { VariantFilters } from '../repositories/ProductVariantRepository';
+import { IPaginatedResponse } from '../interfaces/IProduct';
 
 export interface CreateVariantDTO {
   name: string;
@@ -20,27 +24,93 @@ export interface CreateVariantDTO {
 
 export interface UpdateVariantDTO extends Partial<CreateVariantDTO> {}
 
-class ProductVariantService {
-  async getById(id: string) {
-    const variant = await ProductVariantRepository.findById(id);
+// Transformed variant data for API responses
+interface VariantData {
+  id: string;
+  product_id: string;
+  name: string;
+  sku: string | null;
+  barcode: string | null;
+  price: number;
+  cost: number;
+  stock: number;
+  min_stock: number;
+  weight: number | null;
+  dimensions: any;
+  attributes: any;
+  images: string[];
+  status: string;
+  sort_order: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// Extended repository interface for variant-specific operations
+interface IVariantRepository extends IBaseRepository<ProductVariant, VariantFilters> {
+  findByProductId(productId: string): Promise<ProductVariant[]>;
+  createForProduct(productId: string, data: any): Promise<ProductVariant>;
+  updateStock(id: string, newStock: number, reason?: string): Promise<ProductVariant | null>;
+}
+
+class ProductVariantService extends BaseService<
+  ProductVariant,
+  CreateVariantDTO,
+  UpdateVariantDTO,
+  VariantFilters,
+  IVariantRepository
+> {
+  constructor() {
+    super(ProductVariantRepository as IVariantRepository);
+  }
+
+  /**
+   * Override getById to transform the response
+   */
+  async getById(id: string): Promise<VariantData | null> {
+    const variant = await this.repository.findById(id);
     return variant ? this.transformVariant(variant) : null;
   }
 
-  async getAll(filters?: VariantFilters) {
-    const result = await ProductVariantRepository.findAll(filters || {});
+  /**
+   * Override getAll to transform responses
+   */
+  async getAll(filters?: VariantFilters): Promise<IPaginatedResponse<VariantData>> {
+    const result = await this.repository.findAll(filters || {} as VariantFilters);
     return {
       ...result,
       data: result.data.map(variant => this.transformVariant(variant))
     };
   }
 
-  async getByProductId(productId: string) {
-    const variants = await ProductVariantRepository.findByProductId(productId);
+  /**
+   * Get variants by product ID
+   */
+  async getByProductId(productId: string): Promise<VariantData[]> {
+    const variants = await this.repository.findByProductId(productId);
     return variants.map(variant => this.transformVariant(variant));
   }
 
-  async create(data: CreateVariantDTO & { product_id: string }) {
-    // Validation
+  /**
+   * Create variant for a specific product
+   */
+  async createForProduct(productId: string, data: CreateVariantDTO): Promise<VariantData> {
+    this.validateCreate(data);
+    const transformedData = this.transformCreateData(data);
+    const variant = await this.repository.createForProduct(productId, transformedData);
+    return this.transformVariant(variant);
+  }
+
+  /**
+   * Override update to transform response
+   */
+  async update(id: string, data: UpdateVariantDTO): Promise<VariantData | null> {
+    const result = await super.update(id, data);
+    return result ? this.transformVariant(result) : null;
+  }
+
+  // Validation overrides
+
+  protected validateCreate(data: CreateVariantDTO): void {
     if (!data.name || data.name.trim().length === 0) {
       throw new Error('Variant name is required');
     }
@@ -50,53 +120,9 @@ class ProductVariantService {
     if (data.cost < 0) {
       throw new Error('Variant cost cannot be negative');
     }
-
-    const variant = await ProductVariantRepository.create({
-      ...data,
-      price: new Decimal(data.price),
-      cost: new Decimal(data.cost),
-      weight: data.weight ? new Decimal(data.weight) : null,
-      images: data.images || [],
-      dimensions: data.dimensions || null,
-      attributes: data.attributes || {},
-      product: { connect: { id: data.product_id } }
-    } as any);
-
-    return this.transformVariant(variant);
   }
 
-  async createForProduct(productId: string, data: CreateVariantDTO) {
-    // Validation
-    if (!data.name || data.name.trim().length === 0) {
-      throw new Error('Variant name is required');
-    }
-    if (data.price <= 0) {
-      throw new Error('Variant price must be greater than 0');
-    }
-    if (data.cost < 0) {
-      throw new Error('Variant cost cannot be negative');
-    }
-
-    const variant = await ProductVariantRepository.createForProduct(productId, {
-      ...data,
-      price: new Decimal(data.price),
-      cost: new Decimal(data.cost),
-      weight: data.weight ? new Decimal(data.weight) : null,
-      images: data.images || [],
-      dimensions: data.dimensions || null,
-      attributes: data.attributes || {}
-    });
-
-    return this.transformVariant(variant);
-  }
-
-  async update(id: string, data: UpdateVariantDTO) {
-    const existing = await ProductVariantRepository.findById(id);
-    if (!existing) {
-      return null;
-    }
-
-    // Validation
+  protected validateUpdate(data: UpdateVariantDTO): void {
     if (data.name !== undefined && data.name.trim().length === 0) {
       throw new Error('Variant name cannot be empty');
     }
@@ -106,30 +132,54 @@ class ProductVariantService {
     if (data.cost !== undefined && data.cost < 0) {
       throw new Error('Variant cost cannot be negative');
     }
-
-    const updateData: any = { ...data };
-    if (data.price !== undefined) updateData.price = new Decimal(data.price);
-    if (data.cost !== undefined) updateData.cost = new Decimal(data.cost);
-    if (data.weight !== undefined) updateData.weight = data.weight ? new Decimal(data.weight) : null;
-
-    const variant = await ProductVariantRepository.update(id, updateData);
-    return variant ? this.transformVariant(variant) : null;
   }
 
-  async delete(id: string) {
-    const existing = await ProductVariantRepository.findById(id);
-    if (!existing) {
-      return false;
-    }
-    return ProductVariantRepository.delete(id);
-  }
+  // Transform overrides
 
-  private transformVariant(variant: any) {
+  protected transformCreateData(data: CreateVariantDTO): any {
     return {
-      ...variant,
+      ...data,
+      price: new Decimal(data.price),
+      cost: new Decimal(data.cost),
+      weight: data.weight ? new Decimal(data.weight) : null,
+      images: data.images || [],
+      dimensions: data.dimensions || null,
+      attributes: data.attributes || {}
+    };
+  }
+
+  protected transformUpdateData(data: UpdateVariantDTO): any {
+    const result: any = { ...data };
+    
+    if (data.price !== undefined) result.price = new Decimal(data.price);
+    if (data.cost !== undefined) result.cost = new Decimal(data.cost);
+    if (data.weight !== undefined) result.weight = data.weight ? new Decimal(data.weight) : null;
+    
+    return result;
+  }
+
+  /**
+   * Transform database variant to API response format
+   */
+  private transformVariant(variant: ProductVariant): VariantData {
+    return {
+      id: variant.id,
+      product_id: variant.product_id,
+      name: variant.name,
+      sku: variant.sku,
+      barcode: variant.barcode,
       price: variant.price ? Number(variant.price) : 0,
       cost: variant.cost ? Number(variant.cost) : 0,
-      weight: variant.weight ? Number(variant.weight) : null
+      stock: variant.stock ?? 0,
+      min_stock: variant.min_stock ?? 0,
+      weight: variant.weight ? Number(variant.weight) : null,
+      dimensions: variant.dimensions,
+      attributes: variant.attributes ?? {},
+      images: (variant.images as string[]) ?? [],
+      status: variant.status,
+      sort_order: variant.sort_order ?? 0,
+      created_at: variant.created_at,
+      updated_at: variant.updated_at
     };
   }
 }

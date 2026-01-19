@@ -1,4 +1,8 @@
+// Product Category Service - Business logic for categories
+import { ProductCategory } from '@prisma/client';
+import { BaseService, IBaseRepository } from '../common/BaseService';
 import ProductCategoryRepository, { CategoryFilters } from '../repositories/ProductCategoryRepository';
+import { IPaginatedResponse } from '../interfaces/IProduct';
 
 export interface CreateCategoryDTO {
   name: string;
@@ -13,65 +17,68 @@ export interface CreateCategoryDTO {
 
 export interface UpdateCategoryDTO extends Partial<CreateCategoryDTO> {}
 
-class ProductCategoryService {
-  async getById(id: string) {
-    return ProductCategoryRepository.findById(id);
+interface CategoryData extends ProductCategory {
+  children?: CategoryData[];
+}
+
+// Extended repository interface for category-specific operations
+interface ICategoryRepository extends IBaseRepository<CategoryData, CategoryFilters> {
+  getTree(): Promise<CategoryData[]>;
+}
+
+class ProductCategoryService extends BaseService<
+  CategoryData,
+  CreateCategoryDTO,
+  UpdateCategoryDTO,
+  CategoryFilters,
+  ICategoryRepository
+> {
+  constructor() {
+    super(ProductCategoryRepository as ICategoryRepository);
   }
 
-  async getAll(filters?: CategoryFilters) {
-    return ProductCategoryRepository.findAll(filters || {});
+  /**
+   * Get category tree structure
+   */
+  async getTree(): Promise<CategoryData[]> {
+    return this.repository.getTree();
   }
 
-  async create(data: CreateCategoryDTO) {
-    // Validation
+  // Validation overrides
+
+  protected validateCreate(data: CreateCategoryDTO): void {
     if (!data.name || data.name.trim().length === 0) {
       throw new Error('Category name is required');
     }
     if (!data.slug || data.slug.trim().length === 0) {
       throw new Error('Category slug is required');
     }
-
-    // Ensure slug is URL-friendly
-    const slug = data.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-
-    return ProductCategoryRepository.create({
-      ...data,
-      slug
-    });
   }
 
-  async update(id: string, data: UpdateCategoryDTO) {
-    const existing = await ProductCategoryRepository.findById(id);
-    if (!existing) {
-      return null;
-    }
-
-    // Validation
+  protected validateUpdate(data: UpdateCategoryDTO): void {
     if (data.name !== undefined && data.name.trim().length === 0) {
       throw new Error('Category name cannot be empty');
     }
+    if (data.slug !== undefined && data.slug.trim().length === 0) {
+      throw new Error('Category slug cannot be empty');
+    }
+  }
 
-    const updateData = { ...data };
+  // Transform overrides
+
+  protected transformCreateData(data: CreateCategoryDTO): any {
+    return {
+      ...data,
+      slug: data.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-')
+    };
+  }
+
+  protected transformUpdateData(data: UpdateCategoryDTO): any {
+    const result = { ...data };
     if (data.slug !== undefined) {
-      if (data.slug.trim().length === 0) {
-        throw new Error('Category slug cannot be empty');
-      }
-      updateData.slug = data.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      result.slug = data.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
     }
-
-    return ProductCategoryRepository.update(id, updateData);
-  }
-
-  async delete(id: string) {
-    const existing = await ProductCategoryRepository.findById(id);
-    if (!existing) {
-      return false;
-    }
-    return ProductCategoryRepository.delete(id);
-  }
-
-  async getTree() {
-    return ProductCategoryRepository.getTree();
+    return result;
   }
 }
 

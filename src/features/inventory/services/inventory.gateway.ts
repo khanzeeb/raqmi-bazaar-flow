@@ -269,7 +269,7 @@ export const inventoryGateway: IInventoryGateway = {
       if (!contentType?.includes('application/json')) {
         const listResponse = await this.getAll({ limit: 1000 });
         if (listResponse.success && listResponse.data) {
-          const categories = [...new Set(listResponse.data.data.map(i => i.category))];
+          const categories: string[] = [...new Set(listResponse.data.data.map(i => i.category))].filter((c): c is string => typeof c === 'string');
           return { success: true, data: categories };
         }
         return { success: true, data: [] };

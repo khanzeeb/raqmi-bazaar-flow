@@ -1,106 +1,124 @@
-// Product Repository - Single Responsibility: Data access only
-
+// Product Repository - Data access for products
 import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
-import prisma from '../config/prisma';
-import { ProductQueryBuilder } from '../query-builders/ProductQueryBuilder';
+import { BaseRepository, BaseFilters } from '../common/BaseRepository';
 import { ProductMapper } from '../mappers/ProductMapper';
 import { IProductData, IProductFilters, IPaginatedResponse } from '../interfaces/IProduct';
-import { IProductRepository } from '../interfaces/IRepository';
 
-class ProductRepository implements IProductRepository<IProductData, IProductFilters> {
-  private queryBuilder: ProductQueryBuilder;
+class ProductRepository extends BaseRepository<IProductData, IProductFilters> {
+  protected modelName = 'Product';
   private mapper: ProductMapper;
 
   constructor() {
-    this.queryBuilder = new ProductQueryBuilder();
+    super();
     this.mapper = new ProductMapper();
   }
 
-  /**
-   * Find product by ID
-   */
-  async findById(id: string): Promise<IProductData | null> {
-    const product = await prisma.product.findUnique({
-      where: { id },
-      include: this.queryBuilder.withRelations()
-    });
-    return product ? this.mapper.toProductData(product) : null;
+  protected getModel() {
+    return this.prisma.product;
+  }
+
+  protected getDefaultIncludes() {
+    return {
+      category_rel: true,
+      variants: {
+        orderBy: [
+          { sort_order: 'asc' as const },
+          { name: 'asc' as const }
+        ]
+      }
+    };
+  }
+
+  protected getSearchableFields(): string[] {
+    return ['name', 'sku', 'description'];
+  }
+
+  protected mapItem(item: any): IProductData {
+    return this.mapper.toProductData(item);
+  }
+
+  protected buildWhereClause(filters: IProductFilters): Prisma.ProductWhereInput {
+    const where: Prisma.ProductWhereInput = {};
+
+    // Search filter
+    if (filters.search?.trim()) {
+      where.OR = [
+        { name: { contains: filters.search, mode: 'insensitive' } },
+        { sku: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: filters.search, mode: 'insensitive' } },
+        { category_rel: { name: { contains: filters.search, mode: 'insensitive' } } }
+      ];
+    }
+
+    // Category filters
+    if (filters.category_id) {
+      where.category_id = filters.category_id;
+    } else if (filters.category) {
+      where.category_rel = { name: filters.category };
+    }
+
+    // Status filter
+    if (filters.status) {
+      where.status = filters.status;
+    }
+
+    // Stock status filter
+    if (filters.stockStatus) {
+      switch (filters.stockStatus) {
+        case 'out-of-stock':
+          where.stock = { lte: 0 };
+          break;
+        case 'low-stock':
+          where.stock = { gt: 0, lte: 10 };
+          break;
+        case 'in-stock':
+          where.stock = { gt: 0 };
+          break;
+      }
+    }
+
+    // Price range filter
+    if (filters.priceRange) {
+      where.price = {
+        gte: filters.priceRange.min,
+        lte: filters.priceRange.max
+      };
+    }
+
+    // Supplier filter
+    if (filters.supplier) {
+      where.supplier = filters.supplier;
+    }
+
+    return where;
   }
 
   /**
    * Find products by IDs
    */
   async findByIds(ids: string[]): Promise<IProductData[]> {
-    const products = await prisma.product.findMany({
+    const products = await this.getModel().findMany({
       where: { id: { in: ids } },
-      include: this.queryBuilder.withRelations()
+      include: this.getDefaultIncludes()
     });
-    return products.map(p => this.mapper.toProductData(p));
-  }
-
-  /**
-   * Find all products with filters
-   */
-  async findAll(filters: IProductFilters): Promise<IPaginatedResponse<IProductData>> {
-    const page = filters.page || 1;
-    const limit = filters.limit || 10;
-    
-    return this.queryBuilder
-      .reset()
-      .executePaginated({ page, limit }, filters);
-  }
-
-  /**
-   * Count products with filters
-   */
-  async count(filters: IProductFilters): Promise<number> {
-    return this.queryBuilder
-      .reset()
-      .executeCount(filters);
-  }
-
-  /**
-   * Create product
-   */
-  async create(data: Prisma.ProductCreateInput): Promise<IProductData> {
-    const product = await prisma.product.create({
-      data,
-      include: this.queryBuilder.withRelations()
-    });
-    return this.mapper.toProductData(product);
+    return products.map((p: any) => this.mapItem(p));
   }
 
   /**
    * Create product with variants (transaction)
    */
   async createWithVariants(productData: any, variants?: any[]): Promise<IProductData> {
-    const product = await prisma.$transaction(async (tx) => {
+    const product = await this.withTransaction(async (tx) => {
       return tx.product.create({
         data: {
           ...productData,
           variants: variants?.length ? { create: variants } : undefined
         },
-        include: this.queryBuilder.withRelations()
+        include: this.getDefaultIncludes()
       });
     });
-    return this.mapper.toProductData(product);
-  }
-
-  /**
-   * Update product
-   */
-  async update(id: string, data: Prisma.ProductUpdateInput): Promise<IProductData | null> {
-    try {
-      const product = await prisma.product.update({
-        where: { id },
-        data,
-        include: this.queryBuilder.withRelations()
-      });
-      return this.mapper.toProductData(product);
-    } catch {
-      return null;
-    }
+    return this.mapItem(product);
   }
 
   /**
@@ -108,14 +126,12 @@ class ProductRepository implements IProductRepository<IProductData, IProductFilt
    */
   async updateWithVariants(id: string, productData: any, variants?: any[]): Promise<IProductData | null> {
     try {
-      const product = await prisma.$transaction(async (tx) => {
-        // Update product
+      const product = await this.withTransaction(async (tx) => {
         await tx.product.update({
           where: { id },
           data: productData
         });
 
-        // Handle variants if provided
         if (variants !== undefined) {
           await tx.productVariant.deleteMany({ where: { product_id: id } });
           
@@ -128,25 +144,13 @@ class ProductRepository implements IProductRepository<IProductData, IProductFilt
 
         return tx.product.findUnique({
           where: { id },
-          include: this.queryBuilder.withRelations()
+          include: this.getDefaultIncludes()
         });
       });
 
-      return product ? this.mapper.toProductData(product) : null;
+      return product ? this.mapItem(product) : null;
     } catch {
       return null;
-    }
-  }
-
-  /**
-   * Delete product
-   */
-  async delete(id: string): Promise<boolean> {
-    try {
-      await prisma.product.delete({ where: { id } });
-      return true;
-    } catch {
-      return false;
     }
   }
 
@@ -155,7 +159,7 @@ class ProductRepository implements IProductRepository<IProductData, IProductFilt
    */
   async updateStock(id: string, newStock: number, reason = ''): Promise<IProductData | null> {
     try {
-      const product = await prisma.$transaction(async (tx) => {
+      const product = await this.withTransaction(async (tx) => {
         await tx.product.update({
           where: { id },
           data: { stock: newStock }
@@ -172,11 +176,11 @@ class ProductRepository implements IProductRepository<IProductData, IProductFilt
 
         return tx.product.findUnique({
           where: { id },
-          include: this.queryBuilder.withRelations()
+          include: this.getDefaultIncludes()
         });
       });
 
-      return product ? this.mapper.toProductData(product) : null;
+      return product ? this.mapItem(product) : null;
     } catch {
       return null;
     }
@@ -186,26 +190,26 @@ class ProductRepository implements IProductRepository<IProductData, IProductFilt
    * Get distinct categories
    */
   async getCategories(): Promise<string[]> {
-    const result = await prisma.product.findMany({
+    const result = await this.getModel().findMany({
       where: { category: { not: null } },
       select: { category: true },
       distinct: ['category'],
       orderBy: { category: 'asc' }
     });
-    return result.map(r => r.category).filter(Boolean) as string[];
+    return result.map((r: any) => r.category).filter(Boolean) as string[];
   }
 
   /**
    * Get distinct suppliers
    */
   async getSuppliers(): Promise<string[]> {
-    const result = await prisma.product.findMany({
+    const result = await this.getModel().findMany({
       where: { supplier: { not: null } },
       select: { supplier: true },
       distinct: ['supplier'],
       orderBy: { supplier: 'asc' }
     });
-    return result.map(r => r.supplier).filter(Boolean) as string[];
+    return result.map((r: any) => r.supplier).filter(Boolean) as string[];
   }
 }
 

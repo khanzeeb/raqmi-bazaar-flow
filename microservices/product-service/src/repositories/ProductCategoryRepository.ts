@@ -1,72 +1,84 @@
-import { Prisma, CategoryStatus } from '@prisma/client';
-import prisma from '../config/prisma';
+// Product Category Repository - Data access for categories
+import { Prisma, CategoryStatus, ProductCategory } from '@prisma/client';
+import { BaseRepository, BaseFilters } from '../common/BaseRepository';
 
-export interface CategoryFilters {
-  page?: number;
-  limit?: number;
-  search?: string;
-  parent_id?: string;
+export interface CategoryFilters extends BaseFilters {
+  parent_id?: string | null;
   status?: CategoryStatus;
 }
 
-class ProductCategoryRepository {
-  async findById(id: string) {
-    const category = await prisma.productCategory.findUnique({
-      where: { id },
-      include: {
-        children: {
-          orderBy: [{ sort_order: 'asc' }, { name: 'asc' }]
-        }
-      }
-    });
+interface CategoryData extends ProductCategory {
+  children?: CategoryData[];
+}
 
-    return category;
+class ProductCategoryRepository extends BaseRepository<CategoryData, CategoryFilters> {
+  protected modelName = 'ProductCategory';
+
+  protected getModel() {
+    return this.prisma.productCategory;
   }
 
-  async findAll(filters: CategoryFilters) {
-    const page = filters.page || 1;
-    const limit = filters.limit || 50;
-    const skip = (page - 1) * limit;
-
-    const where = this.buildWhereClause(filters);
-
-    const [data, total] = await Promise.all([
-      prisma.productCategory.findMany({
-        where,
-        orderBy: [{ sort_order: 'asc' }, { name: 'asc' }],
-        skip,
-        take: limit
-      }),
-      prisma.productCategory.count({ where })
-    ]);
-
+  protected getDefaultIncludes() {
     return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit)
+      children: {
+        orderBy: [
+          { sort_order: 'asc' as const },
+          { name: 'asc' as const }
+        ]
+      }
     };
   }
 
-  async count(filters: CategoryFilters) {
-    const where = this.buildWhereClause(filters);
-    return prisma.productCategory.count({ where });
+  protected getSearchableFields(): string[] {
+    return ['name', 'description'];
   }
 
-  async create(data: Prisma.ProductCategoryCreateInput) {
-    return prisma.productCategory.create({ data });
+  protected getDefaultSortField(): string {
+    return 'sort_order';
   }
 
-  async update(id: string, data: Prisma.ProductCategoryUpdateInput) {
-    return prisma.productCategory.update({
-      where: { id },
-      data
-    });
+  protected mapItem(item: any): CategoryData {
+    return item as CategoryData;
   }
 
-  async delete(id: string) {
-    return prisma.$transaction(async (tx) => {
+  protected buildWhereClause(filters: CategoryFilters): Prisma.ProductCategoryWhereInput {
+    const where: Prisma.ProductCategoryWhereInput = {};
+
+    // Search filter
+    const searchFilter = this.applySearchFilter(filters.search);
+    if (searchFilter) {
+      where.OR = searchFilter.OR;
+    }
+
+    // Parent ID filter
+    if (filters.parent_id !== undefined) {
+      if (filters.parent_id === '' || filters.parent_id === null) {
+        where.parent_id = null;
+      } else {
+        where.parent_id = filters.parent_id;
+      }
+    }
+
+    // Status filter
+    if (filters.status) {
+      where.status = filters.status;
+    }
+
+    return where;
+  }
+
+  protected buildOrderBy(filters: CategoryFilters): any {
+    return [
+      { sort_order: 'asc' },
+      { name: 'asc' }
+    ];
+  }
+
+  /**
+   * Delete category with children handling (transaction)
+   */
+  async delete(id: string): Promise<boolean> {
+    return this.withTransaction(async (tx) => {
       // Update children to remove parent reference
       await tx.productCategory.updateMany({
         where: { parent_id: id },
@@ -82,55 +94,33 @@ class ProductCategoryRepository {
     });
   }
 
-  async getTree() {
-    const categories = await prisma.productCategory.findMany({
+  /**
+   * Get category tree structure
+   */
+  async getTree(): Promise<CategoryData[]> {
+    const categories = await this.getModel().findMany({
       where: { status: 'active' },
       orderBy: [{ sort_order: 'asc' }, { name: 'asc' }]
     });
 
     // Build tree structure
-    const categoryMap = new Map();
-    const tree: any[] = [];
+    const categoryMap = new Map<string, CategoryData>();
+    const tree: CategoryData[] = [];
 
-    categories.forEach(category => {
+    categories.forEach((category: CategoryData) => {
       categoryMap.set(category.id, { ...category, children: [] });
     });
 
-    categories.forEach(category => {
-      const categoryWithChildren = categoryMap.get(category.id);
+    categories.forEach((category: CategoryData) => {
+      const categoryWithChildren = categoryMap.get(category.id)!;
       if (category.parent_id && categoryMap.has(category.parent_id)) {
-        categoryMap.get(category.parent_id).children.push(categoryWithChildren);
+        categoryMap.get(category.parent_id)!.children!.push(categoryWithChildren);
       } else {
         tree.push(categoryWithChildren);
       }
     });
 
     return tree;
-  }
-
-  private buildWhereClause(filters: CategoryFilters): Prisma.ProductCategoryWhereInput {
-    const where: Prisma.ProductCategoryWhereInput = {};
-
-    if (filters.search) {
-      where.OR = [
-        { name: { contains: filters.search, mode: 'insensitive' } },
-        { description: { contains: filters.search, mode: 'insensitive' } }
-      ];
-    }
-
-    if (filters.parent_id !== undefined) {
-      if (filters.parent_id === '' || filters.parent_id === null) {
-        where.parent_id = null;
-      } else {
-        where.parent_id = filters.parent_id;
-      }
-    }
-
-    if (filters.status) {
-      where.status = filters.status;
-    }
-
-    return where;
   }
 }
 

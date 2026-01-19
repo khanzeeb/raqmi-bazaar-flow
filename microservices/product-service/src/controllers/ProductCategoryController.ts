@@ -1,155 +1,93 @@
+// Product Category Controller - Handles HTTP requests for categories
 import { FastifyRequest, FastifyReply } from 'fastify';
+import { BaseController } from '../common/BaseController';
 import ProductCategoryService from '../services/ProductCategoryService';
 import { CategoryQueryInput, CreateCategoryInput, UpdateCategoryInput } from '../schemas/categorySchemas';
 
-class ProductCategoryController {
+class ProductCategoryController extends BaseController {
   async getCategories(
     request: FastifyRequest<{ Querystring: CategoryQueryInput }>,
     reply: FastifyReply
   ) {
-    try {
-      const filters = {
-        page: request.query.page || 1,
-        limit: request.query.limit || 50,
-        search: request.query.search,
-        parent_id: request.query.parent_id,
-        status: request.query.status
-      };
-
-      const result = await ProductCategoryService.getAll(filters);
-      return reply.send({
-        success: true,
-        message: 'Product categories fetched successfully',
-        data: result
-      });
-    } catch (error) {
-      request.log.error(error);
-      return reply.status(500).send({
-        success: false,
-        message: 'Failed to fetch product categories'
-      });
-    }
+    await this.executeOperation(
+      request,
+      reply,
+      async () => {
+        return ProductCategoryService.getAll({
+          page: request.query.page || 1,
+          limit: request.query.limit || 50,
+          search: request.query.search,
+          parent_id: request.query.parent_id,
+          status: request.query.status
+        });
+      },
+      'Product categories fetched successfully',
+      'Failed to fetch product categories'
+    );
   }
 
   async getCategoryTree(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      const tree = await ProductCategoryService.getTree();
-      return reply.send({
-        success: true,
-        message: 'Category tree fetched successfully',
-        data: tree
-      });
-    } catch (error) {
-      request.log.error(error);
-      return reply.status(500).send({
-        success: false,
-        message: 'Failed to fetch category tree'
-      });
-    }
+    await this.executeOperation(
+      request,
+      reply,
+      () => ProductCategoryService.getTree(),
+      'Category tree fetched successfully',
+      'Failed to fetch category tree'
+    );
   }
 
   async getCategory(
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
   ) {
-    try {
-      const category = await ProductCategoryService.getById(request.params.id);
-      
-      if (!category) {
-        return reply.status(404).send({
-          success: false,
-          message: 'Category not found'
-        });
-      }
-
-      return reply.send({
-        success: true,
-        message: 'Category fetched successfully',
-        data: category
-      });
-    } catch (error) {
-      request.log.error(error);
-      return reply.status(500).send({
-        success: false,
-        message: 'Failed to fetch category'
-      });
-    }
+    await this.executeOperation(
+      request,
+      reply,
+      () => ProductCategoryService.getById(request.params.id),
+      'Category fetched successfully',
+      'Failed to fetch category'
+    );
   }
 
   async createCategory(
     request: FastifyRequest<{ Body: CreateCategoryInput }>,
     reply: FastifyReply
   ) {
-    try {
-      const category = await ProductCategoryService.create(request.body);
-      return reply.status(201).send({
-        success: true,
-        message: 'Product category created successfully',
-        data: category
-      });
-    } catch (error: any) {
-      request.log.error(error);
-      return reply.status(400).send({
-        success: false,
-        message: error.message || 'Failed to create product category'
-      });
-    }
+    await this.executeOperation(
+      request,
+      reply,
+      () => ProductCategoryService.create(request.body),
+      'Product category created successfully',
+      'Failed to create product category',
+      201
+    );
   }
 
   async updateCategory(
     request: FastifyRequest<{ Params: { id: string }; Body: UpdateCategoryInput }>,
     reply: FastifyReply
   ) {
-    try {
-      const category = await ProductCategoryService.update(request.params.id, request.body);
-      
-      if (!category) {
-        return reply.status(404).send({
-          success: false,
-          message: 'Category not found'
-        });
-      }
-
-      return reply.send({
-        success: true,
-        message: 'Product category updated successfully',
-        data: category
-      });
-    } catch (error: any) {
-      request.log.error(error);
-      return reply.status(400).send({
-        success: false,
-        message: error.message || 'Failed to update product category'
-      });
-    }
+    await this.executeOperation(
+      request,
+      reply,
+      () => ProductCategoryService.update(request.params.id, request.body),
+      'Product category updated successfully',
+      'Failed to update product category'
+    );
   }
 
   async deleteCategory(
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
   ) {
-    try {
-      const success = await ProductCategoryService.delete(request.params.id);
-      
-      if (!success) {
-        return reply.status(404).send({
-          success: false,
-          message: 'Category not found'
-        });
-      }
-
-      return reply.send({
-        success: true,
-        message: 'Product category deleted successfully',
-        data: { deleted: true }
-      });
-    } catch (error) {
-      request.log.error(error);
-      return reply.status(500).send({
-        success: false,
-        message: 'Failed to delete product category'
-      });
-    }
+    await this.executeDelete(
+      request,
+      reply,
+      () => ProductCategoryService.delete(request.params.id),
+      'Product category deleted successfully',
+      'Category',
+      'Failed to delete product category'
+    );
   }
 }
 
