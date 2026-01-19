@@ -1,65 +1,75 @@
-import { Prisma, VariantStatus } from '@prisma/client';
-import prisma from '../config/prisma';
+// Product Variant Repository - Data access for product variants
+import { Prisma, VariantStatus, ProductVariant } from '@prisma/client';
+import { BaseRepository, BaseFilters } from '../common/BaseRepository';
 
-export interface VariantFilters {
-  page?: number;
-  limit?: number;
+export interface VariantFilters extends BaseFilters {
   product_id?: string;
   status?: VariantStatus;
-  search?: string;
 }
 
-class ProductVariantRepository {
-  async findById(id: string) {
-    return prisma.productVariant.findUnique({
-      where: { id }
-    });
+class ProductVariantRepository extends BaseRepository<ProductVariant, VariantFilters> {
+  protected modelName = 'ProductVariant';
+
+  protected getModel() {
+    return this.prisma.productVariant;
   }
 
-  async findByProductId(productId: string) {
-    return prisma.productVariant.findMany({
+  protected getSearchableFields(): string[] {
+    return ['name', 'sku', 'barcode'];
+  }
+
+  protected getDefaultSortField(): string {
+    return 'sort_order';
+  }
+
+  protected mapItem(item: any): ProductVariant {
+    return item as ProductVariant;
+  }
+
+  protected buildWhereClause(filters: VariantFilters): Prisma.ProductVariantWhereInput {
+    const where: Prisma.ProductVariantWhereInput = {};
+
+    // Product ID filter
+    if (filters.product_id) {
+      where.product_id = filters.product_id;
+    }
+
+    // Status filter
+    if (filters.status) {
+      where.status = filters.status;
+    }
+
+    // Search filter
+    const searchFilter = this.applySearchFilter(filters.search);
+    if (searchFilter) {
+      where.OR = searchFilter.OR;
+    }
+
+    return where;
+  }
+
+  protected buildOrderBy(filters: VariantFilters): any {
+    return [
+      { sort_order: 'asc' },
+      { name: 'asc' }
+    ];
+  }
+
+  /**
+   * Find variants by product ID
+   */
+  async findByProductId(productId: string): Promise<ProductVariant[]> {
+    return this.getModel().findMany({
       where: { product_id: productId },
       orderBy: [{ sort_order: 'asc' }, { name: 'asc' }]
     });
   }
 
-  async findAll(filters: VariantFilters) {
-    const page = filters.page || 1;
-    const limit = filters.limit || 10;
-    const skip = (page - 1) * limit;
-
-    const where = this.buildWhereClause(filters);
-
-    const [data, total] = await Promise.all([
-      prisma.productVariant.findMany({
-        where,
-        orderBy: [{ sort_order: 'asc' }, { name: 'asc' }],
-        skip,
-        take: limit
-      }),
-      prisma.productVariant.count({ where })
-    ]);
-
-    return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit)
-    };
-  }
-
-  async count(filters: VariantFilters) {
-    const where = this.buildWhereClause(filters);
-    return prisma.productVariant.count({ where });
-  }
-
-  async create(data: Prisma.ProductVariantCreateInput) {
-    return prisma.productVariant.create({ data });
-  }
-
-  async createForProduct(productId: string, data: any) {
-    return prisma.productVariant.create({
+  /**
+   * Create variant for a specific product
+   */
+  async createForProduct(productId: string, data: any): Promise<ProductVariant> {
+    return this.getModel().create({
       data: {
         ...data,
         product: { connect: { id: productId } }
@@ -67,39 +77,31 @@ class ProductVariantRepository {
     });
   }
 
-  async update(id: string, data: Prisma.ProductVariantUpdateInput) {
-    return prisma.productVariant.update({
-      where: { id },
-      data
-    });
-  }
-
-  async delete(id: string) {
-    try {
-      await prisma.productVariant.delete({
-        where: { id }
-      });
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async createMultiple(variants: any[]) {
-    return prisma.productVariant.createMany({
+  /**
+   * Create multiple variants at once
+   */
+  async createMultiple(variants: any[]): Promise<number> {
+    const result = await this.getModel().createMany({
       data: variants
     });
+    return result.count;
   }
 
-  async deleteByProductId(productId: string) {
-    await prisma.productVariant.deleteMany({
+  /**
+   * Delete all variants for a product
+   */
+  async deleteByProductId(productId: string): Promise<boolean> {
+    await this.getModel().deleteMany({
       where: { product_id: productId }
     });
     return true;
   }
 
-  async updateStock(id: string, newStock: number, reason = '') {
-    return prisma.$transaction(async (tx) => {
+  /**
+   * Update variant stock with movement tracking
+   */
+  async updateStock(id: string, newStock: number, reason = ''): Promise<ProductVariant | null> {
+    return this.withTransaction(async (tx) => {
       const variant = await tx.productVariant.update({
         where: { id },
         data: { stock: newStock }
@@ -116,28 +118,6 @@ class ProductVariantRepository {
 
       return variant;
     });
-  }
-
-  private buildWhereClause(filters: VariantFilters): Prisma.ProductVariantWhereInput {
-    const where: Prisma.ProductVariantWhereInput = {};
-
-    if (filters.product_id) {
-      where.product_id = filters.product_id;
-    }
-
-    if (filters.status) {
-      where.status = filters.status;
-    }
-
-    if (filters.search) {
-      where.OR = [
-        { name: { contains: filters.search, mode: 'insensitive' } },
-        { sku: { contains: filters.search, mode: 'insensitive' } },
-        { barcode: { contains: filters.search, mode: 'insensitive' } }
-      ];
-    }
-
-    return where;
   }
 }
 
