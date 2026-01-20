@@ -2,24 +2,11 @@
 import { ProductCategory } from '@prisma/client';
 import { BaseService, IBaseRepository } from '../common/BaseService';
 import ProductCategoryRepository, { CategoryFilters } from '../repositories/ProductCategoryRepository';
-import { IPaginatedResponse } from '../interfaces/IProduct';
+import { categoryTransformer, CategoryData, CategoryCreateInput } from '../transformers';
+import { CategoryValidator } from '../validators';
 
-export interface CreateCategoryDTO {
-  name: string;
-  slug: string;
-  description?: string;
-  image?: string;
-  parent_id?: string;
-  sort_order?: number;
-  status?: 'active' | 'inactive';
-  meta_data?: Record<string, any>;
-}
-
-export interface UpdateCategoryDTO extends Partial<CreateCategoryDTO> {}
-
-interface CategoryData extends ProductCategory {
-  children?: CategoryData[];
-}
+export interface CreateCategoryDTO extends CategoryCreateInput {}
+export interface UpdateCategoryDTO extends Partial<CategoryCreateInput> {}
 
 // Extended repository interface for category-specific operations
 interface ICategoryRepository extends IBaseRepository<CategoryData, CategoryFilters> {
@@ -33,8 +20,32 @@ class ProductCategoryService extends BaseService<
   CategoryFilters,
   ICategoryRepository
 > {
+  private validator: CategoryValidator;
+
   constructor() {
     super(ProductCategoryRepository as ICategoryRepository);
+    this.validator = new CategoryValidator();
+  }
+
+  /**
+   * Override create to use transformer
+   */
+  async create(data: CreateCategoryDTO): Promise<CategoryData> {
+    this.validateCreate(data);
+    const transformedData = categoryTransformer.forCreate(data);
+    return this.repository.create(transformedData);
+  }
+
+  /**
+   * Override update to use transformer
+   */
+  async update(id: string, data: UpdateCategoryDTO): Promise<CategoryData | null> {
+    const existing = await this.repository.findById(id);
+    if (!existing) return null;
+
+    this.validateUpdate(data);
+    const transformedData = categoryTransformer.forUpdate(data);
+    return this.repository.update(id, transformedData);
   }
 
   /**
@@ -47,38 +58,11 @@ class ProductCategoryService extends BaseService<
   // Validation overrides
 
   protected validateCreate(data: CreateCategoryDTO): void {
-    if (!data.name || data.name.trim().length === 0) {
-      throw new Error('Category name is required');
-    }
-    if (!data.slug || data.slug.trim().length === 0) {
-      throw new Error('Category slug is required');
-    }
+    this.validator.validateCreate(data);
   }
 
   protected validateUpdate(data: UpdateCategoryDTO): void {
-    if (data.name !== undefined && data.name.trim().length === 0) {
-      throw new Error('Category name cannot be empty');
-    }
-    if (data.slug !== undefined && data.slug.trim().length === 0) {
-      throw new Error('Category slug cannot be empty');
-    }
-  }
-
-  // Transform overrides
-
-  protected transformCreateData(data: CreateCategoryDTO): any {
-    return {
-      ...data,
-      slug: data.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-')
-    };
-  }
-
-  protected transformUpdateData(data: UpdateCategoryDTO): any {
-    const result = { ...data };
-    if (data.slug !== undefined) {
-      result.slug = data.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-    }
-    return result;
+    this.validator.validateUpdate(data);
   }
 }
 
