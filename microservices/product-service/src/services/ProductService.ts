@@ -1,10 +1,10 @@
 // Product Service - Business logic for products
-import { Decimal } from '@prisma/client/runtime/library';
 import { BaseService, IBaseRepository } from '../common/BaseService';
 import ProductRepository from '../repositories/ProductRepository';
 import { ProductValidator } from '../validators/ProductValidator';
-import { CreateProductDTO, UpdateProductDTO } from '../dto/ProductDTO';
-import { IProductData, IProductFilters, IPaginatedResponse } from '../interfaces/IProduct';
+import { productTransformer } from '../transformers';
+import { CreateProductDTO, UpdateProductDTO } from '../dto';
+import { IProductData, IProductFilters } from '../interfaces/IProduct';
 import { IProductStats } from '../interfaces/IService';
 
 // Extended repository interface for product-specific operations
@@ -37,8 +37,8 @@ class ProductService extends BaseService<
   async create(data: CreateProductDTO): Promise<IProductData> {
     this.validateCreate(data);
     const { variants, ...productData } = data;
-    const transformedData = this.transformCreateData(productData);
-    const transformedVariants = variants?.map(v => this.transformVariantData(v));
+    const transformedData = productTransformer.forCreate(productData as CreateProductDTO);
+    const transformedVariants = productTransformer.forVariants(variants);
     return this.repository.createWithVariants(transformedData, transformedVariants);
   }
 
@@ -51,8 +51,8 @@ class ProductService extends BaseService<
 
     this.validateUpdate(data);
     const { variants, ...productData } = data;
-    const transformedData = this.transformUpdateData(productData);
-    const transformedVariants = variants?.map(v => this.transformVariantData(v));
+    const transformedData = productTransformer.forUpdate(productData);
+    const transformedVariants = productTransformer.forVariants(variants);
     return this.repository.updateWithVariants(id, transformedData, transformedVariants);
   }
 
@@ -103,7 +103,7 @@ class ProductService extends BaseService<
     return { totalProducts, inStock, lowStock, outOfStock };
   }
 
-  // Protected overrides for validation and transformation
+  // Protected overrides for validation
 
   protected validateCreate(data: CreateProductDTO): void {
     this.validator.validateCreate(data);
@@ -111,40 +111,6 @@ class ProductService extends BaseService<
 
   protected validateUpdate(data: UpdateProductDTO): void {
     this.validator.validateUpdate(data);
-  }
-
-  protected transformCreateData(data: Omit<CreateProductDTO, 'variants'>): any {
-    return {
-      ...data,
-      price: new Decimal(data.price),
-      cost: new Decimal(data.cost),
-      weight: data.weight ? new Decimal(data.weight) : null,
-      images: data.images || [],
-      dimensions: data.dimensions || null,
-      tags: data.tags || []
-    };
-  }
-
-  protected transformUpdateData(data: Partial<Omit<UpdateProductDTO, 'variants'>>): any {
-    const result: any = { ...data };
-    
-    if (data.price !== undefined) result.price = new Decimal(data.price);
-    if (data.cost !== undefined) result.cost = new Decimal(data.cost);
-    if (data.weight !== undefined) result.weight = data.weight ? new Decimal(data.weight) : null;
-    
-    return result;
-  }
-
-  private transformVariantData(variant: any): any {
-    return {
-      ...variant,
-      price: new Decimal(variant.price),
-      cost: new Decimal(variant.cost),
-      weight: variant.weight ? new Decimal(variant.weight) : null,
-      images: variant.images || [],
-      dimensions: variant.dimensions || null,
-      attributes: variant.attributes || {}
-    };
   }
 }
 
