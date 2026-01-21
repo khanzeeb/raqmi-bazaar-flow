@@ -6,11 +6,11 @@
 import { 
   BaseEventService, 
   EventListenerConfig 
-} from '../../shared/events/BaseEventService';
+} from '../../../shared/events/BaseEventService';
 import { 
   SagaManager,
   createSagaManager
-} from '../../shared/events/SagaManager';
+} from '../../../shared/events/SagaManager';
 import { 
   EventPayload,
   SagaStep,
@@ -19,7 +19,7 @@ import {
   PurchaseReceivedPayload,
   ReturnCompletedPayload,
   SaleCreatedPayload
-} from '../../shared/events/types';
+} from '../../../shared/events/types';
 
 export class ProductEventService extends BaseEventService {
   private lowStockThreshold: number = 10;
