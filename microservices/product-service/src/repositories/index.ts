@@ -1,8 +1,15 @@
-// Repository exports
-export { default as productRepository } from './ProductRepository';
-export { default as productCategoryRepository } from './ProductCategoryRepository';
-export { default as productVariantRepository } from './ProductVariantRepository';
-export { default as stockMovementRepository } from './StockMovementRepository';
+// Repository barrel export - Single source of truth for repositories
 
-// Re-export filter types
-export type { StockMovementFilters } from './StockMovementRepository';
+// Interfaces
+export * from './IBaseRepository';
+export * from './IProductRepository';
+export * from './ICategoryRepository';
+export * from './IVariantRepository';
+export * from './IStockMovementRepository';
+
+// Implementations
+export { default as BaseRepository } from './BaseRepository';
+export { ProductRepository, default as productRepository } from './ProductRepository';
+export { CategoryRepository, default as categoryRepository } from './CategoryRepository';
+export { VariantRepository, default as variantRepository } from './VariantRepository';
+export { StockMovementRepository, default as stockMovementRepository } from './StockMovementRepository';
