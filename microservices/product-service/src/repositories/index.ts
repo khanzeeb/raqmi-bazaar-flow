@@ -1,4 +1,4 @@
-// Repository barrel export - Single source of truth for repositories
+// Repository Barrel Export - Single source of truth for repositories
 
 // Interfaces
 export * from './IBaseRepository';
@@ -7,8 +7,10 @@ export * from './ICategoryRepository';
 export * from './IVariantRepository';
 export * from './IStockMovementRepository';
 
+// Base
+export { BaseRepository, IPaginatedResponse, IBaseFilters } from './BaseRepository';
+
 // Implementations
-export { default as BaseRepository } from './BaseRepository';
 export { ProductRepository, default as productRepository } from './ProductRepository';
 export { CategoryRepository, default as categoryRepository } from './CategoryRepository';
 export { VariantRepository, default as variantRepository } from './VariantRepository';

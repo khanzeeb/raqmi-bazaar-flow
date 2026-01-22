@@ -1,56 +1,59 @@
-import Fastify from 'fastify';
-import cors from '@fastify/cors';
-import helmet from '@fastify/helmet';
-import compress from '@fastify/compress';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import morgan from 'morgan';
 import dotenv from 'dotenv';
 
 import productRoutes from './routes/productRoutes';
-import productCategoryRoutes from './routes/productCategoryRoutes';
-import productVariantRoutes from './routes/productVariantRoutes';
-import { errorHandler } from './plugins/errorHandler';
+import categoryRoutes from './routes/categoryRoutes';
+import variantRoutes from './routes/variantRoutes';
+import { errorHandler } from './middleware/errorHandler';
+import { notFound } from './middleware/notFound';
 import { productEventService } from './events';
 
 dotenv.config();
 
-const app = Fastify({
-  logger: {
-    level: process.env.LOG_LEVEL || 'info',
-    transport: process.env.NODE_ENV === 'development' ? {
-      target: 'pino-pretty',
-      options: { colorize: true }
-    } : undefined
-  }
-});
-
+const app = express();
 const PORT = parseInt(process.env.PORT || '3001');
 
-// Register plugins
-app.register(helmet);
-app.register(cors, { origin: true });
-app.register(compress);
-app.register(errorHandler);
+// Middleware
+app.use(helmet());
+app.use(cors({ origin: true }));
+app.use(compression());
+app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Register routes
-app.register(productRoutes, { prefix: '/api/products' });
-app.register(productCategoryRoutes, { prefix: '/api/categories' });
-app.register(productVariantRoutes, { prefix: '/api/products' });
+// Routes
+app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/products', variantRoutes);
 
 // Health check with event status
-app.get('/health', async () => ({
-  service: 'product-service',
-  status: 'OK',
-  timestamp: new Date().toISOString(),
-  events: {
-    subscriptions: productEventService.listSubscriptions().length,
-  }
-}));
+app.get('/health', (req, res) => {
+  res.json({
+    service: 'product-service',
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    events: {
+      subscriptions: productEventService.listSubscriptions().length
+    }
+  });
+});
 
 // Event subscriptions endpoint
-app.get('/events', async () => ({
-  service: 'product-service',
-  subscriptions: productEventService.listSubscriptions(),
-  history: productEventService.getEventEmitter().getEventHistory(undefined, 50),
-}));
+app.get('/events', (req, res) => {
+  res.json({
+    service: 'product-service',
+    subscriptions: productEventService.listSubscriptions(),
+    history: productEventService.getEventEmitter().getEventHistory(undefined, 50)
+  });
+});
+
+// Error handling
+app.use(notFound);
+app.use(errorHandler);
 
 // Initialize event services
 const initializeEventServices = () => {
@@ -59,10 +62,9 @@ const initializeEventServices = () => {
 };
 
 // Graceful shutdown
-const shutdown = async () => {
+const shutdown = () => {
   console.log('[product-service] Shutting down...');
   productEventService.destroy();
-  await app.close();
   process.exit(0);
 };
 
@@ -70,17 +72,9 @@ process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
 // Start server
-const start = async () => {
-  try {
-    await app.listen({ port: PORT, host: '0.0.0.0' });
-    console.log(`Product Service running on port ${PORT}`);
-    initializeEventServices();
-  } catch (err) {
-    app.log.error(err);
-    process.exit(1);
-  }
-};
-
-start();
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Product Service running on port ${PORT}`);
+  initializeEventServices();
+});
 
 export default app;

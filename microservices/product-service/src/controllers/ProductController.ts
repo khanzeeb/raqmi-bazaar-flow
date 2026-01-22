@@ -1,143 +1,84 @@
 // Product Controller - Handles HTTP requests for products
-import { FastifyRequest, FastifyReply } from 'fastify';
+import { Request, Response, NextFunction } from 'express';
 import { BaseController } from '../common/BaseController';
 import ProductService from '../services/ProductService';
-import { ProductQueryInput, CreateProductInput, UpdateProductInput, UpdateStockInput, IdParam } from '../schemas/productSchemas';
 
 class ProductController extends BaseController {
-  async getProducts(
-    request: FastifyRequest<{ Querystring: ProductQueryInput }>,
-    reply: FastifyReply
-  ) {
-    await this.executeOperation(
-      request,
-      reply,
-      async () => {
-        const { page, limit } = this.getPaginationDefaults(request.query);
-        return ProductService.getAll({
-          page,
-          limit,
-          search: request.query.search,
-          category: request.query.category,
-          category_id: request.query.category_id,
-          status: request.query.status,
-          stockStatus: request.query.stockStatus,
-          sortBy: request.query.sortBy,
-          sortOrder: request.query.sortOrder,
-          supplier: request.query.supplier,
-          priceRange: request.query.priceMin && request.query.priceMax 
-            ? { min: request.query.priceMin, max: request.query.priceMax } 
-            : undefined
-        });
-      },
-      'Products fetched successfully',
-      'Failed to fetch products'
-    );
-  }
+  getProducts = async (req: Request, res: Response, next: NextFunction) => {
+    await this.executeOperation(req, res, next, async () => {
+      const { page, limit } = this.getPaginationDefaults(req.query);
+      return ProductService.getAll({
+        page, limit,
+        search: req.query.search as string,
+        category: req.query.category as string,
+        category_id: req.query.category_id as string,
+        status: req.query.status as any,
+        stockStatus: req.query.stockStatus as any,
+        sortBy: req.query.sortBy as string,
+        sortOrder: req.query.sortOrder as any,
+        supplier: req.query.supplier as string,
+        priceRange: req.query.priceMin && req.query.priceMax
+          ? { min: parseFloat(req.query.priceMin as string), max: parseFloat(req.query.priceMax as string) }
+          : undefined
+      });
+    }, 'Products fetched successfully');
+  };
 
-  async getProduct(
-    request: FastifyRequest<{ Params: IdParam }>,
-    reply: FastifyReply
-  ) {
-    await this.executeOperation(
-      request,
-      reply,
-      () => ProductService.getById(request.params.id),
-      'Product fetched successfully',
-      'Failed to fetch product'
+  getProduct = async (req: Request, res: Response, next: NextFunction) => {
+    await this.executeOperation(req, res, next,
+      () => ProductService.getById(req.params.id),
+      'Product fetched successfully'
     );
-  }
+  };
 
-  async createProduct(
-    request: FastifyRequest<{ Body: CreateProductInput }>,
-    reply: FastifyReply
-  ) {
-    await this.executeOperation(
-      request,
-      reply,
-      () => ProductService.create(request.body),
-      'Product created successfully',
-      'Failed to create product',
-      201
+  createProduct = async (req: Request, res: Response, next: NextFunction) => {
+    await this.executeOperation(req, res, next,
+      () => ProductService.create(req.body),
+      'Product created successfully', 201
     );
-  }
+  };
 
-  async updateProduct(
-    request: FastifyRequest<{ Params: IdParam; Body: UpdateProductInput }>,
-    reply: FastifyReply
-  ) {
-    await this.executeOperation(
-      request,
-      reply,
-      () => ProductService.update(request.params.id, request.body),
-      'Product updated successfully',
-      'Failed to update product'
+  updateProduct = async (req: Request, res: Response, next: NextFunction) => {
+    await this.executeOperation(req, res, next,
+      () => ProductService.update(req.params.id, req.body),
+      'Product updated successfully'
     );
-  }
+  };
 
-  async deleteProduct(
-    request: FastifyRequest<{ Params: IdParam }>,
-    reply: FastifyReply
-  ) {
-    await this.executeDelete(
-      request,
-      reply,
-      () => ProductService.delete(request.params.id),
-      'Product deleted successfully',
-      'Product',
-      'Failed to delete product'
+  deleteProduct = async (req: Request, res: Response, next: NextFunction) => {
+    await this.executeDelete(req, res, next,
+      () => ProductService.delete(req.params.id),
+      'Product deleted successfully'
     );
-  }
+  };
 
-  async updateStock(
-    request: FastifyRequest<{ Params: IdParam; Body: UpdateStockInput }>,
-    reply: FastifyReply
-  ) {
-    await this.executeOperation(
-      request,
-      reply,
-      () => ProductService.updateStock(
-        request.params.id,
-        request.body.stock,
-        request.body.reason
-      ),
-      'Stock updated successfully',
-      'Failed to update stock'
+  updateStock = async (req: Request, res: Response, next: NextFunction) => {
+    await this.executeOperation(req, res, next,
+      () => ProductService.updateStock(req.params.id, req.body.stock, req.body.reason),
+      'Stock updated successfully'
     );
-  }
+  };
 
-  async getSuppliers(request: FastifyRequest, reply: FastifyReply) {
-    await this.executeOperation(
-      request,
-      reply,
+  getSuppliers = async (req: Request, res: Response, next: NextFunction) => {
+    await this.executeOperation(req, res, next,
       () => ProductService.getSuppliers(),
-      'Suppliers fetched successfully',
-      'Failed to fetch suppliers'
+      'Suppliers fetched successfully'
     );
-  }
+  };
 
-  async getLowStockProducts(
-    request: FastifyRequest<{ Querystring: { limit?: number } }>,
-    reply: FastifyReply
-  ) {
-    await this.executeOperation(
-      request,
-      reply,
-      () => ProductService.getLowStockProducts(request.query.limit || 10),
-      'Low stock products fetched successfully',
-      'Failed to fetch low stock products'
+  getLowStockProducts = async (req: Request, res: Response, next: NextFunction) => {
+    await this.executeOperation(req, res, next,
+      () => ProductService.getLowStockProducts(parseInt(req.query.limit as string) || 10),
+      'Low stock products fetched successfully'
     );
-  }
+  };
 
-  async getProductStats(request: FastifyRequest, reply: FastifyReply) {
-    await this.executeOperation(
-      request,
-      reply,
+  getProductStats = async (req: Request, res: Response, next: NextFunction) => {
+    await this.executeOperation(req, res, next,
       () => ProductService.getStats(),
-      'Product stats fetched successfully',
-      'Failed to fetch product stats'
+      'Product stats fetched successfully'
     );
-  }
+  };
 }
 
 export default new ProductController();
