@@ -1,15 +1,19 @@
-// Stock Movement Repository Interface - Single Responsibility: Stock movement data access contract
+// Stock Movement Repository Interface
 
-import { IBaseRepository } from './IBaseRepository';
-import { IStockMovementData, IMovementSummary } from '../data';
-import { IStockMovementFilters } from '../filters';
-import { MovementType } from '@prisma/client';
+import type { IStockMovementData, IMovementSummary } from '../data/IStockMovementData';
+import type { IStockMovementFilters } from '../filters/IStockMovementFilters';
+import type { IPaginatedResponse } from './BaseRepository';
+import type { MovementType } from '../dto';
 
-export interface IStockMovementRepository extends IBaseRepository<IStockMovementData, IStockMovementFilters> {
+export interface IStockMovementRepository {
+  findById(id: string): Promise<IStockMovementData | null>;
+  findAll(filters?: IStockMovementFilters, page?: number, limit?: number): Promise<IPaginatedResponse<IStockMovementData>>;
   findByProductId(productId: string): Promise<IStockMovementData[]>;
   findByVariantId(variantId: string): Promise<IStockMovementData[]>;
+  create(data: any): Promise<IStockMovementData>;
   createForProduct(productId: string, type: MovementType, quantity: number, reason?: string): Promise<IStockMovementData>;
   createForVariant(variantId: string, type: MovementType, quantity: number, reason?: string): Promise<IStockMovementData>;
   getMovementSummary(productId: string): Promise<IMovementSummary[]>;
   getRecentMovements(limit?: number): Promise<IStockMovementData[]>;
+  count(filters?: IStockMovementFilters): Promise<number>;
 }

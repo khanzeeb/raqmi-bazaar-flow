@@ -1,5 +1,5 @@
-// Base Controller - Common response handling for all controllers
-import { FastifyRequest, FastifyReply } from 'fastify';
+// Base Controller - Common response handling for Express controllers
+import { Request, Response, NextFunction } from 'express';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -9,121 +9,65 @@ export interface ApiResponse<T = any> {
 }
 
 export abstract class BaseController {
-  /**
-   * Send success response
-   */
-  protected sendSuccess<T>(
-    reply: FastifyReply,
-    data: T,
-    message: string,
-    statusCode = 200
-  ): void {
-    reply.status(statusCode).send({
-      success: true,
-      message,
-      data
-    });
+  protected sendSuccess<T>(res: Response, data: T, message: string, statusCode = 200): void {
+    res.status(statusCode).json({ success: true, message, data });
   }
 
-  /**
-   * Send created response (201)
-   */
-  protected sendCreated<T>(reply: FastifyReply, data: T, message: string): void {
-    this.sendSuccess(reply, data, message, 201);
+  protected sendCreated<T>(res: Response, data: T, message: string): void {
+    this.sendSuccess(res, data, message, 201);
   }
 
-  /**
-   * Send not found response
-   */
-  protected sendNotFound(reply: FastifyReply, resource = 'Resource'): void {
-    reply.status(404).send({
-      success: false,
-      message: `${resource} not found`
-    });
+  protected sendNotFound(res: Response, resource = 'Resource'): void {
+    res.status(404).json({ success: false, message: `${resource} not found` });
   }
 
-  /**
-   * Send error response
-   */
-  protected sendError(
-    reply: FastifyReply,
-    message: string,
-    statusCode = 500,
-    error?: any
-  ): void {
-    reply.status(statusCode).send({
-      success: false,
-      message,
-      error: error?.message
-    });
+  protected sendError(res: Response, message: string, statusCode = 500): void {
+    res.status(statusCode).json({ success: false, message });
   }
 
-  /**
-   * Send validation error
-   */
-  protected sendBadRequest(reply: FastifyReply, message: string): void {
-    this.sendError(reply, message, 400);
+  protected sendBadRequest(res: Response, message: string): void {
+    this.sendError(res, message, 400);
   }
 
-  /**
-   * Execute operation with standard error handling
-   */
   protected async executeOperation<T>(
-    request: FastifyRequest,
-    reply: FastifyReply,
+    req: Request, res: Response, next: NextFunction,
     operation: () => Promise<T>,
     successMessage: string,
-    errorMessage: string,
     successStatusCode = 200
   ): Promise<void> {
     try {
       const result = await operation();
-      
       if (result === null || result === undefined) {
-        this.sendNotFound(reply);
+        this.sendNotFound(res);
         return;
       }
-
-      this.sendSuccess(reply, result, successMessage, successStatusCode);
-    } catch (error: any) {
-      request.log.error(error);
-      this.sendError(reply, error.message || errorMessage, error.statusCode || 500);
+      this.sendSuccess(res, result, successMessage, successStatusCode);
+    } catch (error) {
+      next(error);
     }
   }
 
-  /**
-   * Execute delete operation with standard handling
-   */
   protected async executeDelete(
-    request: FastifyRequest,
-    reply: FastifyReply,
+    req: Request, res: Response, next: NextFunction,
     operation: () => Promise<boolean>,
-    successMessage: string,
-    notFoundMessage: string,
-    errorMessage: string
+    successMessage: string
   ): Promise<void> {
     try {
       const success = await operation();
-      
       if (!success) {
-        this.sendNotFound(reply, notFoundMessage);
+        this.sendNotFound(res);
         return;
       }
-
-      this.sendSuccess(reply, { deleted: true }, successMessage);
-    } catch (error: any) {
-      request.log.error(error);
-      this.sendError(reply, error.message || errorMessage);
+      this.sendSuccess(res, { deleted: true }, successMessage);
+    } catch (error) {
+      next(error);
     }
   }
 
-  /**
-   * Standard pagination defaults
-   */
   protected getPaginationDefaults(query: any) {
     return {
-      page: query.page || 1,
-      limit: query.limit || 10
+      page: parseInt(query.page) || 1,
+      limit: parseInt(query.limit) || 10
     };
   }
 }
