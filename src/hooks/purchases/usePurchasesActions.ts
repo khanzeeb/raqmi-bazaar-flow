@@ -2,7 +2,7 @@
 import { useCallback, useState } from 'react';
 import { Purchase, PurchasePaymentHistory, CreatePurchaseDTO } from '@/types/purchase.types';
 import { purchaseGateway } from '@/features/purchases/services/purchase.gateway';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 interface UsePurchasesActionsOptions {
   onSuccess?: () => void;
@@ -35,16 +35,16 @@ export const usePurchasesActions = (options: UsePurchasesActionsOptions) => {
       
       if (response.success && response.data) {
         updateStore(prev => [response.data!, ...prev]);
-        toast.success(isArabic ? 'تم حفظ طلب الشراء بنجاح' : 'Purchase order saved successfully');
+        showToast.success(isArabic ? 'تم حفظ طلب الشراء بنجاح' : 'Purchase order saved successfully');
         onSuccess?.();
         return true;
       } else {
-        toast.error(response.error || (isArabic ? 'فشل في إنشاء طلب الشراء' : 'Failed to create purchase'));
+        showToast.error(response.error || (isArabic ? 'فشل في إنشاء طلب الشراء' : 'Failed to create purchase'));
         return false;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create purchase';
-      toast.error(message);
+      showToast.error(message);
       return false;
     } finally {
       setIsSubmitting(false);
@@ -73,16 +73,16 @@ export const usePurchasesActions = (options: UsePurchasesActionsOptions) => {
       
       if (response.success && response.data) {
         updateStore(prev => prev.map(p => p.id === id ? response.data! : p));
-        toast.success(isArabic ? 'تم تحديث طلب الشراء' : 'Purchase order updated');
+        showToast.success(isArabic ? 'تم تحديث طلب الشراء' : 'Purchase order updated');
         onSuccess?.();
         return true;
       } else {
-        toast.error(response.error || (isArabic ? 'فشل في تحديث طلب الشراء' : 'Failed to update purchase'));
+        showToast.error(response.error || (isArabic ? 'فشل في تحديث طلب الشراء' : 'Failed to update purchase'));
         return false;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to update purchase';
-      toast.error(message);
+      showToast.error(message);
       return false;
     } finally {
       setIsSubmitting(false);
@@ -96,16 +96,16 @@ export const usePurchasesActions = (options: UsePurchasesActionsOptions) => {
       
       if (response.success) {
         updateStore(prev => prev.filter(p => p.id !== id));
-        toast.success(isArabic ? 'تم حذف طلب الشراء' : 'Purchase order deleted');
+        showToast.success(isArabic ? 'تم حذف طلب الشراء' : 'Purchase order deleted');
         onSuccess?.();
         return true;
       } else {
-        toast.error(response.error || (isArabic ? 'فشل في حذف طلب الشراء' : 'Failed to delete purchase'));
+        showToast.error(response.error || (isArabic ? 'فشل في حذف طلب الشراء' : 'Failed to delete purchase'));
         return false;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to delete purchase';
-      toast.error(message);
+      showToast.error(message);
       return false;
     } finally {
       setIsSubmitting(false);
@@ -119,15 +119,15 @@ export const usePurchasesActions = (options: UsePurchasesActionsOptions) => {
       
       if (response.success && response.data) {
         updateStore(prev => prev.map(p => p.id === id ? response.data! : p));
-        toast.success(isArabic ? 'تم تسجيل استلام الطلب' : 'Order marked as received');
+        showToast.success(isArabic ? 'تم تسجيل استلام الطلب' : 'Order marked as received');
         return true;
       } else {
-        toast.error(response.error || (isArabic ? 'فشل في تسجيل الاستلام' : 'Failed to mark as received'));
+        showToast.error(response.error || (isArabic ? 'فشل في تسجيل الاستلام' : 'Failed to mark as received'));
         return false;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to mark as received';
-      toast.error(message);
+      showToast.error(message);
       return false;
     } finally {
       setIsSubmitting(false);
@@ -141,15 +141,15 @@ export const usePurchasesActions = (options: UsePurchasesActionsOptions) => {
       
       if (response.success && response.data) {
         updateStore(prev => prev.map(p => p.id === id ? response.data! : p));
-        toast.success(isArabic ? 'تم إضافة الدفعة بنجاح' : 'Payment added successfully');
+        showToast.success(isArabic ? 'تم إضافة الدفعة بنجاح' : 'Payment added successfully');
         return true;
       } else {
-        toast.error(response.error || (isArabic ? 'فشل في إضافة الدفعة' : 'Failed to add payment'));
+        showToast.error(response.error || (isArabic ? 'فشل في إضافة الدفعة' : 'Failed to add payment'));
         return false;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to add payment';
-      toast.error(message);
+      showToast.error(message);
       return false;
     } finally {
       setIsSubmitting(false);
@@ -167,14 +167,14 @@ export const usePurchasesActions = (options: UsePurchasesActionsOptions) => {
         updateStore(prev => prev.map(p => 
           p.id === id ? { ...p, addedToInventory: true } : p
         ));
-        toast.success(isArabic ? 'تم إضافة العناصر للمخزون بنجاح' : 'Items added to inventory successfully');
+        showToast.success(isArabic ? 'تم إضافة العناصر للمخزون بنجاح' : 'Items added to inventory successfully');
         return true;
       } else {
         // Fallback to local update if API doesn't support this field
         updateStore(prev => prev.map(p => 
           p.id === id ? { ...p, addedToInventory: true } : p
         ));
-        toast.success(isArabic ? 'تم إضافة العناصر للمخزون بنجاح' : 'Items added to inventory successfully');
+        showToast.success(isArabic ? 'تم إضافة العناصر للمخزون بنجاح' : 'Items added to inventory successfully');
         return true;
       }
     } catch (error) {
@@ -182,7 +182,7 @@ export const usePurchasesActions = (options: UsePurchasesActionsOptions) => {
       updateStore(prev => prev.map(p => 
         p.id === id ? { ...p, addedToInventory: true } : p
       ));
-      toast.success(isArabic ? 'تم إضافة العناصر للمخزون بنجاح' : 'Items added to inventory successfully');
+      showToast.success(isArabic ? 'تم إضافة العناصر للمخزون بنجاح' : 'Items added to inventory successfully');
       return true;
     } finally {
       setIsSubmitting(false);

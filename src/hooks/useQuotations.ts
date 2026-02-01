@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { quotationGateway } from '@/features/quotations/services/quotation.gateway';
 import { Quotation, QuotationFilters, QuotationStats, CreateQuotationDTO } from '@/types/quotation.types';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export function useQuotations(filters?: QuotationFilters) {
   const [quotations, setQuotations] = useState<Quotation[]>([]);
@@ -36,7 +36,7 @@ export function useQuotations(filters?: QuotationFilters) {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred';
       setError(message);
-      toast.error('Failed to fetch quotations');
+      showToast.error('Failed to fetch quotations');
     } finally {
       setLoading(false);
     }
@@ -52,14 +52,14 @@ export function useQuotations(filters?: QuotationFilters) {
       
       if (response.success && response.data) {
         await fetchQuotations();
-        toast.success('Quotation created successfully');
+        showToast.success('Quotation created successfully');
         return response.data;
       } else {
         throw new Error(response.error || 'Failed to create quotation');
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred';
-      toast.error(message);
+      showToast.error(message);
       return null;
     }
   };
@@ -70,14 +70,14 @@ export function useQuotations(filters?: QuotationFilters) {
       
       if (response.success && response.data) {
         await fetchQuotations();
-        toast.success('Quotation updated successfully');
+        showToast.success('Quotation updated successfully');
         return response.data;
       } else {
         throw new Error(response.error || 'Failed to update quotation');
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred';
-      toast.error(message);
+      showToast.error(message);
       return null;
     }
   };
@@ -88,14 +88,14 @@ export function useQuotations(filters?: QuotationFilters) {
       
       if (response.success) {
         await fetchQuotations();
-        toast.success('Quotation deleted successfully');
+        showToast.success('Quotation deleted successfully');
         return true;
       } else {
         throw new Error(response.error || 'Failed to delete quotation');
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred';
-      toast.error(message);
+      showToast.error(message);
       return false;
     }
   };
@@ -106,14 +106,14 @@ export function useQuotations(filters?: QuotationFilters) {
       
       if (response.success) {
         await fetchQuotations();
-        toast.success('Quotation sent successfully');
+        showToast.success('Quotation sent successfully');
         return true;
       } else {
         throw new Error(response.error || 'Failed to send quotation');
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred';
-      toast.error(message);
+      showToast.error(message);
       return false;
     }
   };
@@ -124,14 +124,14 @@ export function useQuotations(filters?: QuotationFilters) {
       
       if (response.success) {
         await fetchQuotations();
-        toast.success('Quotation accepted successfully');
+        showToast.success('Quotation accepted successfully');
         return true;
       } else {
         throw new Error(response.error || 'Failed to accept quotation');
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred';
-      toast.error(message);
+      showToast.error(message);
       return false;
     }
   };
@@ -142,14 +142,14 @@ export function useQuotations(filters?: QuotationFilters) {
       
       if (response.success) {
         await fetchQuotations();
-        toast.success('Quotation declined successfully');
+        showToast.success('Quotation declined successfully');
         return true;
       } else {
         throw new Error(response.error || 'Failed to decline quotation');
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred';
-      toast.error(message);
+      showToast.error(message);
       return false;
     }
   };
@@ -160,14 +160,14 @@ export function useQuotations(filters?: QuotationFilters) {
       
       if (response.success) {
         await fetchQuotations();
-        toast.success('Quotation converted to sale successfully');
+        showToast.success('Quotation converted to sale successfully');
         return true;
       } else {
         throw new Error(response.error || 'Failed to convert quotation to sale');
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred';
-      toast.error(message);
+      showToast.error(message);
       return false;
     }
   };
