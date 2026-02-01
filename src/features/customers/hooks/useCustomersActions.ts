@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Customer, CreateCustomerDTO, UpdateCustomerDTO } from '../types';
 import { customerGateway } from '../services/customer.gateway';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export const useCustomersActions = (
   customers: Customer[],
@@ -36,16 +36,16 @@ export const useCustomersActions = (
       
       if (response.success && response.data) {
         setCustomers(prev => [...prev, response.data!]);
-        toast.success('Customer created successfully');
+        showToast.success('Customer created successfully');
         onSuccess?.();
         return response.data;
       } else {
-        toast.error(response.error || 'Failed to create customer');
+        showToast.error(response.error || 'Failed to create customer');
         return null;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create customer';
-      toast.error(message);
+      showToast.error(message);
       return null;
     } finally {
       setIsSubmitting(false);
@@ -75,16 +75,16 @@ export const useCustomersActions = (
         setCustomers(prev => prev.map(c => 
           c.id === id ? response.data! : c
         ));
-        toast.success('Customer updated successfully');
+        showToast.success('Customer updated successfully');
         onSuccess?.();
         return response.data;
       } else {
-        toast.error(response.error || 'Failed to update customer');
+        showToast.error(response.error || 'Failed to update customer');
         return null;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to update customer';
-      toast.error(message);
+      showToast.error(message);
       return null;
     } finally {
       setIsSubmitting(false);
@@ -98,16 +98,16 @@ export const useCustomersActions = (
       
       if (response.success) {
         setCustomers(prev => prev.filter(c => c.id !== id));
-        toast.success('Customer deleted successfully');
+        showToast.success('Customer deleted successfully');
         onSuccess?.();
         return true;
       } else {
-        toast.error(response.error || 'Failed to delete customer');
+        showToast.error(response.error || 'Failed to delete customer');
         return false;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to delete customer';
-      toast.error(message);
+      showToast.error(message);
       return false;
     } finally {
       setIsSubmitting(false);
@@ -128,15 +128,15 @@ export const useCustomersActions = (
         setCustomers(prev => prev.map(c => 
           c.id === id ? response.data! : c
         ));
-        toast.success('Credit updated successfully');
+        showToast.success('Credit updated successfully');
         return response.data;
       } else {
-        toast.error(response.error || 'Failed to update credit');
+        showToast.error(response.error || 'Failed to update credit');
         return null;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to update credit';
-      toast.error(message);
+      showToast.error(message);
       return null;
     } finally {
       setIsSubmitting(false);
@@ -152,15 +152,15 @@ export const useCustomersActions = (
         setCustomers(prev => prev.map(c => 
           c.id === id ? response.data! : c
         ));
-        toast.success('Customer blocked successfully');
+        showToast.success('Customer blocked successfully');
         return response.data;
       } else {
-        toast.error(response.error || 'Failed to block customer');
+        showToast.error(response.error || 'Failed to block customer');
         return null;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to block customer';
-      toast.error(message);
+      showToast.error(message);
       return null;
     } finally {
       setIsSubmitting(false);
@@ -176,15 +176,15 @@ export const useCustomersActions = (
         setCustomers(prev => prev.map(c => 
           c.id === id ? response.data! : c
         ));
-        toast.success('Customer unblocked successfully');
+        showToast.success('Customer unblocked successfully');
         return response.data;
       } else {
-        toast.error(response.error || 'Failed to unblock customer');
+        showToast.error(response.error || 'Failed to unblock customer');
         return null;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to unblock customer';
-      toast.error(message);
+      showToast.error(message);
       return null;
     } finally {
       setIsSubmitting(false);

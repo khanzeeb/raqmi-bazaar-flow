@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Customer } from '@/types/customer.types';
 import { customerGateway } from '../services/customer.gateway';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export const useCustomersData = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -19,12 +19,12 @@ export const useCustomersData = () => {
         setCustomers(response.data.data);
       } else {
         setError(response.error || 'Failed to fetch customers');
-        toast.error(response.error || 'Failed to fetch customers');
+        showToast.error(response.error || 'Failed to fetch customers');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch customers';
       setError(errorMessage);
-      toast.error(errorMessage);
+      showToast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

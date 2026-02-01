@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Purchase } from '@/types/purchase.types';
 import { purchaseGateway } from '@/features/purchases/services/purchase.gateway';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 interface UsePurchasesDataOptions {
   autoFetch?: boolean;
@@ -26,12 +26,12 @@ export const usePurchasesData = (options: UsePurchasesDataOptions = {}) => {
         setPurchases(response.data.data);
       } else {
         setError(response.error || 'Failed to fetch purchases');
-        toast.error(response.error || 'Failed to fetch purchases');
+        showToast.error(response.error || 'Failed to fetch purchases');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch purchases';
       setError(errorMessage);
-      toast.error(errorMessage);
+      showToast.error(errorMessage);
     } finally {
       setLoading(false);
     }

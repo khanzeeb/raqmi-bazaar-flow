@@ -9,7 +9,7 @@ import { useOrganization } from '../../contexts/OrganizationContext';
 import { PermissionGate } from '../PermissionGate';
 import { Shield, Check, X, Crown, UserCog, Briefcase, User, Eye, Pencil, Save, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 const ROLE_INFO: Record<AppRole, { 
   icon: React.ComponentType<{ className?: string }>;
@@ -209,10 +209,10 @@ export function OrganizationRolesTab() {
       // Update the global ROLE_PERMISSIONS (in production, this would be fetched from backend)
       Object.assign(ROLE_PERMISSIONS, editedPermissions);
       
-      toast.success(isArabic ? 'تم حفظ الصلاحيات بنجاح' : 'Permissions saved successfully');
+      showToast.success(isArabic ? 'تم حفظ الصلاحيات بنجاح' : 'Permissions saved successfully');
       setIsEditMode(false);
     } catch (error) {
-      toast.error(isArabic ? 'فشل حفظ الصلاحيات' : 'Failed to save permissions');
+      showToast.error(isArabic ? 'فشل حفظ الصلاحيات' : 'Failed to save permissions');
     } finally {
       setIsSaving(false);
     }
