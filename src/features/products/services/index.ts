@@ -1,2 +1,2 @@
-// Products Services Barrel Export
-export { productGateway } from './product.gateway';
+// Re-export from modules for backward compatibility
+export { productGateway } from '@/modules/product';

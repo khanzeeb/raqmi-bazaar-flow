@@ -1,2 +1,2 @@
-// Re-export from features for backward compatibility
-export { useProductsData, useProductsData as default } from '@/features/products/hooks/useProductsData';
+// Re-export from modules for backward compatibility
+export { useProductsData } from '@/modules/product';
