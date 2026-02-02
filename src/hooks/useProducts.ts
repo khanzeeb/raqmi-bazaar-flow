@@ -1,7 +1,7 @@
 // useProducts - Consolidated hook using real product gateway
 import { useState, useEffect, useCallback } from 'react';
-import { productGateway } from '@/services/product.gateway';
-import { Product, CreateProductDTO, UpdateProductDTO, ProductFilters, ProductStats } from '@/types/product.types';
+import { productGateway } from '@/modules/product';
+import type { Product, CreateProductDTO, UpdateProductDTO, ProductFiltersType as ProductFilters, ProductStats } from '@/modules/product';
 import { QueryParams, PaginatedResponse } from '@/types/api';
 import { useToast } from '@/hooks/use-toast';
 
