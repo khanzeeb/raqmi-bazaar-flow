@@ -101,8 +101,8 @@ export const useStockCheck = (options: UseStockCheckOptions = {}): UseStockCheck
   const [reservationId, setReservationId] = useState<string | null>(null);
   const [reservationExpiresAt, setReservationExpiresAt] = useState<Date | null>(null);
   
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const expiryWarningTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expiryWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messages = MESSAGES[language];
 
   // Cleanup on unmount - release reservation
