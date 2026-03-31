@@ -22,6 +22,7 @@ import Settings from "./pages/Settings";
 import Pricing from "./pages/Pricing";
 import Invoices from "./pages/Invoices";
 import Returns from "./pages/Returns";
+import Suppliers from "./pages/Suppliers";
 import Monitoring from "./pages/Monitoring";
 import OrganizationSettings from "./pages/OrganizationSettings";
 import Notifications from "./pages/Notifications";
@@ -57,6 +58,7 @@ const App = () => (
                             <Route path="/sales-orders" element={<SalesOrders />} />
                             <Route path="/quotations" element={<Quotations />} />
                             <Route path="/purchases" element={<Purchases />} />
+                            <Route path="/suppliers" element={<Suppliers />} />
                             <Route path="/expenses" element={<Expenses />} />
                             <Route path="/reports" element={<Reports />} />
                             <Route path="/payments" element={<Payments />} />
