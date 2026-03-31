@@ -22,6 +22,7 @@ import Settings from "./pages/Settings";
 import Pricing from "./pages/Pricing";
 import Invoices from "./pages/Invoices";
 import Returns from "./pages/Returns";
+import Suppliers from "./pages/Suppliers";
 import Monitoring from "./pages/Monitoring";
 import OrganizationSettings from "./pages/OrganizationSettings";
 import Notifications from "./pages/Notifications";
