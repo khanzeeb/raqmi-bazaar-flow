@@ -75,6 +75,13 @@ const navigationItems = [
     iconColor: "icon-red"
   },
   { 
+    title: "Suppliers", 
+    titleAr: "الموردين",
+    url: "/suppliers", 
+    icon: Truck,
+    iconColor: "icon-teal"
+  },
+  { 
     title: "Expenses", 
     titleAr: "المصروفات",
     url: "/expenses", 
