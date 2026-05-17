@@ -1,8 +1,7 @@
-// useSalesOrdersData - Data fetching and state management with backend integration
-import { useState, useEffect, useCallback } from 'react';
+// useSalesOrdersData - Static data source
+import { useState, useCallback } from 'react';
 import { SalesOrder } from '@/types/salesOrder.types';
-import { salesOrderGateway } from '@/features/sales/services/salesOrder.gateway';
-import { useToast } from '@/hooks/use-toast';
+import { STATIC_SALES_ORDERS } from './staticSalesOrders';
 
 interface UseSalesOrdersDataOptions {
   initialLimit?: number;
@@ -10,50 +9,21 @@ interface UseSalesOrdersDataOptions {
 }
 
 export const useSalesOrdersData = (options: UseSalesOrdersDataOptions = {}) => {
-  const { toast } = useToast();
-  const { initialLimit = 50, autoFetch = true } = options;
+  const { initialLimit = 50 } = options;
 
-  const [orders, setOrders] = useState<SalesOrder[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({
-    total: 0,
+  const [orders, setOrders] = useState<SalesOrder[]>(STATIC_SALES_ORDERS);
+  const [loading] = useState(false);
+  const [error] = useState<string | null>(null);
+  const [pagination] = useState({
+    total: STATIC_SALES_ORDERS.length,
     page: 1,
     limit: initialLimit,
-    totalPages: 0
+    totalPages: 1,
   });
 
-  const fetchOrders = useCallback(async (page = 1) => {
-    setLoading(true);
-    setError(null);
-
-    const response = await salesOrderGateway.getAll({ page, limit: initialLimit });
-
-    if (response.success && response.data) {
-      setOrders(response.data.data);
-      setPagination({
-        total: response.data.total,
-        page: response.data.page,
-        limit: response.data.limit,
-        totalPages: response.data.totalPages
-      });
-    } else {
-      setError(response.error || 'Failed to fetch orders');
-      toast({
-        title: 'Error',
-        description: response.error || 'Failed to fetch sales orders',
-        variant: 'destructive'
-      });
-    }
-
-    setLoading(false);
-  }, [initialLimit, toast]);
-
-  useEffect(() => {
-    if (autoFetch) {
-      fetchOrders();
-    }
-  }, [autoFetch]);
+  const refresh = useCallback(async () => {
+    setOrders(STATIC_SALES_ORDERS);
+  }, []);
 
   const updateStore = useCallback((updater: (prev: SalesOrder[]) => SalesOrder[]) => {
     setOrders(prev => updater(prev));
@@ -65,7 +35,7 @@ export const useSalesOrdersData = (options: UseSalesOrdersDataOptions = {}) => {
     loading,
     error,
     pagination,
-    refresh: fetchOrders,
-    updateStore
+    refresh,
+    updateStore,
   };
 };
