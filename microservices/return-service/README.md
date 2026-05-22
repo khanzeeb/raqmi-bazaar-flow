@@ -1,48 +1,73 @@
 # Return Service
 
-Microservice for managing product returns and refunds in Raqmi Bazaar.
+NestJS + Knex microservice for product returns, refunds, and workflow management.
 
-## Features
-
-- Return request management
-- RMA (Return Merchandise Authorization)
-- Return reason tracking
-- Refund processing
-- Restocking operations
-- Return item condition tracking
-- Return statistics
-- Return policy enforcement
-- Return approval workflow
-- Return history tracking
-
-## API Endpoints
-
-### Returns
-- `GET /api/returns` - Get all returns
-- `GET /api/returns/:id` - Get return by ID
-- `POST /api/returns` - Create new return
-- `PUT /api/returns/:id` - Update return
-- `DELETE /api/returns/:id` - Delete return
-
-### Operations
-- `POST /api/returns/:id/process` - Process return
-- `POST /api/returns/:id/approve` - Approve return
-- `POST /api/returns/:id/reject` - Reject return
-- `POST /api/returns/:id/refund` - Process refund
-- `GET /api/returns/stats` - Get return statistics
-
-## Environment Variables
-
-See `.env.example` for required environment variables.
-
-## Running the Service
+## Setup
 
 ```bash
+cp .env.example .env
 npm install
-npm run migrate:latest
-npm run dev
 ```
 
-## Port
+## Database (PostgreSQL)
 
-Default port: 3010
+Configure connection in `.env`:
+
+```
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=return_db
+```
+
+### Migrations
+
+```bash
+npm run migrate:latest      # apply all migrations
+npm run migrate:rollback    # roll back last batch
+npm run migrate:make <name> # create a new migration
+```
+
+Migrations live in `src/migrations/`:
+- `001_create_return_tables.ts` — returns + return_items tables
+- `002_seed_indexes.ts` — composite postgres indexes
+
+## Run
+
+```bash
+npm run dev      # development
+npm run build && npm start
+```
+
+## Testing
+
+```bash
+npm test              # run all tests
+npm run test:watch    # watch mode
+npm run test:cov      # coverage report
+```
+
+### Test files
+
+| File | Coverage |
+|------|----------|
+| `src/modules/return/__tests__/return.mapper.spec.ts` | DTO ↔ row mapping, totals |
+| `src/modules/return/__tests__/return.service.spec.ts` | Business logic, workflow guards, validation |
+| `src/modules/return/__tests__/return.controller.spec.ts` | All REST endpoints with supertest, validation pipe errors |
+
+### Endpoints under test
+
+| Method | Path | Cases |
+|--------|------|-------|
+| GET | `/returns` | list, filters, invalid enum |
+| GET | `/returns/stats` | date range |
+| GET | `/returns/sale/:saleId` | by sale |
+| GET | `/returns/customer/:customerId` | by customer |
+| GET | `/returns/:id` | found / not found |
+| POST | `/returns` | valid, missing items, bad uuid, bad enum, empty items, negative qty |
+| PUT | `/returns/:id` | valid update, invalid status |
+| DELETE | `/returns/:id` | success |
+| POST | `/returns/:id/approve` | with / without processedBy |
+| POST | `/returns/:id/reject` | with reason, bad uuid |
+| POST | `/returns/:id/process` | with refund, no body, negative refund |
